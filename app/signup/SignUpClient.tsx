@@ -119,7 +119,7 @@ export default function SignUpClient() {
                 autoComplete="name"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.name ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="John Doe"
                 {...register("name", {
                   required: "Full name is required",
@@ -153,7 +153,7 @@ export default function SignUpClient() {
                 autoComplete="email"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.email ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="you@example.com"
                 {...register("email", {
                   required: "Email is required",
@@ -183,7 +183,7 @@ export default function SignUpClient() {
                 autoComplete="tel"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.phone ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="1234567890"
                 {...register("phone", {
                   required: "Phone number is required",
@@ -214,7 +214,7 @@ export default function SignUpClient() {
                 autoComplete="new-password"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.password ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="••••••••"
                 {...register("password", {
                   required: "Password is required",
@@ -250,7 +250,7 @@ export default function SignUpClient() {
                 autoComplete="new-password"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.confirmPassword ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="••••••••"
                 {...register("confirmPassword", {
                   required: "Please confirm your password",
