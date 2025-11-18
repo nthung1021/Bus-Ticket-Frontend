@@ -22,27 +22,40 @@ export default function SignUpClient() {
     formState: { errors },
     watch,
     setError,
-  } = useForm<FormData>();
+  } = useForm<FormData>({
+    mode: "onBlur",
+  });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with your actual API call
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data)
-      // });
-      // const result = await response.json();
+      const response = await fetch("http://localhost:3000/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: data.name,
+          email: data.email,
+          phone: data.phone,
+          password: data.password,
+        }),
+      });
 
-      console.log("Signup data:", data);
-      // router.push('/login');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Registration failed");
+      }
+
+      // Handle successful registration
+      console.log("Registration successful:", result);
+      router.push("/login");
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Registration error:", error);
       setError("root", {
         type: "manual",
-        message: "An error occurred during signup. Please try again.",
+        message:
+          (error as Error).message || "An error occurred during registration",
       });
     } finally {
       setIsLoading(false);
@@ -108,7 +121,17 @@ export default function SignUpClient() {
                   errors.name ? "border-red-300" : "border-gray-300"
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="John Doe"
-                {...register("name", { required: "Name is required" })}
+                {...register("name", {
+                  required: "Full name is required",
+                  minLength: {
+                    value: 2,
+                    message: "Full name must be at least 2 characters",
+                  },
+                  maxLength: {
+                    value: 100,
+                    message: "Full name cannot exceed 100 characters",
+                  },
+                })}
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">
@@ -135,8 +158,8 @@ export default function SignUpClient() {
                 {...register("email", {
                   required: "Email is required",
                   pattern: {
-                    value: /\S+@\S+\.\S+/,
-                    message: "Email is invalid",
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
                   },
                 })}
               />
@@ -165,8 +188,9 @@ export default function SignUpClient() {
                 {...register("phone", {
                   required: "Phone number is required",
                   pattern: {
-                    value: /^[0-9]{10,15}$/,
-                    message: "Please enter a valid phone number (10-15 digits)",
+                    value: /^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9\d)\d{7}$/,
+                    message:
+                      "Please enter a valid Vietnamese phone number (e.g., 0912345678 or +84912345678)",
                   },
                 })}
               />
@@ -195,8 +219,14 @@ export default function SignUpClient() {
                 {...register("password", {
                   required: "Password is required",
                   minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
+                    value: 8,
+                    message: "Password must be at least 8 characters",
+                  },
+                  pattern: {
+                    value:
+                      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                    message:
+                      "Must include uppercase, lowercase, number, and special character",
                   },
                 })}
               />
@@ -223,7 +253,8 @@ export default function SignUpClient() {
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="••••••••"
                 {...register("confirmPassword", {
-                  validate: (value) =>
+                  required: "Please confirm your password",
+                  validate: (value: string) =>
                     value === watch("password") || "Passwords do not match",
                 })}
               />
