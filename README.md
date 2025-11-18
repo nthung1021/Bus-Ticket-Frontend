@@ -1,3 +1,11 @@
+## Introduction
+
+Our team introduce The Bus Ticket Booking System web application which streamlines the process of purchasing bus tickets online. This app enables passengers to search for routes, compare prices, select seats, and make payments digitally by eliminating the need for physical ticket counters or manual reservations. 
+
+This repository is the frontend code of this system.
+
+This project is still in development.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
