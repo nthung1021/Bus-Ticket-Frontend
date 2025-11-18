@@ -1,66 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+type FormData = {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+};
 
 export default function SignUpClient() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setError,
+  } = useForm<FormData>();
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.phone) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^[0-9]{10,15}$/.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid phone number";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
 
     try {
@@ -68,19 +32,18 @@ export default function SignUpClient() {
       // const response = await fetch('/api/auth/signup', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
+      //   body: JSON.stringify(data)
       // });
-      // const data = await response.json();
+      // const result = await response.json();
 
-      // For now, just log and redirect
-      console.log("Signup data:", formData);
+      console.log("Signup data:", data);
       // router.push('/login');
     } catch (error) {
       console.error("Signup error:", error);
-      setErrors((prev) => ({
-        ...prev,
-        submit: "An error occurred during signup. Please try again.",
-      }));
+      setError("root", {
+        type: "manual",
+        message: "An error occurred during signup. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +67,7 @@ export default function SignUpClient() {
           </p>
         </div>
 
-        {errors.submit && (
+        {errors.root && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -122,13 +85,13 @@ export default function SignUpClient() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-700">{errors.submit}</p>
+                <p className="text-sm text-red-700">{errors.root.message}</p>
               </div>
             </div>
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
               <label
@@ -139,19 +102,18 @@ export default function SignUpClient() {
               </label>
               <input
                 id="name"
-                name="name"
                 type="text"
                 autoComplete="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.name ? "border-red-300" : "border-gray-300"
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="John Doe"
+                {...register("name", { required: "Name is required" })}
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
@@ -164,19 +126,24 @@ export default function SignUpClient() {
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.email ? "border-red-300" : "border-gray-300"
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="you@example.com"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /\S+@\S+\.\S+/,
+                    message: "Email is invalid",
+                  },
+                })}
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -189,19 +156,24 @@ export default function SignUpClient() {
               </label>
               <input
                 id="phone"
-                name="phone"
                 type="tel"
                 autoComplete="tel"
-                required
-                value={formData.phone}
-                onChange={handleChange}
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.phone ? "border-red-300" : "border-gray-300"
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="1234567890"
+                {...register("phone", {
+                  required: "Phone number is required",
+                  pattern: {
+                    value: /^[0-9]{10,15}$/,
+                    message: "Please enter a valid phone number (10-15 digits)",
+                  },
+                })}
               />
               {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.phone.message}
+                </p>
               )}
             </div>
 
@@ -214,19 +186,24 @@ export default function SignUpClient() {
               </label>
               <input
                 id="password"
-                name="password"
                 type="password"
                 autoComplete="new-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.password ? "border-red-300" : "border-gray-300"
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="••••••••"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters",
+                  },
+                })}
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -239,20 +216,20 @@ export default function SignUpClient() {
               </label>
               <input
                 id="confirmPassword"
-                name="confirmPassword"
                 type="password"
                 autoComplete="new-password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.confirmPassword ? "border-red-300" : "border-gray-300"
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="••••••••"
+                {...register("confirmPassword", {
+                  validate: (value) =>
+                    value === watch("password") || "Passwords do not match",
+                })}
               />
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-600">
-                  {errors.confirmPassword}
+                  {errors.confirmPassword.message}
                 </p>
               )}
             </div>
