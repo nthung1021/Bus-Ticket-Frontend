@@ -1,34 +1,20 @@
 import api from "@/lib/api";
-import { LoginRequest, LoginResponse } from "@/types/auth";
 
 export const authService = {
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    try {
-      const response = await api.post<LoginResponse>(
-        "/auth/login",
-        credentials
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error.response?.data?.message || "Login failed. Please try again."
-      );
-    }
+  login: async (credentials: any) => {
+    const response = await api.post("/auth/login", credentials);
+    return response.data;
   },
 
-  logout: () => {
+  logout: async () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   },
 
-  getCurrentUser: () => {
-    // This is a placeholder. In a real app, you might want to decode the JWT token
-    // or make an API call to get the current user's data
+  getCurrentUser: async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) return null;
 
-    // This is a simple way to get user info from the token
-    // In a real app, you might want to use a JWT library to decode the token
     try {
       const base64Url = token.split(".")[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -45,7 +31,10 @@ export const authService = {
     }
   },
 
-  isAuthenticated: (): boolean => {
-    return !!localStorage.getItem("accessToken");
+  refreshToken: async (refreshToken: any) => {
+    const response = await api.post("/auth/refresh-token", {
+      refreshToken,
+    });
+    return response.data;
   },
 };

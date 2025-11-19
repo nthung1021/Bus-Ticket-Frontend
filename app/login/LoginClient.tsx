@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useLogin } from "@/hooks/useAuth";
 
 type LoginFormData = {
   email: string;
@@ -11,38 +11,28 @@ type LoginFormData = {
 
 export default function LoginClient() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
   } = useForm<LoginFormData>();
+  const { mutate: login, isPending } = useLogin();
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-
-    try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data)
-      // });
-      // const result = await response.json();
-
-      console.log("Login data:", data);
-      // router.push('/dashboard');
-    } catch (error) {
-      console.error("Login error:", error);
-      setError("root", {
-        type: "manual",
-        message: "Incorrect email or password",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: LoginFormData) => {
+    login(data, {
+      onSuccess: () => {
+        router.push("/dashboard");
+      },
+      onError: (error: any) => {
+        console.error("Login error:", error);
+        setError("root", {
+          type: "manual",
+          message:
+            error.response?.data?.message || "Incorrect email or password",
+        });
+      },
+    });
   };
 
   return (
@@ -179,10 +169,10 @@ export default function LoginClient() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isPending}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {isPending ? (
                 <>
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
