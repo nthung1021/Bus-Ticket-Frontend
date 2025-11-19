@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useLogin } from "@/hooks/useAuth";
 
 type LoginFormData = {
@@ -44,12 +45,12 @@ export default function LoginClient() {
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Or{" "}
-            <a
+            <Link
               href="/signup"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
               create a new account
-            </a>
+            </Link>
           </p>
         </div>
 
@@ -157,12 +158,12 @@ export default function LoginClient() {
             </div>
 
             <div className="text-sm">
-              <a
+              <Link
                 href="/forgot-password"
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
           </div>
 
