@@ -24,7 +24,7 @@ export default function LoginClient() {
     setIsLoading(true);
 
     try {
-      // TODO: Thay thế bằng API call thực tế
+      // TODO: Replace with actual API call
       // const response = await fetch('/api/auth/login', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
@@ -32,13 +32,13 @@ export default function LoginClient() {
       // });
       // const result = await response.json();
 
-      console.log("Dữ liệu đăng nhập:", data);
+      console.log("Login data:", data);
       // router.push('/dashboard');
     } catch (error) {
-      console.error("Lỗi đăng nhập:", error);
+      console.error("Login error:", error);
       setError("root", {
         type: "manual",
-        message: "Email hoặc mật khẩu không đúng",
+        message: "Incorrect email or password",
       });
     } finally {
       setIsLoading(false);
@@ -50,15 +50,15 @@ export default function LoginClient() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Đăng nhập tài khoản
+            Sign in to your account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Hoặc{" "}
+            Or{" "}
             <a
               href="/signup"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              tạo tài khoản mới
+              create a new account
             </a>
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function LoginClient() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700"
               >
-                Địa chỉ email
+                Email address
               </label>
               <input
                 id="email"
@@ -105,10 +105,10 @@ export default function LoginClient() {
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="you@example.com"
                 {...register("email", {
-                  required: "Vui lòng nhập email",
+                  required: "Please enter your email",
                   pattern: {
                     value: /\S+@\S+\.\S+/,
-                    message: "Địa chỉ email không hợp lệ",
+                    message: "Invalid email address",
                   },
                 })}
               />
@@ -124,7 +124,7 @@ export default function LoginClient() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
               >
-                Mật khẩu
+                Password
               </label>
               <input
                 id="password"
@@ -135,10 +135,10 @@ export default function LoginClient() {
                 } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                 placeholder="••••••••"
                 {...register("password", {
-                  required: "Vui lòng nhập mật khẩu",
+                  required: "Please enter your password",
                   minLength: {
                     value: 6,
-                    message: "Mật khẩu phải có ít nhất 6 ký tự",
+                    message: "Password must be at least 6 characters",
                   },
                 })}
               />
@@ -162,7 +162,7 @@ export default function LoginClient() {
                 htmlFor="remember-me"
                 className="ml-2 block text-sm text-gray-900"
               >
-                Ghi nhớ đăng nhập
+                Remember me
               </label>
             </div>
 
@@ -171,7 +171,7 @@ export default function LoginClient() {
                 href="/forgot-password"
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
-                Quên mật khẩu?
+                Forgot password?
               </a>
             </div>
           </div>
