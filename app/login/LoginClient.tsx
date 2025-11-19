@@ -102,7 +102,7 @@ export default function LoginClient() {
                 autoComplete="email"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.email ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="you@example.com"
                 {...register("email", {
                   required: "Please enter your email",
@@ -132,7 +132,7 @@ export default function LoginClient() {
                 autoComplete="current-password"
                 className={`mt-1 block w-full px-3 py-2 border ${
                   errors.password ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
                 placeholder="••••••••"
                 {...register("password", {
                   required: "Please enter your password",
