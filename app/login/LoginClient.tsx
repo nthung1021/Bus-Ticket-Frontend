@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLogin } from "@/hooks/useAuth";
+import GoogleSignInButton from "./GoogleSignInButton";
 
 type LoginFormData = {
   email: string;
@@ -201,6 +202,7 @@ export default function LoginClient() {
                 "Login"
               )}
             </button>
+            <GoogleSignInButton />
           </div>
         </form>
       </div>

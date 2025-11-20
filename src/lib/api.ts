@@ -1,4 +1,5 @@
 import axios from "axios";
+import { refresh } from "next/cache";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
@@ -10,10 +11,20 @@ const api = axios.create({
   },
 });
 
+const getCookie = (name: string): string | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
+};
+
 // Add a request interceptor to include the auth token in requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    let token = localStorage.getItem("accessToken");
+    if (!token) {
+      token = getCookie("access_token");
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -35,7 +46,10 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
+        let refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) {
+          refreshToken = getCookie("refresh_token");
+        }
         if (refreshToken) {
           const response = await axios.post(
             `${API_BASE_URL}/auth/refresh-token`,
