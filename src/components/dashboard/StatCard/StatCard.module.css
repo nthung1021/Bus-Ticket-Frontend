@@ -1,7 +1,7 @@
 @reference "../../../app/globals.css";
 
 .card {
-  @apply bg-white rounded-xl p-4 shadow-sm border border-border overflow-hidden;
+  @apply bg-white rounded-md p-4 shadow-sm border border-border overflow-hidden min-h-[160px];
 }
 
 .cardContent {
@@ -25,11 +25,11 @@
 }
 
 .iconContainer {
-  @apply rounded-lg p-2 text-white flex-shrink-0;
+  @apply rounded-md p-2 text-white flex-shrink-0;
 }
 
 .iconWrapper {
-  @apply w-4 h-4;
+  @apply w-3 h-3 flex items-center justify-center;
 }
 
 .trendContainer {

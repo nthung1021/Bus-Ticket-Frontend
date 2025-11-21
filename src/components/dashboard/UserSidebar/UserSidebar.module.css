@@ -1,0 +1,79 @@
+@reference "../../../app/globals.css";
+
+@reference "../../../app/globals.css";
+
+.sidebar {
+  @apply fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col backdrop-blur-sm bg-sidebar/95 z-40;
+}
+
+.logoContainer {
+  @apply p-6 border-b border-sidebar-border;
+}
+
+.logoWrapper {
+  @apply flex items-center gap-3;
+}
+
+.logoIcon {
+  @apply w-8 h-8 bg-primary rounded-lg flex items-center justify-center;
+}
+
+.logoIconSvg {
+  @apply w-5 h-5 text-primary-foreground;
+}
+
+.logoText {
+  @apply font-bold text-lg text-sidebar-foreground;
+}
+
+.navigation {
+  @apply flex-1 p-4 flex flex-col;
+}
+
+.menuContainer {
+  @apply space-y-1 flex-1;
+}
+
+.menuItem {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors;
+}
+
+.menuItemActive {
+  @apply bg-sidebar-primary text-sidebar-primary-foreground;
+}
+
+.menuItemInactive {
+  @apply text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+}
+
+.menuIcon {
+  @apply w-5 h-5;
+}
+
+.logoutContainer {
+  @apply mt-4 pt-4 border-t border-sidebar-border;
+}
+
+.logoutButton {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors w-full text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive;
+}
+
+.logoutIcon {
+  @apply w-5 h-5;
+}
+
+.footer {
+  @apply p-4 border-t border-sidebar-border;
+}
+
+.footerContent {
+  @apply text-center;
+}
+
+.footerText {
+  @apply text-sm font-medium text-sidebar-foreground mb-1;
+}
+
+.footerCopyright {
+  @apply text-xs text-sidebar-foreground/60;
+}
