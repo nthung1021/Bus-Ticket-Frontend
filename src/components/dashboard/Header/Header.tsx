@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import styles from "./header.module.css"
+import styles from "./Header.module.css"
 
 export function Header() {
   return (

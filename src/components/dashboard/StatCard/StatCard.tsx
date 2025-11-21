@@ -1,6 +1,6 @@
 import type React from "react"
 import { ArrowUpRight } from "lucide-react"
-import styles from "./stat-card.module.css"
+import styles from "./StatCard.module.css"
 import { cn } from "@/lib/utils"
 
 interface StatCardProps {

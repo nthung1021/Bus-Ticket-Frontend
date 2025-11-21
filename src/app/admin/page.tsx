@@ -1,8 +1,8 @@
 "use client"
 
-import { Sidebar } from "@/components/dashboard/sidebar"
-import { Header } from "@/components/dashboard/header"
-import { StatCard } from "@/components/dashboard/stat-card"
+import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar"
+import { Header } from "@/components/dashboard/Header/Header"
+import { StatCard } from "@/components/dashboard/StatCard/StatCard"
 import {
   BarChart,
   Bar,
