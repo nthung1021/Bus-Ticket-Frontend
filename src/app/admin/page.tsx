@@ -31,7 +31,7 @@ const dashboardData = {
       bgColor: "bg-primary",
     },
     {
-      title: "Total Trips Today",
+      title: "Total Trips",
       value: "375,00",
       subtitle: "$4,00m",
       icon: <MapPin className="w-6 h-6" />,
@@ -45,7 +45,7 @@ const dashboardData = {
       bgColor: "bg-slate-400",
     },
     {
-      title: "Revenue Today",
+      title: "Revenue",
       value: "225,702",
       subtitle: "3k,00m",
       icon: <TrendingUp className="w-6 h-6" />,
@@ -129,9 +129,10 @@ const dashboardData = {
     { name: "Jun", value: 239 },
   ],
   sidebarPieChart: [
-    { name: "Desktop", value: 35, fill: "#5B5FFF" },
-    { name: "Mobile", value: 45, fill: "#FDB927" },
-    { name: "Tablet", value: 20, fill: "#92D14F" },
+    { name: "HN-SG", value: 30, fill: "#0206f3ff" },
+    { name: "SG-DN", value: 30, fill: "#2c4bf7ff" },
+    { name: "DN-HN", value: 20, fill: "#1d8fecff" },
+    { name: "Others", value: 20, fill: "#c9dee7ff" },
   ],
 }
 
@@ -154,7 +155,7 @@ export default function Dashboard() {
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
-              <div className="bg-gray-50 rounded-xl p-4 md:p-6 shadow-sm border border-border">
+              <div className="bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
                 <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">Statistics Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
@@ -171,7 +172,7 @@ export default function Dashboard() {
               </div>
 
               {/* Middle Section - Charts */}
-              <div className="bg-gray-50 rounded-xl p-4 md:p-6 shadow-sm border border-border">
+              <div className="bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
                 <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-4">Analytics Dashboard</h2>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {/* Daily Analytics */}
@@ -205,7 +206,7 @@ export default function Dashboard() {
               </div>
 
               {/* Bottom Section - Recent Bookings Table */}
-              <div className="bg-gray-50 rounded-xl p-4 md:p-6 shadow-sm border border-border">
+              <div className="bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
                 <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -252,7 +253,7 @@ export default function Dashboard() {
             </div>
 
             {/* Right Sidebar - Full width on mobile, 1/3 on desktop */}
-            <div className="w-full xl:w-1/3 bg-gray-50 rounded-xl p-4 md:p-6 shadow-sm border border-border">
+            <div className="w-full xl:w-1/3 bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
               <div className="space-y-3 md:space-y-4">
                 {/* Line Chart Card */}
                 <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
@@ -270,7 +271,7 @@ export default function Dashboard() {
 
                 {/* Pie Chart Card */}
                 <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Device Usage</h3>
+                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Tickets Sold Per Route</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
