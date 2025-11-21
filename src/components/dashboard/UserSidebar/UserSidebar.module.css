@@ -1,5 +1,7 @@
 @reference "../../../app/globals.css";
 
+@reference "../../../app/globals.css";
+
 .sidebar {
   @apply fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col backdrop-blur-sm bg-sidebar/95 z-40;
 }
