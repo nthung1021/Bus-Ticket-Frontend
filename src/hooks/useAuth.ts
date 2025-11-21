@@ -9,10 +9,13 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: authService.login,
-    onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      queryClient.setQueryData(["currentUser"], data.user);
+    onSuccess: (response) => {
+      let payload = response?.data ?? response;
+      if (!payload) return;
+      if (payload?.success && payload.data) payload = payload.data;
+      localStorage.setItem("accessToken", payload.accessToken);
+      localStorage.setItem("refreshToken", payload.refreshToken);
+      queryClient.setQueryData(["currentUser"], payload.user);
       router.push("/dashboard");
     },
   });

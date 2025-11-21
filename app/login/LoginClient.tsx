@@ -4,7 +4,9 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLogin } from "@/hooks/useAuth";
+import { useAuth } from "app/AuthContext";
 import GoogleSignInButton from "./GoogleSignInButton";
+import { log } from "console";
 
 type LoginFormData = {
   email: string;
@@ -19,10 +21,12 @@ export default function LoginClient() {
     formState: { errors },
     setError,
   } = useForm<LoginFormData>();
-  const { mutate: login, isPending } = useLogin();
+  const { user, login } = useAuth();
+  const { mutateAsync: loginMu, isPending } = useLogin();
 
   const onSubmit = (data: LoginFormData) => {
-    login(data, {
+    /*
+    loginMu(data, {
       onSuccess: () => {
         router.push("/dashboard");
       },
@@ -35,6 +39,31 @@ export default function LoginClient() {
         });
       },
     });
+    */
+    (async () => {
+      try {
+        const response = (await loginMu(data)) as any;
+        let payload = response?.data ?? response;
+        if (payload?.success && payload.data) payload = payload.data;
+        const userPayload = payload?.user ?? payload;
+
+        const userForContext = {
+          id: userPayload?.userId ?? userPayload?.id,
+          name: userPayload?.fullName ?? userPayload?.name,
+          email: userPayload?.email,
+        };
+
+        login(userForContext as any);
+        router.push("/");
+      } catch (error: any) {
+        console.error("Login error:", error);
+        setError("root", {
+          type: "manual",
+          message:
+            error.response?.data?.message || "Incorrect email or password",
+        });
+      }
+    })();
   };
 
   return (
