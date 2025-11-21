@@ -1,7 +1,18 @@
 import api from "@/lib/api";
 
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: any;
+}
+
 export const authService = {
-  login: async (credentials: any) => {
+  login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     const response = await api.post("/auth/login", credentials);
     return response.data;
   },
@@ -31,7 +42,7 @@ export const authService = {
     }
   },
 
-  refreshToken: async (refreshToken: any) => {
+  refreshToken: async (refreshToken: string) => {
     const response = await api.post("/auth/refresh-token", {
       refreshToken,
     });

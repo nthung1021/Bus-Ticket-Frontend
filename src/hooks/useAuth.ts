@@ -1,13 +1,24 @@
-// src/hooks/useAuth.ts
+// hooks/useAuth.ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth";
 import { useRouter } from "next/navigation";
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: any;
+}
 
 export const useLogin = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<LoginResponse, Error, LoginCredentials>({
     mutationFn: authService.login,
     onSuccess: (data) => {
       localStorage.setItem("accessToken", data.accessToken);
