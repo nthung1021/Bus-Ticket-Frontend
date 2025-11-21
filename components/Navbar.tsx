@@ -41,7 +41,7 @@ export default function Navbar() {
                   Hello, {user.name} ({user.role.toUpperCase()})
                 </span>
                 {user.role === 'admin' && 
-                  <Link className="btn-primary" href="/admin">
+                  <Link className="btn-primary" href="/admin/manage-users">
                     Admin
                   </Link>
                 }
@@ -89,7 +89,7 @@ export default function Navbar() {
                   Hello, {user.name} ({user.role.toUpperCase()})
                 </span>
                 {user.role === 'admin' && 
-                  <Link className="btn-primary" href="/admin">
+                  <Link className="btn-primary" href="/admin/manage-users">
                     Admin
                   </Link>
                 }
