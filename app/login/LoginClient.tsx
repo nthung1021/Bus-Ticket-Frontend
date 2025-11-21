@@ -51,6 +51,7 @@ export default function LoginClient() {
           id: userPayload?.userId ?? userPayload?.id,
           name: userPayload?.fullName ?? userPayload?.name,
           email: userPayload?.email,
+          role: userPayload?.role,
         };
 
         login(userForContext as any);

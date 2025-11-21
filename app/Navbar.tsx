@@ -38,12 +38,14 @@ export default function Navbar() {
             ) : (
               <>
                 <span>
-                  Hello, {user.name}
+                  Hello, {user.name} ({user.role.toUpperCase()})
                 </span>
-                <button
-                  onClick={logout}
-                  className="btn-secondary"
-                >
+                {user.role === 'admin' && 
+                  <Link className="btn-primary" href="/admin">
+                    Admin
+                  </Link>
+                }
+                <button onClick={logout} className="btn-secondary">
                   Logout
                 </button>
               </>
@@ -84,8 +86,13 @@ export default function Navbar() {
             ) : (
               <>
                 <span className="navbar-mobile-username">
-                  Hello, {user.name}
+                  Hello, {user.name} ({user.role.toUpperCase()})
                 </span>
+                {user.role === 'admin' && 
+                  <Link className="btn-primary" href="/admin">
+                    Admin
+                  </Link>
+                }
                 <button
                   className="btn-secondary"
                   onClick={logout}
