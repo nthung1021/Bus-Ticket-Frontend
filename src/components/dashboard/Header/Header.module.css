@@ -1,0 +1,45 @@
+@reference "../../../app/globals.css";
+
+.header {
+  @apply fixed top-0 left-64 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4;
+}
+
+.title {
+  @apply text-2xl font-bold text-foreground;
+}
+
+.actionsContainer {
+  @apply flex items-center gap-4;
+}
+
+.notificationButton {
+  @apply relative p-2 hover:bg-muted rounded-lg transition-colors;
+}
+
+.notificationIcon {
+  @apply w-5 h-5 text-foreground;
+}
+
+.notificationBadge {
+  @apply absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full;
+}
+
+.iconButton {
+  @apply p-2 hover:bg-muted rounded-lg transition-colors;
+}
+
+.icon {
+  @apply w-5 h-5 text-foreground;
+}
+
+.userButton {
+  @apply flex items-center gap-2 p-2 hover:bg-muted rounded-lg transition-colors;
+}
+
+.userName {
+  @apply text-foreground font-medium hidden sm:block;
+}
+
+.dropdownContent {
+  @apply w-56;
+}

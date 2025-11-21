@@ -1,0 +1,65 @@
+@reference "../../../app/globals.css";
+
+.sidebar {
+  @apply fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col;
+}
+
+.logoContainer {
+  @apply p-6 border-b border-sidebar-border;
+}
+
+.logoWrapper {
+  @apply flex items-center gap-3;
+}
+
+.logoIcon {
+  @apply w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center;
+}
+
+.logoIconSvg {
+  @apply w-5 h-5 text-sidebar-primary-foreground;
+}
+
+.logoText {
+  @apply font-bold text-lg text-sidebar-foreground;
+}
+
+.navigation {
+  @apply flex-1 p-4;
+}
+
+.menuContainer {
+  @apply space-y-1;
+}
+
+.menuItem {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors;
+}
+
+.menuItemActive {
+  @apply bg-sidebar-primary text-sidebar-primary-foreground;
+}
+
+.menuItemInactive {
+  @apply text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+}
+
+.menuIcon {
+  @apply w-5 h-5;
+}
+
+.quickActionsContainer {
+  @apply p-4 border-t border-sidebar-border;
+}
+
+.quickActionsButton {
+  @apply w-full bg-primary text-primary-foreground py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity;
+}
+
+.quickActionsIcon {
+  @apply w-4 h-4 inline mr-2;
+}
+
+.footer {
+  @apply p-4 text-xs text-sidebar-foreground/60 border-t border-sidebar-border;
+}

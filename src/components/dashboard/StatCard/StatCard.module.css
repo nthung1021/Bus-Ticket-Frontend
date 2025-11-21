@@ -1,0 +1,49 @@
+@reference "../../../app/globals.css";
+
+.card {
+  @apply bg-white rounded-xl p-4 shadow-sm border border-border overflow-hidden;
+}
+
+.cardContent {
+  @apply flex items-start justify-between gap-3;
+}
+
+.textContent {
+  @apply flex-1 min-w-0;
+}
+
+.title {
+  @apply text-muted-foreground text-sm font-medium;
+}
+
+.value {
+  @apply text-2xl font-bold text-foreground mt-2;
+}
+
+.subtitle {
+  @apply text-muted-foreground text-xs mt-2;
+}
+
+.iconContainer {
+  @apply rounded-lg p-2 text-white flex-shrink-0;
+}
+
+.iconWrapper {
+  @apply w-4 h-4;
+}
+
+.trendContainer {
+  @apply flex items-center gap-1 mt-4;
+}
+
+.trendIcon {
+  @apply w-4 h-4 text-accent;
+}
+
+.trendValue {
+  @apply text-accent text-xs font-semibold;
+}
+
+.trendLabel {
+  @apply text-muted-foreground text-xs;
+}
