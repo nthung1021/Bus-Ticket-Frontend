@@ -1,7 +1,7 @@
 'use client';
 import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from 'supporters/AuthContext';
+import { useAuth } from 'src/supporters/AuthContext';
 import { useCurrentUser } from '@/hooks/useAuth'; // optional if you use query for user
 
 export default function ProtectedRole({ children, allowed }: { children: ReactNode; allowed: string[] }) {

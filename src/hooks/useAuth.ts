@@ -1,6 +1,6 @@
 // src/hooks/useAuth.ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authService } from "@/services/auth";
+import { authService } from "src/services/auth";
 import { useRouter } from "next/navigation";
 
 export const useLogin = () => {

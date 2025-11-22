@@ -3,8 +3,8 @@
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useLogin } from "@/hooks/useAuth";
-import { useAuth } from "supporters/AuthContext";
+import { useLogin } from "src/hooks/useAuth";
+import { useAuth } from "src/supporters/AuthContext";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { log } from "console";
 
