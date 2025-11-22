@@ -7,7 +7,7 @@ export default function GoogleSignInButton() {
 
   const handleGoogleSignIn = () => {
     // Redirect to the backend's Google OAuth endpoint
-    window.location.href = "http://localhost:3000/auth/google";
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google`;
     // router.push("/auth/google");
   };
 
