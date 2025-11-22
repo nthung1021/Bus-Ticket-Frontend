@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useAuth } from "components/AuthContext";
+import { useAuth } from "supporters/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);

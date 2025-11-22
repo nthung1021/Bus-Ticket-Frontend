@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLogin } from "@/hooks/useAuth";
-import { useAuth } from "components/AuthContext";
+import { useAuth } from "supporters/AuthContext";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { log } from "console";
 

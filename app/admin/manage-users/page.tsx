@@ -1,7 +1,7 @@
 'use client';
 
-import ProtectedRole from 'components/ProtectedRole';
-import Navbar from 'components/Navbar';
+import ProtectedRole from 'supporters/ProtectedRole';
+import Navbar from 'supporters/Navbar';
 import { useAdminUsers, useChangeUserRole, type AdminUser } from 'src/hooks/useAdminUsers';
 import { useState } from 'react';
 
