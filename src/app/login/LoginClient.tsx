@@ -3,7 +3,8 @@
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useLogin } from "@/hooks/useAuth";
+import { useLogin } from "src/hooks/useAuth";
+import { useAuth } from "src/supporters/AuthContext";
 import GoogleSignInButton from "./GoogleSignInButton";
 
 type LoginFormData = {
@@ -19,22 +20,35 @@ export default function LoginClient() {
     formState: { errors },
     setError,
   } = useForm<LoginFormData>();
-  const { mutate: login, isPending } = useLogin();
+  const { user, login } = useAuth();
+  const { mutateAsync: loginMu, isPending } = useLogin();
 
   const onSubmit = (data: LoginFormData) => {
-    login(data, {
-      onSuccess: () => {
-        router.push("/dashboard");
-      },
-      onError: (error: any) => {
+    (async () => {
+      try {
+        const response = (await loginMu(data)) as any;
+        let payload = response?.data ?? response;
+        if (payload?.success && payload.data) payload = payload.data;
+        const userPayload = payload?.user ?? payload;
+
+        const userForContext = {
+          id: userPayload?.userId ?? userPayload?.id,
+          name: userPayload?.fullName ?? userPayload?.name,
+          email: userPayload?.email,
+          role: userPayload?.role,
+        };
+
+        login(userForContext as any);
+        router.push("/");
+      } catch (error: any) {
         console.error("Login error:", error);
         setError("root", {
           type: "manual",
           message:
             error.response?.data?.message || "Incorrect email or password",
         });
-      },
-    });
+      }
+    })();
   };
 
   return (
@@ -58,7 +72,7 @@ export default function LoginClient() {
         {errors.root && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
             <div className="flex">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <svg
                   className="h-5 w-5 text-red-500"
                   xmlns="http://www.w3.org/2000/svg"

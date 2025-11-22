@@ -123,3 +123,69 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components{
+  .navbar {
+      @apply py-6 border-b
+  }
+
+  .navbar-desktop {
+      @apply container mx-auto px-4
+  }
+
+  .navbar-desktop-content {
+      @apply relative flex items-center justify-between
+  }
+
+  .navbar-desktop-brand {
+      @apply inline-block font-semibold text-teal-900
+  }
+
+  .navbar-desktop-links {
+      @apply hidden md:flex gap-6 absolute left-1/2 -translate-x-1/2
+  }
+
+  .navbar-desktop-links li a {
+      @apply text-teal-900 hover:text-teal-700
+  }
+
+  .navbar-desktop-actions {
+      @apply hidden md:flex gap-3
+  }
+
+  .navbar-desktop-actions span {
+      @apply font-bold text-teal-900 flex items-center justify-center
+  }
+
+  .navbar-mobile {
+      @apply md:hidden px-4 pt-4 pb-2
+  }
+
+  .navbar-mobile-menu {
+      @apply flex flex-col gap-3
+  }
+
+  .navbar-mobile-links{
+      @apply gap-6
+  }
+
+  .navbar-mobile-links li a {
+      @apply text-teal-900 hover:text-teal-700 flex justify-center
+  }
+
+  .navbar-mobile-username {
+      @apply font-semibold text-teal-900 flex items-center justify-center
+  }
+  
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-teal-900 text-white px-4 py-2.5 hover:bg-black transition;
+  }
+
+  .btn-primary[disabled] {
+    @apply opacity-60 cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center text-sm border border-teal-900 rounded-full hover:bg-teal-900 px-4 py-2.5 hover:text-white transition;
+  }
+}

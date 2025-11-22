@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation";
+import Navbar from "src/supporters/Navbar";
 
 export default function Home() {
-  // Redirect the root path to the login page so the app opens the login UI by default.
-  redirect("/login");
-  return null;
+  return (
+    <Navbar />
+  );
 }
