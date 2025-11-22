@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
+import { authService } from "@/services/auth";
 
 type FormData = {
   name: string;
@@ -33,23 +34,12 @@ export default function SignUpClient() {
     const loadingToast = toast.loading("Creating account...");
 
     try {
-      const response = await fetch("http://localhost:3000/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: data.name,
-          email: data.email,
-          phone: data.phone,
-          password: data.password,
-        }),
+      await authService.register({
+        fullName: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
-      }
 
       // Show success message
       toast.success("Registration successful! Redirecting...", {
@@ -60,12 +50,15 @@ export default function SignUpClient() {
       setTimeout(() => {
         router.push("/login");
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
+
+      // Extract error message from Axios error response
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "An error occurred during registration";
+        error.response?.data?.message ||
+        error.message ||
+        "An error occurred during registration";
+
       toast.error(errorMessage, { id: loadingToast });
       setError("root", {
         type: "manual",
