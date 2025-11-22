@@ -19,6 +19,18 @@ api.interceptors.response.use(
 
     // If the error status is 401 and we haven't tried to refresh the token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Check if this is an auth endpoint (login, register, refresh-token)
+      const isAuthEndpoint =
+        originalRequest.url?.includes("/auth/login") ||
+        originalRequest.url?.includes("/auth/register") ||
+        originalRequest.url?.includes("/auth/refresh-token");
+
+      // If it's an auth endpoint, don't try to refresh or redirect
+      // Just return the error so the form can display it
+      if (isAuthEndpoint) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       try {
