@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useLogin } from "src/hooks/useAuth";
 import { useAuth } from "src/supporters/AuthContext";
 import GoogleSignInButton from "./GoogleSignInButton";
-import { log } from "console";
 
 type LoginFormData = {
   email: string;
@@ -25,21 +24,6 @@ export default function LoginClient() {
   const { mutateAsync: loginMu, isPending } = useLogin();
 
   const onSubmit = (data: LoginFormData) => {
-    /*
-    loginMu(data, {
-      onSuccess: () => {
-        router.push("/dashboard");
-      },
-      onError: (error: any) => {
-        console.error("Login error:", error);
-        setError("root", {
-          type: "manual",
-          message:
-            error.response?.data?.message || "Incorrect email or password",
-        });
-      },
-    });
-    */
     (async () => {
       try {
         const response = (await loginMu(data)) as any;
