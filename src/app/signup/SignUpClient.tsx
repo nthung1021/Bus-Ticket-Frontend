@@ -108,7 +108,7 @@ export default function SignUpClient() {
           {errors.root && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
               <div className="flex">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg
                     className="h-5 w-5 text-red-500"
                     xmlns="http://www.w3.org/2000/svg"
