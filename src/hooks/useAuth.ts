@@ -20,13 +20,10 @@ export const useLogin = () => {
 
   return useMutation<LoginResponse, Error, LoginCredentials>({
     mutationFn: authService.login,
-    onSuccess: (response) => {
-      let payload = response?.data ?? response;
-      if (!payload) return;
-      if (payload?.success && payload.data) payload = payload.data;
-      localStorage.setItem("accessToken", payload.accessToken);
-      localStorage.setItem("refreshToken", payload.refreshToken);
-      queryClient.setQueryData(["currentUser"], payload.user);
+    onSuccess: (data) => {
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      queryClient.setQueryData(["currentUser"], data.user);
       router.push("/dashboard");
     },
   });
@@ -48,10 +45,11 @@ export const useLogout = () => {
 };
 
 export const useCurrentUser = () => {
+  const isClient = typeof window !== "undefined";
   return useQuery({
     queryKey: ["currentUser"],
     queryFn: authService.getCurrentUser,
-    enabled: !!localStorage.getItem("accessToken"),
+    enabled: isClient && !!localStorage.getItem("accessToken"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   });

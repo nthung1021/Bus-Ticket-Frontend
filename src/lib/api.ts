@@ -57,7 +57,7 @@ api.interceptors.response.use(
             }
           );
 
-          const { accessToken } = response.data;
+          const { accessToken } = response.data.data;
           localStorage.setItem("accessToken", accessToken);
 
           // Retry the original request with the new token
