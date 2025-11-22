@@ -9,8 +9,6 @@ interface LoginCredentials {
 }
 
 interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
   user: any;
 }
 
@@ -21,8 +19,8 @@ export const useLogin = () => {
   return useMutation<LoginResponse, Error, LoginCredentials>({
     mutationFn: authService.login,
     onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      // Tokens are now stored in HTTP-only cookies by the server
+      // We only need to store user data
       queryClient.setQueryData(["currentUser"], data.user);
       router.push("/dashboard");
     },
@@ -36,8 +34,7 @@ export const useLogout = () => {
   return useMutation({
     mutationFn: authService.logout,
     onSuccess: () => {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      // Cookies are cleared by the server
       queryClient.clear();
       router.push("/login");
     },
@@ -45,11 +42,9 @@ export const useLogout = () => {
 };
 
 export const useCurrentUser = () => {
-  const isClient = typeof window !== "undefined";
   return useQuery({
     queryKey: ["currentUser"],
     queryFn: authService.getCurrentUser,
-    enabled: isClient && !!localStorage.getItem("accessToken"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   });

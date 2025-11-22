@@ -8,31 +8,8 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Enable sending cookies with requests
 });
-
-const getCookie = (name: string): string | null => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-  return null;
-};
-
-// Add a request interceptor to include the auth token in requests
-api.interceptors.request.use(
-  (config) => {
-    let token = localStorage.getItem("accessToken");
-    if (!token) {
-      token = getCookie("access_token");
-    }
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Add a response interceptor to handle token refresh
 api.interceptors.response.use(
@@ -45,30 +22,21 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        let refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          refreshToken = getCookie("refresh_token");
-        }
-        if (refreshToken) {
-          const response = await axios.post(
-            `${API_BASE_URL}/auth/refresh-token`,
-            {
-              refreshToken,
-            }
-          );
+        // Try to refresh the token (cookies will be sent automatically)
+        await axios.post(
+          `${API_BASE_URL}/auth/refresh-token`,
+          {},
+          {
+            withCredentials: true, // Send cookies with refresh request
+          }
+        );
 
-          const { accessToken } = response.data.data;
-          localStorage.setItem("accessToken", accessToken);
-
-          // Retry the original request with the new token
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
-        }
-      } catch (error) {
-        // If refresh token fails, clear storage and redirect to login
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        // Retry the original request (new cookies are now set)
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh token fails, redirect to login
         window.location.href = "/login";
+        return Promise.reject(refreshError);
       }
     }
 

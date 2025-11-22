@@ -6,8 +6,6 @@ interface LoginCredentials {
 }
 
 interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
   user: any;
 }
 
@@ -18,34 +16,25 @@ export const authService = {
   },
 
   logout: async () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    // Call logout endpoint to clear cookies on server
+    await api.post("/auth/logout");
   },
 
   getCurrentUser: async () => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return null;
-
     try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      );
-      return JSON.parse(jsonPayload);
+      // Try to fetch current user from backend
+      // The access token cookie will be sent automatically
+      const response = await api.get("/auth/me");
+      return response.data.data;
     } catch (error) {
-      console.error("Error decoding token:", error);
+      // If request fails (e.g., no valid token), return null
       return null;
     }
   },
 
-  refreshToken: async (refreshToken: string) => {
-    const response = await api.post("/auth/refresh-token", {
-      refreshToken,
-    });
+  refreshToken: async () => {
+    // Refresh token is sent automatically via cookie
+    const response = await api.post("/auth/refresh-token", {});
     return response.data.data;
   },
 };
