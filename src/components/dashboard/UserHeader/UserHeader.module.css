@@ -1,13 +1,11 @@
 @reference "../../../app/globals.css";
 
-@reference "../../../app/globals.css";
-
 .header {
   @apply fixed top-0 left-64 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 backdrop-blur-sm bg-card/90 z-50;
 }
 
 .title {
-  @apply text-2xl font-bold text-foreground;
+  @apply text-foreground;
 }
 
 .actionsContainer {

@@ -13,15 +13,15 @@
 }
 
 .title {
-  @apply text-muted-foreground text-sm font-medium;
+  @apply text-muted-foreground font-medium;
 }
 
 .value {
-  @apply text-2xl font-bold text-foreground mt-2;
+  @apply text-foreground mt-2;
 }
 
 .subtitle {
-  @apply text-muted-foreground text-xs mt-2;
+  @apply text-muted-foreground mt-2;
 }
 
 .iconContainer {
@@ -41,9 +41,9 @@
 }
 
 .trendValue {
-  @apply text-accent text-xs font-semibold;
+  @apply text-accent font-semibold;
 }
 
 .trendLabel {
-  @apply text-muted-foreground text-xs;
+  @apply text-muted-foreground;
 }

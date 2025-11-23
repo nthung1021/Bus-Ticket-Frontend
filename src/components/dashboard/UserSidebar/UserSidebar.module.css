@@ -1,7 +1,5 @@
 @reference "../../../app/globals.css";
 
-@reference "../../../app/globals.css";
-
 .sidebar {
   @apply fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col backdrop-blur-sm bg-sidebar/95 z-40;
 }
@@ -23,7 +21,7 @@
 }
 
 .logoText {
-  @apply font-bold text-lg text-sidebar-foreground;
+  @apply text-sidebar-foreground;
 }
 
 .navigation {
@@ -35,7 +33,7 @@
 }
 
 .menuItem {
-  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors;
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors;
 }
 
 .menuItemActive {
@@ -71,9 +69,9 @@
 }
 
 .footerText {
-  @apply text-sm font-medium text-sidebar-foreground mb-1;
+  @apply font-medium text-sidebar-foreground mb-1;
 }
 
 .footerCopyright {
-  @apply text-xs text-sidebar-foreground/60;
+  @apply text-sidebar-foreground/60;
 }

@@ -27,7 +27,7 @@ export function Sidebar() {
           <div className={styles.logoIcon}>
             <Truck className={styles.logoIconSvg} />
           </div>
-          <span className={styles.logoText}>Bus Admin</span>
+          <span className={`${styles.logoText} text-h5`}>Bus Admin</span>
         </div>
       </div>
 
@@ -43,6 +43,7 @@ export function Sidebar() {
                 href={item.href}
                 className={cn(
                   styles.menuItem,
+                  "text-body",
                   isActive ? styles.menuItemActive : styles.menuItemInactive
                 )}
               >
@@ -63,7 +64,7 @@ export function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className={styles.footer}>
+      <div className={`${styles.footer} text-caption`}>
         Copyright {new Date().getFullYear().toString()}
       </div>
     </aside>
