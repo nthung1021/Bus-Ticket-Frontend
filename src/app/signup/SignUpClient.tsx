@@ -91,10 +91,10 @@ export default function SignUpClient() {
       <div className="min-h-screen flex items-center justify-center bg-background py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-6 bg-card p-6 rounded-lg shadow-md border border-border">
           <div className="text-center">
-            <h2 className="mt-4 text-3xl font-extrabold text-foreground">
+            <h2 className="mt-4 text-h2 text-foreground">
               Create an account
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-caption text-muted-foreground">
               Already have an account?{" "}
               <Link
                 href="/login"
@@ -134,7 +134,7 @@ export default function SignUpClient() {
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-foreground"
+                  className="block text-caption font-medium text-foreground"
                 >
                   Full Name
                 </label>

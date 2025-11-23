@@ -18,7 +18,8 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Route, MapPin, TicketCheck, TrendingUp, Plus, FileText } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 
 const dashboardData = {
@@ -42,7 +43,7 @@ const dashboardData = {
       value: "88,230",
       subtitle: "$4,00m",
       icon: <TicketCheck className="w-6 h-6" />,
-      bgColor: "bg-slate-400",
+      bgColor: "bg-secondary",
     },
     {
       title: "Revenue",
@@ -138,6 +139,10 @@ const dashboardData = {
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
+  const { theme } = useTheme()
+  
+  // Dynamic grid color based on theme
+  const gridColor = theme === 'dark' ? '#374151' : '#e5e7eb'
 
   return (
     <div className="flex h-screen bg-background">
@@ -156,7 +161,7 @@ export default function Dashboard() {
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">Statistics Overview</h2>
+                <h2 className="text-h2 text-card-foreground mb-6">Statistics Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -173,14 +178,14 @@ export default function Dashboard() {
 
               {/* Middle Section - Charts */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">Analytics Dashboard</h2>
+                <h2 className="text-h2 text-card-foreground mb-6">Analytics Dashboard</h2>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {/* Daily Analytics */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Daily & Analytics</h3>
+                    <h3 className="text-h3 text-card-foreground mb-4">Daily & Analytics</h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={dashboardData.dailyAnalytics}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="day" />
                         <YAxis />
                         <Tooltip />
@@ -191,10 +196,10 @@ export default function Dashboard() {
 
                   {/* Daily Revenue */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Daily Revenue</h3>
+                    <h3 className="text-h3 text-card-foreground mb-4">Daily Revenue</h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={dashboardData.dailyRevenue}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="time" />
                         <YAxis />
                         <Tooltip />
@@ -207,7 +212,7 @@ export default function Dashboard() {
 
               {/* Bottom Section - Recent Bookings Table */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Recent Bookings</h2>
+                <h2 className="text-h2 text-card-foreground mb-4 md:mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -257,10 +262,10 @@ export default function Dashboard() {
               <div className="space-y-3 md:space-y-4">
                 {/* Line Chart Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Monthly Trends</h3>
+                  <h3 className="text-h3 text-card-foreground mb-4">Monthly Trends</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={dashboardData.sidebarLineChart}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip />
@@ -271,7 +276,7 @@ export default function Dashboard() {
 
                 {/* Pie Chart Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Tickets Sold Per Route</h3>
+                  <h3 className="text-h3 text-card-foreground mb-4">Tickets Sold Per Route</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
@@ -289,7 +294,7 @@ export default function Dashboard() {
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="mt-4 space-y-2 text-sm">
+                  <div className="mt-4 space-y-2 text-caption">
                     {dashboardData.sidebarPieChart.map((item, index) => (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -304,7 +309,7 @@ export default function Dashboard() {
 
                 {/* Quick Actions Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Quick Actions</h3>
+                  <h3 className="text-h3 text-card-foreground mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <Button className="w-full justify-start" variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-2" />
