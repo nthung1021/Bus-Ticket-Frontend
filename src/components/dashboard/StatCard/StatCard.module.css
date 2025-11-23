@@ -1,7 +1,7 @@
 @reference "../../../app/globals.css";
 
 .card {
-  @apply bg-white rounded-md p-4 shadow-sm border border-border overflow-hidden min-h-[160px];
+  @apply bg-card rounded-md p-4 shadow-sm border border-border overflow-hidden min-h-[160px];
 }
 
 .cardContent {
@@ -17,7 +17,7 @@
 }
 
 .value {
-  @apply text-foreground mt-2;
+  @apply text-card-foreground mt-2;
 }
 
 .subtitle {

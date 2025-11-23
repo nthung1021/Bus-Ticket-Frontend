@@ -58,3 +58,36 @@
   opacity: 0.85;
   line-height: 1.4;
 }
+
+/* Dashboard Section Styling */
+.dashboard-section {
+  @apply rounded-md p-4 md:p-6 shadow-sm border border-border;
+  background: var(--card);
+}
+
+.dashboard-section.dark {
+  background: var(--primary);
+}
+
+.dashboard-section-title {
+  @apply text-lg md:text-xl font-bold mb-4 md:mb-6;
+  color: var(--card-foreground);
+}
+
+.dashboard-section.dark .dashboard-section-title {
+  color: var(--primary-foreground);
+}
+
+.dashboard-sidebar {
+  @apply rounded-md p-4 md:p-6 shadow-sm border border-border;
+  background: var(--card);
+}
+
+.dashboard-sidebar.dark {
+  background: var(--primary);
+}
+
+.dashboard-sidebar-title {
+  @apply text-base md:text-lg font-bold mb-4;
+  color: var(--card-foreground);
+}

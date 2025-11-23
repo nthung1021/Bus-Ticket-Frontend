@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import ThemeToggle from "@/components/ui/ThemeToggle"
 import styles from "./UserHeader.module.css"
 
 export function UserHeader() {
@@ -21,6 +22,8 @@ export function UserHeader() {
           <Bell className={styles.notificationIcon} />
           <span className={styles.notificationBadge}></span>
         </button>
+
+        <ThemeToggle />
 
         <button className={styles.iconButton}>
           <Ticket className={styles.icon} />

@@ -155,8 +155,8 @@ export default function Dashboard() {
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
-              <div className="bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">Statistics Overview</h2>
+              <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Statistics Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -172,12 +172,12 @@ export default function Dashboard() {
               </div>
 
               {/* Middle Section - Charts */}
-              <div className="bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-4">Analytics Dashboard</h2>
+              <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-4">Analytics Dashboard</h2>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {/* Daily Analytics */}
-                  <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                    <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Daily & Analytics</h3>
+                  <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                    <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-200 mb-4">Daily & Analytics</h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={dashboardData.dailyAnalytics}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -190,8 +190,8 @@ export default function Dashboard() {
                   </div>
 
                   {/* Daily Revenue */}
-                  <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                    <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Daily Revenue</h3>
+                  <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                    <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-200 mb-4">Daily Revenue</h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={dashboardData.dailyRevenue}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -206,8 +206,8 @@ export default function Dashboard() {
               </div>
 
               {/* Bottom Section - Recent Bookings Table */}
-              <div className="bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">Recent Bookings</h2>
+              <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -224,7 +224,7 @@ export default function Dashboard() {
                     <tbody>
                       {dashboardData.recentBookings.map((booking, index) => (
                         <tr key={booking.id} className={`border-b border-border hover:bg-muted transition-colors ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          index % 2 === 0 ? 'bg-card' : 'bg-muted'
                         }`}>
                           <td className="py-4 px-2 md:px-4 text-foreground font-medium">{booking.id}</td>
                           <td className="py-4 px-2 md:px-4 text-foreground">{booking.passengerId}</td>
@@ -253,11 +253,11 @@ export default function Dashboard() {
             </div>
 
             {/* Right Sidebar - Full width on mobile, 1/3 on desktop */}
-            <div className="w-full xl:w-1/3 bg-gray-50 rounded-md p-4 md:p-6 shadow-sm border border-border">
+            <div className="w-full xl:w-1/3 bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
               <div className="space-y-3 md:space-y-4">
                 {/* Line Chart Card */}
-                <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Monthly Trends</h3>
+                <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Monthly Trends</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={dashboardData.sidebarLineChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -270,8 +270,8 @@ export default function Dashboard() {
                 </div>
 
                 {/* Pie Chart Card */}
-                <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Tickets Sold Per Route</h3>
+                <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Tickets Sold Per Route</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
@@ -303,8 +303,8 @@ export default function Dashboard() {
                 </div>
 
                 {/* Quick Actions Card */}
-                <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Quick Actions</h3>
+                <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <Button className="w-full justify-start" variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-2" />

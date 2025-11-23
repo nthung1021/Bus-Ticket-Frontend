@@ -106,8 +106,8 @@ export default function UserDashboard() {
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
-              <div className="bg-gray-50/80 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">My Travel Overview</h2>
+              <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">My Travel Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                   {userDashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -123,11 +123,11 @@ export default function UserDashboard() {
               </div>
 
               {/* Trip Summary Panel */}
-              <div className="bg-gray-50/80 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">Upcoming Trips</h2>
+              <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Upcoming Trips</h2>
                 <div className="space-y-4">
                   {userDashboardData.upcomingTrips.map((trip, index) => (
-                    <div key={trip.bookingId} className="bg-white rounded-lg p-4 md:p-6 shadow-sm border border-border">
+                    <div key={trip.bookingId} className="bg-card rounded-lg p-4 md:p-6 shadow-sm border border-border">
                       <div className="flex flex-col lg:flex-row gap-6">
                         {/* Trip Route */}
                         <div className="flex-1">
@@ -178,8 +178,8 @@ export default function UserDashboard() {
               </div>
 
               {/* Recent Bookings Table */}
-              <div className="bg-gray-50/80 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 md:mb-6">Recent Bookings</h2>
+              <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -195,7 +195,7 @@ export default function UserDashboard() {
                     <tbody>
                       {userDashboardData.recentBookings.map((booking, index) => (
                         <tr key={booking.id} className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                          index % 2 === 0 ? 'bg-white/60' : 'bg-gray-50/60'
+                          index % 2 === 0 ? 'bg-card/60' : 'bg-muted/60'
                         }`}>
                           <td className="py-4 px-2 md:px-4 text-foreground font-mono text-xs">{booking.id}</td>
                           <td className="py-4 px-2 md:px-4 text-foreground">{booking.date}</td>
@@ -223,27 +223,27 @@ export default function UserDashboard() {
             </div>
 
             {/* Right Sidebar - Quick Actions and Information */}
-            <div className="w-full xl:w-1/3 bg-gray-50/80 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
+            <div className="w-full xl:w-1/3 bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
               <div className="space-y-4">
                 {/* Quick Actions Card */}
-                <div className="bg-white/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Quick Actions</h3>
+                <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <button className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
                       Book New Ticket
                     </button>
-                    <button className="w-full bg-white border border-border text-foreground py-2 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
+                    <button className="w-full bg-card border border-border text-foreground py-2 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
                       View All Bookings
                     </button>
-                    <button className="w-full bg-white border border-border text-foreground py-2 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
+                    <button className="w-full bg-card border border-border text-foreground py-2 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
                       Download Tickets
                     </button>
                   </div>
                 </div>
 
                 {/* Travel Tips Card */}
-                <div className="bg-white/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Travel Tips</h3>
+                <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Travel Tips</h3>
                   <div className="space-y-3 text-sm">
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <p className="text-blue-700 font-medium">Arrive 15 minutes early</p>
@@ -257,8 +257,8 @@ export default function UserDashboard() {
                 </div>
 
                 {/* Support Card */}
-                <div className="bg-white/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
-                  <h3 className="text-base md:text-lg font-bold text-foreground mb-4">Need Help?</h3>
+                <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Need Help?</h3>
                   <div className="space-y-2">
                     <button className="w-full text-left py-2 px-3 rounded-lg hover:bg-muted transition-colors text-sm">
                       📞 Customer Support
