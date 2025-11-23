@@ -101,13 +101,13 @@ export default function UserDashboard() {
         <UserHeader />
 
         {/* Content Area */}
-        <main className="flex-1 pt-20 md:px-4 pb-4 overflow-auto">
+        <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">My Travel Overview</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">My Travel Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                   {userDashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -124,7 +124,7 @@ export default function UserDashboard() {
 
               {/* Trip Summary Panel */}
               <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Upcoming Trips</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">Upcoming Trips</h2>
                 <div className="space-y-4">
                   {userDashboardData.upcomingTrips.map((trip, index) => (
                     <div key={trip.bookingId} className="bg-card rounded-lg p-4 md:p-6 shadow-sm border border-border">
@@ -185,17 +185,17 @@ export default function UserDashboard() {
 
               {/* Recent Bookings Table */}
               <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Recent Bookings</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Booking ID</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Date</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden sm:table-cell">Route</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Price</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Status</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold"></th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">Booking ID</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">Date</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold hidden sm:table-cell">Route</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">Price</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">Status</th>
+                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -203,11 +203,11 @@ export default function UserDashboard() {
                         <tr key={booking.id} className={`border-b border-border hover:bg-muted/50 transition-colors ${
                           index % 2 === 0 ? 'bg-card/60' : 'bg-muted/60'
                         }`}>
-                          <td className="py-4 px-2 md:px-4 text-foreground font-mono text-xs">{booking.id}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground">{booking.date}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground hidden sm:table-cell">{booking.route}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground font-medium">{booking.price}</td>
-                          <td className="py-4 px-2 md:px-4">
+                          <td className="py-4 px-4 text-foreground font-mono text-xs">{booking.id}</td>
+                          <td className="py-4 px-4 text-foreground">{booking.date}</td>
+                          <td className="py-4 px-4 text-foreground hidden sm:table-cell">{booking.route}</td>
+                          <td className="py-4 px-4 text-foreground font-medium">{booking.price}</td>
+                          <td className="py-4 px-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               booking.status === 'Confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                               booking.status === 'Completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
@@ -235,13 +235,13 @@ export default function UserDashboard() {
                 <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
                   <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Quick Actions</h3>
                   <div className="space-y-3">
-                    <button className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                    <button className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
                       Book New Ticket
                     </button>
-                    <button className="w-full bg-card border border-border text-foreground py-2 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
+                    <button className="w-full bg-card border border-border text-foreground py-3 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
                       View All Bookings
                     </button>
-                    <button className="w-full bg-card border border-border text-foreground py-2 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
+                    <button className="w-full bg-card border border-border text-foreground py-3 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
                       Download Tickets
                     </button>
                   </div>

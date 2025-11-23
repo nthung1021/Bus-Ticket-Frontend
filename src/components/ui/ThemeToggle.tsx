@@ -14,7 +14,7 @@ const ThemeToggle = () => {
 
   if (!mounted) {
     return (
-      <button className="bg-muted hover:bg-accent rounded-lg p-2 text-foreground transition-colors">
+      <button className="bg-muted hover:bg-accent rounded-lg p-3 text-foreground transition-colors">
         <div className="w-5 h-5" />
       </button>
     );
@@ -29,7 +29,7 @@ const ThemeToggle = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="bg-muted hover:bg-accent rounded-lg p-2 text-foreground transition-colors"
+      className="bg-muted hover:bg-accent rounded-lg p-3 text-foreground transition-colors"
       aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
     >
       {isDark ? (

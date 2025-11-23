@@ -150,13 +150,13 @@ export default function Dashboard() {
         <Header />
 
         {/* Content Area */}
-        <main className="flex-1 pt-20 md:px-4 pb-4 overflow-auto">
+        <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Statistics Overview</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">Statistics Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -173,7 +173,7 @@ export default function Dashboard() {
 
               {/* Middle Section - Charts */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-4">Analytics Dashboard</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-6">Analytics Dashboard</h2>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {/* Daily Analytics */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">

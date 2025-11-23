@@ -88,10 +88,10 @@ export default function SignUpClient() {
           },
         }}
       />
-      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-card p-8 rounded-lg shadow-md border border-border">
+      <div className="min-h-screen flex items-center justify-center bg-background py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-6 bg-card p-6 rounded-lg shadow-md border border-border">
           <div className="text-center">
-            <h2 className="mt-6 text-3xl font-extrabold text-foreground">
+            <h2 className="mt-4 text-3xl font-extrabold text-foreground">
               Create an account
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -129,7 +129,7 @@ export default function SignUpClient() {
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="rounded-md space-y-4">
               <div>
                 <label
