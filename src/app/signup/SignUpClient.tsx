@@ -88,17 +88,17 @@ export default function SignUpClient() {
           },
         }}
       />
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-card p-8 rounded-lg shadow-md border border-border">
           <div className="text-center">
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-3xl font-extrabold text-foreground">
               Create an account
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="font-medium text-primary hover:text-primary/80"
               >
                 Sign in
               </Link>
@@ -106,11 +106,11 @@ export default function SignUpClient() {
           </div>
 
           {errors.root && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+            <div className="bg-destructive/10 border-l-4 border-destructive p-4 mb-4">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-red-500"
+                    className="h-5 w-5 text-destructive"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
@@ -123,7 +123,7 @@ export default function SignUpClient() {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-red-700">{errors.root.message}</p>
+                  <p className="text-sm text-destructive">{errors.root.message}</p>
                 </div>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function SignUpClient() {
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   Full Name
                 </label>
@@ -143,8 +143,8 @@ export default function SignUpClient() {
                   type="text"
                   autoComplete="name"
                   className={`mt-1 block w-full px-3 py-2 border ${
-                    errors.name ? "border-red-300" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                    errors.name ? "border-destructive" : "border-input"
+                  } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                   placeholder="Full name"
                   {...register("name", {
                     required: "Full name is required",
@@ -159,7 +159,7 @@ export default function SignUpClient() {
                   })}
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-destructive">
                     {errors.name.message}
                   </p>
                 )}
@@ -168,7 +168,7 @@ export default function SignUpClient() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   Email address
                 </label>
@@ -177,8 +177,8 @@ export default function SignUpClient() {
                   type="email"
                   autoComplete="email"
                   className={`mt-1 block w-full px-3 py-2 border ${
-                    errors.email ? "border-red-300" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                    errors.email ? "border-destructive" : "border-input"
+                  } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                   placeholder="you@example.com"
                   {...register("email", {
                     required: "Email is required",
@@ -189,7 +189,7 @@ export default function SignUpClient() {
                   })}
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-destructive">
                     {errors.email.message}
                   </p>
                 )}
@@ -198,7 +198,7 @@ export default function SignUpClient() {
               <div>
                 <label
                   htmlFor="phone"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   Phone Number
                 </label>
@@ -207,8 +207,8 @@ export default function SignUpClient() {
                   type="tel"
                   autoComplete="tel"
                   className={`mt-1 block w-full px-3 py-2 border ${
-                    errors.phone ? "border-red-300" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                    errors.phone ? "border-destructive" : "border-input"
+                  } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                   placeholder="1234567890"
                   {...register("phone", {
                     required: "Phone number is required",
@@ -221,7 +221,7 @@ export default function SignUpClient() {
                   })}
                 />
                 {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-destructive">
                     {errors.phone.message}
                   </p>
                 )}
@@ -230,7 +230,7 @@ export default function SignUpClient() {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   Password
                 </label>
@@ -239,8 +239,8 @@ export default function SignUpClient() {
                   type="password"
                   autoComplete="new-password"
                   className={`mt-1 block w-full px-3 py-2 border ${
-                    errors.password ? "border-red-300" : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                    errors.password ? "border-destructive" : "border-input"
+                  } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                   placeholder="••••••••"
                   {...register("password", {
                     required: "Password is required",
@@ -257,7 +257,7 @@ export default function SignUpClient() {
                   })}
                 />
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-destructive">
                     {errors.password.message}
                   </p>
                 )}
@@ -266,7 +266,7 @@ export default function SignUpClient() {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   Confirm Password
                 </label>
@@ -276,9 +276,9 @@ export default function SignUpClient() {
                   autoComplete="new-password"
                   className={`mt-1 block w-full px-3 py-2 border ${
                     errors.confirmPassword
-                      ? "border-red-300"
-                      : "border-gray-300"
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                      ? "border-destructive"
+                      : "border-input"
+                  } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                   placeholder="••••••••"
                   {...register("confirmPassword", {
                     required: "Please confirm your password",
@@ -287,7 +287,7 @@ export default function SignUpClient() {
                   })}
                 />
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-destructive">
                     {errors.confirmPassword.message}
                   </p>
                 )}
@@ -298,7 +298,7 @@ export default function SignUpClient() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center">

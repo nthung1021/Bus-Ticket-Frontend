@@ -107,7 +107,7 @@ export default function UserDashboard() {
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">My Travel Overview</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">My Travel Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                   {userDashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -124,7 +124,7 @@ export default function UserDashboard() {
 
               {/* Trip Summary Panel */}
               <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Upcoming Trips</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Upcoming Trips</h2>
                 <div className="space-y-4">
                   {userDashboardData.upcomingTrips.map((trip, index) => (
                     <div key={trip.bookingId} className="bg-card rounded-lg p-4 md:p-6 shadow-sm border border-border">
@@ -133,7 +133,7 @@ export default function UserDashboard() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-3 h-3 bg-primary rounded-full"></div>
-                            <div className="flex-1 h-0.5 bg-gray-300"></div>
+                            <div className="flex-1 h-0.5 bg-border"></div>
                             <div className="w-3 h-3 bg-accent rounded-full"></div>
                           </div>
                           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
@@ -167,7 +167,13 @@ export default function UserDashboard() {
                             <span className="text-xs text-muted-foreground">Booking ID:</span>
                             <span className="text-xs font-mono">{trip.bookingId}</span>
                           </div>
-                          <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            trip.status === 'Confirmed' 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                              : trip.status === 'Pending'
+                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
                             {trip.status}
                           </span>
                         </div>
@@ -179,7 +185,7 @@ export default function UserDashboard() {
 
               {/* Recent Bookings Table */}
               <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Recent Bookings</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -203,10 +209,10 @@ export default function UserDashboard() {
                           <td className="py-4 px-2 md:px-4 text-foreground font-medium">{booking.price}</td>
                           <td className="py-4 px-2 md:px-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-                              booking.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                              booking.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-700'
+                              booking.status === 'Confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              booking.status === 'Completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              booking.status === 'Cancelled' ? 'bg-destructive/10 text-destructive' :
+                              'bg-muted text-muted-foreground'
                             }`}>
                               {booking.status}
                             </span>
@@ -227,7 +233,7 @@ export default function UserDashboard() {
               <div className="space-y-4">
                 {/* Quick Actions Card */}
                 <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Quick Actions</h3>
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <button className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
                       Book New Ticket
@@ -243,7 +249,7 @@ export default function UserDashboard() {
 
                 {/* Travel Tips Card */}
                 <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Travel Tips</h3>
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Travel Tips</h3>
                   <div className="space-y-3 text-sm">
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <p className="text-blue-700 font-medium">Arrive 15 minutes early</p>
@@ -258,7 +264,7 @@ export default function UserDashboard() {
 
                 {/* Support Card */}
                 <div className="bg-card/80 rounded-lg p-4 shadow-sm border border-border backdrop-blur-sm">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Need Help?</h3>
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Need Help?</h3>
                   <div className="space-y-2">
                     <button className="w-full text-left py-2 px-3 rounded-lg hover:bg-muted transition-colors text-sm">
                       📞 Customer Support

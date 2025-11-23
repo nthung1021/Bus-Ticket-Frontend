@@ -38,17 +38,17 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-card p-8 rounded-lg shadow-md border border-border">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-3xl font-extrabold text-foreground">
             Sign in to your account
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             Or{" "}
             <Link
               href="/signup"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-medium text-primary hover:text-primary/80"
             >
               create a new account
             </Link>
@@ -56,11 +56,11 @@ export default function LoginClient() {
         </div>
 
         {errors.root && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+          <div className="bg-destructive/10 border-l-4 border-destructive p-4 mb-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-red-500"
+                  className="h-5 w-5 text-destructive"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 20 20"
                   fill="currentColor"
@@ -73,7 +73,7 @@ export default function LoginClient() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-700">{errors.root.message}</p>
+                <p className="text-sm text-destructive">{errors.root.message}</p>
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function LoginClient() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Email address
               </label>
@@ -93,8 +93,8 @@ export default function LoginClient() {
                 type="email"
                 autoComplete="email"
                 className={`mt-1 block w-full px-3 py-2 border ${
-                  errors.email ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                  errors.email ? "border-destructive" : "border-input"
+                } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                 placeholder="you@example.com"
                 {...register("email", {
                   required: "Please enter your email",
@@ -105,7 +105,7 @@ export default function LoginClient() {
                 })}
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -114,7 +114,7 @@ export default function LoginClient() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Password
               </label>
@@ -123,8 +123,8 @@ export default function LoginClient() {
                 type="password"
                 autoComplete="current-password"
                 className={`mt-1 block w-full px-3 py-2 border ${
-                  errors.password ? "border-red-300" : "border-gray-300"
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-black`}
+                  errors.password ? "border-destructive" : "border-input"
+                } rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-foreground bg-background`}
                 placeholder="••••••••"
                 {...register("password", {
                   required: "Please enter your password",
@@ -135,7 +135,7 @@ export default function LoginClient() {
                 })}
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.password.message}
                 </p>
               )}
@@ -148,11 +148,11 @@ export default function LoginClient() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary focus:ring-ring border-input rounded"
               />
               <label
                 htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-900"
+                className="ml-2 block text-sm text-foreground"
               >
                 Remember me
               </label>
@@ -161,7 +161,7 @@ export default function LoginClient() {
             <div className="text-sm">
               <Link
                 href="/forgot-password"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="font-medium text-primary hover:text-primary/80"
               >
                 Forgot password?
               </Link>
@@ -172,7 +172,7 @@ export default function LoginClient() {
             <button
               type="submit"
               disabled={isPending}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? (
                 <>

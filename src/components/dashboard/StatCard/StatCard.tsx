@@ -13,7 +13,7 @@ interface StatCardProps {
   bgColor?: string
 }
 
-export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgColor = "bg-blue-500" }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgColor = "bg-primary" }: StatCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.cardContent}>

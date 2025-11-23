@@ -156,7 +156,7 @@ export default function Dashboard() {
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Statistics Overview</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Statistics Overview</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -173,11 +173,11 @@ export default function Dashboard() {
 
               {/* Middle Section - Charts */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-4">Analytics Dashboard</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-4">Analytics Dashboard</h2>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {/* Daily Analytics */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-200 mb-4">Daily & Analytics</h3>
+                    <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Daily & Analytics</h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={dashboardData.dailyAnalytics}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -191,7 +191,7 @@ export default function Dashboard() {
 
                   {/* Daily Revenue */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-200 mb-4">Daily Revenue</h3>
+                    <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Daily Revenue</h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={dashboardData.dailyRevenue}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -207,7 +207,7 @@ export default function Dashboard() {
 
               {/* Bottom Section - Recent Bookings Table */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-lg md:text-xl font-bold text-card-foreground dark:text-white mb-4 md:mb-6">Recent Bookings</h2>
+                <h2 className="text-lg md:text-xl font-bold text-card-foreground mb-4 md:mb-6">Recent Bookings</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -233,10 +233,10 @@ export default function Dashboard() {
                           <td className="py-4 px-2 md:px-4 text-foreground">{booking.price}</td>
                           <td className="py-4 px-2 md:px-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-                              booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                              booking.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-700'
+                              booking.status === 'Confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              booking.status === 'Cancelled' ? 'bg-destructive/10 text-destructive' :
+                              'bg-muted text-muted-foreground'
                             }`}>
                               {booking.status}
                             </span>
@@ -257,7 +257,7 @@ export default function Dashboard() {
               <div className="space-y-3 md:space-y-4">
                 {/* Line Chart Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Monthly Trends</h3>
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Monthly Trends</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={dashboardData.sidebarLineChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -271,7 +271,7 @@ export default function Dashboard() {
 
                 {/* Pie Chart Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Tickets Sold Per Route</h3>
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Tickets Sold Per Route</h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
@@ -304,7 +304,7 @@ export default function Dashboard() {
 
                 {/* Quick Actions Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-base md:text-lg font-bold text-card-foreground dark:text-gray-100 mb-4">Quick Actions</h3>
+                  <h3 className="text-base md:text-lg font-bold text-card-foreground mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <Button className="w-full justify-start" variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-2" />
