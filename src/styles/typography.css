@@ -1,0 +1,93 @@
+/* Typography Scale Design Tokens */
+:root {
+  /* Font Size Tokens */
+  --fs-h1: 2rem;
+  --fs-h2: 1.75rem;
+  --fs-h3: 1.5rem;
+  --fs-h4: 1.25rem;
+  --fs-h5: 1.125rem;
+  --fs-h6: 1rem;
+  --fs-body: 1rem;
+  --fs-caption: 0.875rem;
+}
+
+/* Typography Classes */
+.text-h1 {
+  font-size: var(--fs-h1);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.text-h2 {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.text-h3 {
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.text-h4 {
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.text-h5 {
+  font-size: var(--fs-h5);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-h6 {
+  font-size: var(--fs-h6);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.text-body {
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+.text-caption {
+  font-size: var(--fs-caption);
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+/* Dashboard Section Styling */
+.dashboard-section {
+  @apply rounded-md p-4 md:p-6 shadow-sm border border-border;
+  background: var(--card);
+}
+
+.dashboard-section.dark {
+  background: var(--primary);
+}
+
+.dashboard-section-title {
+  @apply text-lg md:text-xl font-bold mb-4 md:mb-6;
+  color: var(--card-foreground);
+}
+
+.dashboard-section.dark .dashboard-section-title {
+  color: var(--primary-foreground);
+}
+
+.dashboard-sidebar {
+  @apply rounded-md p-4 md:p-6 shadow-sm border border-border;
+  background: var(--card);
+}
+
+.dashboard-sidebar.dark {
+  background: var(--primary);
+}
+
+.dashboard-sidebar-title {
+  @apply text-base md:text-lg font-bold mb-4;
+  color: var(--card-foreground);
+}

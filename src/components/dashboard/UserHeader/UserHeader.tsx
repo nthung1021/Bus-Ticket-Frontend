@@ -9,18 +9,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import ThemeToggle from "@/components/ui/ThemeToggle"
 import styles from "./UserHeader.module.css"
 
 export function UserHeader() {
   return (
     <header className={styles.header}>
-      <h1 className={styles.title}>My Travel Dashboard</h1>
+      <h1 className={`${styles.title} text-h3`}>My Travel Dashboard</h1>
 
       <div className={styles.actionsContainer}>
         <button className={styles.notificationButton}>
           <Bell className={styles.notificationIcon} />
           <span className={styles.notificationBadge}></span>
         </button>
+
+        <ThemeToggle />
 
         <button className={styles.iconButton}>
           <Ticket className={styles.icon} />

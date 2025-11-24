@@ -34,7 +34,7 @@ export function UserSidebar() {
           <div className={styles.logoIcon}>
             <Bus className={styles.logoIconSvg} />
           </div>
-          <span className={styles.logoText}>BusTicket</span>
+          <span className={`${styles.logoText} text-h5`}>BusTicket</span>
         </div>
       </div>
 
@@ -50,6 +50,7 @@ export function UserSidebar() {
                 href={item.href}
                 className={cn(
                   styles.menuItem,
+                  "text-body",
                   isActive ? styles.menuItemActive : styles.menuItemInactive
                 )}
               >
@@ -64,8 +65,8 @@ export function UserSidebar() {
       {/* Footer */}
       <div className={styles.footer}>
         <div className={styles.footerContent}>
-          <p className={styles.footerText}>Safe travels with us!</p>
-          <p className={styles.footerCopyright}>© {new Date().getFullYear().toString()}</p>
+          <p className={`${styles.footerText} text-body`}>Safe travels with us!</p>
+          <p className={`${styles.footerCopyright} text-caption`}>© {new Date().getFullYear().toString()}</p>
         </div>
       </div>
     </aside>

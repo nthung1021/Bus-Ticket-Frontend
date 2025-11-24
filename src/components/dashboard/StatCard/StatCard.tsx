@@ -13,14 +13,14 @@ interface StatCardProps {
   bgColor?: string
 }
 
-export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgColor = "bg-blue-500" }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgColor = "bg-primary" }: StatCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.cardContent}>
         <div className={styles.textContent}>
-          <p className={styles.title}>{title}</p>
-          <h3 className={styles.value}>{value}</h3>
-          <p className={styles.subtitle}>{subtitle}</p>
+          <p className={`${styles.title} text-caption`}>{title}</p>
+          <h3 className={`${styles.value} text-h3`}>{value}</h3>
+          <p className={`${styles.subtitle} text-caption`}>{subtitle}</p>
         </div>
         {icon && (
           <div className={cn(styles.iconContainer, bgColor)}>
@@ -33,8 +33,8 @@ export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgCo
       {trend && (
         <div className={styles.trendContainer}>
           <ArrowUpRight className={styles.trendIcon} />
-          <span className={styles.trendValue}>{trend}%</span>
-          <span className={styles.trendLabel}>{trendLabel}</span>
+          <span className={`${styles.trendValue} text-caption`}>{trend}%</span>
+          <span className={`${styles.trendLabel} text-caption`}>{trendLabel}</span>
         </div>
       )}
     </div>
