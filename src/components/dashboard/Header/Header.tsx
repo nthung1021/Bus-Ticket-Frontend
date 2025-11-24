@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { Bell, Settings, User, LogOut, UserCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Bell, Settings, User, LogOut, UserCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import ThemeToggle from "@/components/ui/ThemeToggle"
-import styles from "./Header.module.css"
+} from "@/components/ui/dropdown-menu";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import styles from "./Header.module.css";
 
 export function Header() {
   return (
@@ -54,5 +54,5 @@ export function Header() {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

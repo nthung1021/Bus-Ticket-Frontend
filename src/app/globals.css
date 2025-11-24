@@ -143,9 +143,11 @@
 @media (prefers-color-scheme: dark) {
   .card {
     border-color: rgb(55 65 81) !important; /* gray-700 */
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.3),
+      0 1px 2px -1px rgb(0 0 0 / 0.3);
   }
-  
+
   /* Dashboard containers */
   .bg-card,
   [class*="bg-card"] {
@@ -181,7 +183,9 @@
 
 .dark .card {
   border-color: rgb(55 65 81) !important; /* gray-700 */
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.3),
+    0 1px 2px -1px rgb(0 0 0 / 0.3);
 }
 
 .dark .bg-card,

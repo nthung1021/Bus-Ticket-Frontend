@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { 
-  LayoutDashboard, 
-  Ticket, 
-  CreditCard, 
-  User, 
-  Bell, 
-  HelpCircle, 
-  Bus 
-} from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import styles from "./UserSidebar.module.css"
+import {
+  LayoutDashboard,
+  Ticket,
+  CreditCard,
+  User,
+  Bell,
+  HelpCircle,
+  Bus,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import styles from "./UserSidebar.module.css";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/user" },
@@ -21,10 +21,10 @@ const menuItems = [
   { icon: User, label: "Profile", href: "/user/profile" },
   { icon: Bell, label: "Notifications", href: "/user/notifications" },
   { icon: HelpCircle, label: "Help & Support", href: "/user/help" },
-]
+];
 
 export function UserSidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <aside className={styles.sidebar}>
@@ -42,8 +42,8 @@ export function UserSidebar() {
       <nav className={styles.navigation}>
         <div className={styles.menuContainer}>
           {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -51,13 +51,13 @@ export function UserSidebar() {
                 className={cn(
                   styles.menuItem,
                   "text-body",
-                  isActive ? styles.menuItemActive : styles.menuItemInactive
+                  isActive ? styles.menuItemActive : styles.menuItemInactive,
                 )}
               >
                 <Icon className={styles.menuIcon} />
                 <span>{item.label}</span>
               </Link>
-            )
+            );
           })}
         </div>
       </nav>
@@ -65,10 +65,14 @@ export function UserSidebar() {
       {/* Footer */}
       <div className={styles.footer}>
         <div className={styles.footerContent}>
-          <p className={`${styles.footerText} text-body`}>Safe travels with us!</p>
-          <p className={`${styles.footerCopyright} text-caption`}>© {new Date().getFullYear().toString()}</p>
+          <p className={`${styles.footerText} text-body`}>
+            Safe travels with us!
+          </p>
+          <p className={`${styles.footerCopyright} text-caption`}>
+            © {new Date().getFullYear().toString()}
+          </p>
         </div>
       </div>
     </aside>
-  )
+  );
 }

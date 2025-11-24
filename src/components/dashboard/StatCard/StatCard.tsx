@@ -1,19 +1,27 @@
-import type React from "react"
-import { ArrowUpRight } from "lucide-react"
-import styles from "./StatCard.module.css"
-import { cn } from "@/lib/utils"
+import type React from "react";
+import { ArrowUpRight } from "lucide-react";
+import styles from "./StatCard.module.css";
+import { cn } from "@/lib/utils";
 
 interface StatCardProps {
-  title: string
-  value: string
-  subtitle: string
-  icon?: React.ReactNode
-  trend?: number
-  trendLabel?: string
-  bgColor?: string
+  title: string;
+  value: string;
+  subtitle: string;
+  icon?: React.ReactNode;
+  trend?: number;
+  trendLabel?: string;
+  bgColor?: string;
 }
 
-export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgColor = "bg-primary" }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  trend,
+  trendLabel,
+  bgColor = "bg-primary",
+}: StatCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.cardContent}>
@@ -24,9 +32,7 @@ export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgCo
         </div>
         {icon && (
           <div className={cn(styles.iconContainer, bgColor)}>
-            <div className={styles.iconWrapper}>
-              {icon}
-            </div>
+            <div className={styles.iconWrapper}>{icon}</div>
           </div>
         )}
       </div>
@@ -34,9 +40,11 @@ export function StatCard({ title, value, subtitle, icon, trend, trendLabel, bgCo
         <div className={styles.trendContainer}>
           <ArrowUpRight className={styles.trendIcon} />
           <span className={`${styles.trendValue} text-caption`}>{trend}%</span>
-          <span className={`${styles.trendLabel} text-caption`}>{trendLabel}</span>
+          <span className={`${styles.trendLabel} text-caption`}>
+            {trendLabel}
+          </span>
         </div>
       )}
     </div>
-  )
+  );
 }

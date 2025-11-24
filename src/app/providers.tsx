@@ -15,15 +15,13 @@ export function Providers({ children }: { children: ReactNode }) {
             refetchOnWindowFocus: false,
           },
         },
-      })
+      }),
   );
 
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </QueryClientProvider>
     </AuthProvider>
   );

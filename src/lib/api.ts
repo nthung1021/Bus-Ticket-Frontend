@@ -40,7 +40,7 @@ api.interceptors.response.use(
           {},
           {
             withCredentials: true, // Send cookies with refresh request
-          }
+          },
         );
 
         // Retry the original request (new cookies are now set)
@@ -53,7 +53,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

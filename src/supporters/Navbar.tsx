@@ -18,10 +18,18 @@ export default function Navbar() {
 
           {/* Center menu */}
           <ul className="navbar-desktop-links">
-            <li><a href="#">About</a></li>
-            <li><a href="#">Pricing</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#">Blog</a></li>
+            <li>
+              <a href="#">About</a>
+            </li>
+            <li>
+              <a href="#">Pricing</a>
+            </li>
+            <li>
+              <a href="#">Contact</a>
+            </li>
+            <li>
+              <a href="#">Blog</a>
+            </li>
           </ul>
 
           {/* RIGHT SIDE — Conditional rendering */}
@@ -40,11 +48,11 @@ export default function Navbar() {
                 <span>
                   Hello, {user.name} ({user.role.toUpperCase()})
                 </span>
-                {user.role === 'admin' && 
+                {user.role === "admin" && (
                   <Link className="btn-primary" href="/admin/manage-users">
                     Admin
                   </Link>
-                }
+                )}
                 <button onClick={logout} className="btn-secondary">
                   Logout
                 </button>
@@ -65,13 +73,20 @@ export default function Navbar() {
       {/* MOBILE MENU */}
       {open && (
         <div className="navbar-mobile">
-          <div className="navbar-mobile-menu">            
-
+          <div className="navbar-mobile-menu">
             <ul className="navbar-mobile-links">
-              <li><a href="#">About</a></li>
-              <li><a href="#">Pricing</a></li>
-              <li><a href="#">Contact</a></li>
-              <li><a href="#">Blog</a></li>
+              <li>
+                <a href="#">About</a>
+              </li>
+              <li>
+                <a href="#">Pricing</a>
+              </li>
+              <li>
+                <a href="#">Contact</a>
+              </li>
+              <li>
+                <a href="#">Blog</a>
+              </li>
             </ul>
 
             {!user ? (
@@ -88,15 +103,12 @@ export default function Navbar() {
                 <span className="navbar-mobile-username">
                   Hello, {user.name} ({user.role.toUpperCase()})
                 </span>
-                {user.role === 'admin' && 
+                {user.role === "admin" && (
                   <Link className="btn-primary" href="/admin/manage-users">
                     Admin
                   </Link>
-                }
-                <button
-                  className="btn-secondary"
-                  onClick={logout}
-                >
+                )}
+                <button className="btn-secondary" onClick={logout}>
                   Logout
                 </button>
               </>

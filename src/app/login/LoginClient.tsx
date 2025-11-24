@@ -87,7 +87,9 @@ export default function LoginClient() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-destructive">{errors.root.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.root.message}
+                </p>
               </div>
             </div>
           </div>

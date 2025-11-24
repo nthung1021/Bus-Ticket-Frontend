@@ -1,10 +1,19 @@
-"use client"
+"use client";
 
-import { LayoutDashboard, Route, Truck, Ticket, Users, FileText, Settings, Zap } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import styles from "./Sidebar.module.css"
+import {
+  LayoutDashboard,
+  Route,
+  Truck,
+  Ticket,
+  Users,
+  FileText,
+  Settings,
+  Zap,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import styles from "./Sidebar.module.css";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
@@ -14,10 +23,10 @@ const menuItems = [
   { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
   { icon: FileText, label: "Reports", href: "/admin/reports" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
-]
+];
 
 export function Sidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <aside className={styles.sidebar}>
@@ -35,8 +44,8 @@ export function Sidebar() {
       <nav className={styles.navigation}>
         <div className={styles.menuContainer}>
           {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -44,13 +53,13 @@ export function Sidebar() {
                 className={cn(
                   styles.menuItem,
                   "text-body",
-                  isActive ? styles.menuItemActive : styles.menuItemInactive
+                  isActive ? styles.menuItemActive : styles.menuItemInactive,
                 )}
               >
                 <Icon className={styles.menuIcon} />
                 <span>{item.label}</span>
               </Link>
-            )
+            );
           })}
         </div>
       </nav>
@@ -68,5 +77,5 @@ export function Sidebar() {
         Copyright {new Date().getFullYear().toString()}
       </div>
     </aside>
-  )
+  );
 }

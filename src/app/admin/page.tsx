@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar"
-import { Header } from "@/components/dashboard/Header/Header"
-import { StatCard } from "@/components/dashboard/StatCard/StatCard"
+import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
+import { Header } from "@/components/dashboard/Header/Header";
+import { StatCard } from "@/components/dashboard/StatCard/StatCard";
 import {
   BarChart,
   Bar,
@@ -16,11 +16,18 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts"
-import { Route, MapPin, TicketCheck, TrendingUp, Plus, FileText } from "lucide-react"
-import { useState, useEffect } from "react"
-import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
+} from "recharts";
+import {
+  Route,
+  MapPin,
+  TicketCheck,
+  TrendingUp,
+  Plus,
+  FileText,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
 
 const dashboardData = {
   stats: [
@@ -135,14 +142,14 @@ const dashboardData = {
     { name: "DN-HN", value: 20, fill: "#1d8fecff" },
     { name: "Others", value: 20, fill: "#c9dee7ff" },
   ],
-}
+};
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const { theme } = useTheme()
-  
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const { theme } = useTheme();
+
   // Dynamic grid color based on theme
-  const gridColor = theme === 'dark' ? '#374151' : '#e5e7eb'
+  const gridColor = theme === "dark" ? "#374151" : "#e5e7eb";
 
   return (
     <div className="flex h-screen bg-background">
@@ -161,7 +168,9 @@ export default function Dashboard() {
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-h2 text-card-foreground mb-6">Statistics Overview</h2>
+                <h2 className="text-h2 text-card-foreground mb-6">
+                  Statistics Overview
+                </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
                     <StatCard
@@ -178,32 +187,53 @@ export default function Dashboard() {
 
               {/* Middle Section - Charts */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-h2 text-card-foreground mb-6">Analytics Dashboard</h2>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <h2 className="text-h2 text-card-foreground mb-6">
+                  Analytics Dashboard
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {/* Daily Analytics */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-h3 text-card-foreground mb-4">Daily & Analytics</h3>
+                    <h3 className="text-h3 text-card-foreground mb-4">
+                      Daily & Analytics
+                    </h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={dashboardData.dailyAnalytics}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={gridColor}
+                        />
                         <XAxis dataKey="day" />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="value" fill="#5B5FFF" radius={[8, 8, 0, 0]} />
+                        <Bar
+                          dataKey="value"
+                          fill="#5B5FFF"
+                          radius={[8, 8, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
 
                   {/* Daily Revenue */}
                   <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-h3 text-card-foreground mb-4">Daily Revenue</h3>
+                    <h3 className="text-h3 text-card-foreground mb-4">
+                      Daily Revenue
+                    </h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={dashboardData.dailyRevenue}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={gridColor}
+                        />
                         <XAxis dataKey="time" />
                         <YAxis />
                         <Tooltip />
-                        <Line type="monotone" dataKey="value" stroke="#5B5FFF" strokeWidth={2} />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#5B5FFF"
+                          strokeWidth={2}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -212,42 +242,76 @@ export default function Dashboard() {
 
               {/* Bottom Section - Recent Bookings Table */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-h2 text-card-foreground mb-4 md:mb-6">Recent Bookings</h2>
+                <h2 className="text-h2 text-card-foreground mb-4 md:mb-6">
+                  Recent Bookings
+                </h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Booking</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Passenger</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden sm:table-cell">Route</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden lg:table-cell">Date</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Price</th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">Status</th>
+                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                          Booking
+                        </th>
+                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                          Passenger
+                        </th>
+                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden sm:table-cell">
+                          Route
+                        </th>
+                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden lg:table-cell">
+                          Date
+                        </th>
+                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                          Price
+                        </th>
+                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                          Status
+                        </th>
                         <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {dashboardData.recentBookings.map((booking, index) => (
-                        <tr key={booking.id} className={`border-b border-border hover:bg-muted transition-colors ${
-                          index % 2 === 0 ? 'bg-card' : 'bg-muted'
-                        }`}>
-                          <td className="py-4 px-2 md:px-4 text-foreground font-medium">{booking.id}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground">{booking.passengerId}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground hidden sm:table-cell">{booking.route}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground hidden lg:table-cell">{booking.date}</td>
-                          <td className="py-4 px-2 md:px-4 text-foreground">{booking.price}</td>
+                        <tr
+                          key={booking.id}
+                          className={`border-b border-border hover:bg-muted transition-colors ${
+                            index % 2 === 0 ? "bg-card" : "bg-muted"
+                          }`}
+                        >
+                          <td className="py-4 px-2 md:px-4 text-foreground font-medium">
+                            {booking.id}
+                          </td>
+                          <td className="py-4 px-2 md:px-4 text-foreground">
+                            {booking.passengerId}
+                          </td>
+                          <td className="py-4 px-2 md:px-4 text-foreground hidden sm:table-cell">
+                            {booking.route}
+                          </td>
+                          <td className="py-4 px-2 md:px-4 text-foreground hidden lg:table-cell">
+                            {booking.date}
+                          </td>
+                          <td className="py-4 px-2 md:px-4 text-foreground">
+                            {booking.price}
+                          </td>
                           <td className="py-4 px-2 md:px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              booking.status === 'Confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                              booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                              booking.status === 'Cancelled' ? 'bg-destructive/10 text-destructive' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                booking.status === "Confirmed"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : booking.status === "Pending"
+                                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                    : booking.status === "Cancelled"
+                                      ? "bg-destructive/10 text-destructive"
+                                      : "bg-muted text-muted-foreground"
+                              }`}
+                            >
                               {booking.status}
                             </span>
                           </td>
                           <td className="py-4 px-2 md:px-4">
-                            <button className="text-primary hover:underline">View</button>
+                            <button className="text-primary hover:underline">
+                              View
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -262,21 +326,30 @@ export default function Dashboard() {
               <div className="space-y-3 md:space-y-4">
                 {/* Line Chart Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-h3 text-card-foreground mb-4">Monthly Trends</h3>
+                  <h3 className="text-h3 text-card-foreground mb-4">
+                    Monthly Trends
+                  </h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={dashboardData.sidebarLineChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#5B5FFF" strokeWidth={3} />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#5B5FFF"
+                        strokeWidth={3}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Pie Chart Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-h3 text-card-foreground mb-4">Tickets Sold Per Route</h3>
+                  <h3 className="text-h3 text-card-foreground mb-4">
+                    Tickets Sold Per Route
+                  </h3>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
@@ -296,12 +369,20 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                   <div className="mt-4 space-y-2 text-caption">
                     {dashboardData.sidebarPieChart.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between"
+                      >
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }}></div>
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: item.fill }}
+                          ></div>
                           <span className="text-foreground">{item.name}</span>
                         </div>
-                        <span className="text-foreground font-medium">{item.value}%</span>
+                        <span className="text-foreground font-medium">
+                          {item.value}%
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -309,13 +390,23 @@ export default function Dashboard() {
 
                 {/* Quick Actions Card */}
                 <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-h3 text-card-foreground mb-4">Quick Actions</h3>
+                  <h3 className="text-h3 text-card-foreground mb-4">
+                    Quick Actions
+                  </h3>
                   <div className="space-y-3">
-                    <Button className="w-full justify-start" variant="outline" size="sm">
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      size="sm"
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Add New Trip
                     </Button>
-                    <Button className="w-full justify-start" variant="outline" size="sm">
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      size="sm"
+                    >
                       <FileText className="w-4 h-4 mr-2" />
                       Generate Report
                     </Button>
@@ -327,5 +418,5 @@ export default function Dashboard() {
         </main>
       </div>
     </div>
-  )
+  );
 }

@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { Bell, Settings, User, LogOut, UserCircle, Ticket } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Bell, Settings, User, LogOut, UserCircle, Ticket } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import ThemeToggle from "@/components/ui/ThemeToggle"
-import styles from "./UserHeader.module.css"
+} from "@/components/ui/dropdown-menu";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import styles from "./UserHeader.module.css";
 
 export function UserHeader() {
   return (
@@ -58,5 +58,5 @@ export function UserHeader() {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }
