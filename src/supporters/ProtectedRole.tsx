@@ -1,8 +1,7 @@
 "use client";
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "src/supporters/AuthContext";
-import { useCurrentUser } from "@/hooks/useAuth"; // optional if you use query for user
+import { useCurrentUser } from "src/hooks/useAuth";
 
 export default function ProtectedRole({
   children,
@@ -11,14 +10,17 @@ export default function ProtectedRole({
   children: ReactNode;
   allowed: string[];
 }) {
-  const { user } = useAuth();
+  const { data: user, isLoading } = useCurrentUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (user === null) {
+    if (isLoading) return;
+
+    if (!user) {
       router.push("/login");
       return;
     }
+
     if (
       !allowed
         .map((r) => r.toLowerCase())
@@ -27,8 +29,9 @@ export default function ProtectedRole({
       alert("You do not have permission to access this page.");
       router.push("/");
     }
-  }, [user, router, allowed]);
+  }, [user, router, allowed, isLoading]);
 
+  if (isLoading) return null;
   if (!user) return null;
 
   return <>{children}</>;

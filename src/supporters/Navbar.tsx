@@ -2,11 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useAuth } from "src/supporters/AuthContext";
+import { useCurrentUser, useLogout } from "src/hooks/useAuth";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { data: user } = useCurrentUser();
+  const logoutMutation = useLogout();
+
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (e) {
+      console.error("Server logout failed:", e);
+    }
+  };
 
   return (
     <nav className="navbar">
@@ -46,14 +55,14 @@ export default function Navbar() {
             ) : (
               <>
                 <span>
-                  Hello, {user.name} ({user.role.toUpperCase()})
+                  Hello, {user?.fullName} ({user?.role?.toUpperCase()})
                 </span>
-                {user.role === "admin" && (
+                {user?.role === "admin" && (
                   <Link className="btn-primary" href="/admin/manage-users">
                     Admin
                   </Link>
                 )}
-                <button onClick={logout} className="btn-secondary">
+                <button onClick={handleLogout} className="btn-secondary" disabled={(logoutMutation as any).isLoading}>
                   Logout
                 </button>
               </>
@@ -101,14 +110,14 @@ export default function Navbar() {
             ) : (
               <>
                 <span className="navbar-mobile-username">
-                  Hello, {user.name} ({user.role.toUpperCase()})
+                  Hello, {user?.name} ({user?.role?.toUpperCase()})
                 </span>
-                {user.role === "admin" && (
+                {user?.role === "admin" && (
                   <Link className="btn-primary" href="/admin/manage-users">
                     Admin
                   </Link>
                 )}
-                <button className="btn-secondary" onClick={logout}>
+                <button className="btn-secondary" onClick={handleLogout} disabled={(logoutMutation as any).isLoading}>
                   Logout
                 </button>
               </>

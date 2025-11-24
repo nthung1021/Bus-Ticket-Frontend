@@ -1,12 +1,19 @@
 import api from "@/lib/api";
 
+interface User {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: string;
+}
+
 interface LoginCredentials {
   email: string;
   password: string;
 }
 
 interface LoginResponse {
-  user: any;
+  user: User;
 }
 
 interface RegisterData {
@@ -17,7 +24,12 @@ interface RegisterData {
 }
 
 interface RegisterResponse {
-  user: any;
+  userId: string;
+  email: string;
+  phone: string;
+  fullName: string;
+  role: string;
+  createdAt: string;
 }
 
 export const authService = {

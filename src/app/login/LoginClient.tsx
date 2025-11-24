@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLogin } from "src/hooks/useAuth";
-import { useAuth } from "src/supporters/AuthContext";
 import GoogleSignInButton from "./GoogleSignInButton";
 
 type LoginFormData = {
@@ -20,35 +19,20 @@ export default function LoginClient() {
     formState: { errors },
     setError,
   } = useForm<LoginFormData>();
-  const { user, login } = useAuth();
   const { mutateAsync: loginMu, isPending } = useLogin();
 
-  const onSubmit = (data: LoginFormData) => {
-    (async () => {
-      try {
-        const response = (await loginMu(data)) as any;
-        let payload = response?.data ?? response;
-        if (payload?.success && payload.data) payload = payload.data;
-        const userPayload = payload?.user ?? payload;
-
-        const userForContext = {
-          id: userPayload?.userId ?? userPayload?.id,
-          name: userPayload?.fullName ?? userPayload?.name,
-          email: userPayload?.email,
-          role: userPayload?.role,
-        };
-
-        login(userForContext as any);
-        router.push("/");
-      } catch (error: any) {
-        console.error("Login error:", error);
-        setError("root", {
-          type: "manual",
-          message:
-            error.response?.data?.message || "Incorrect email or password",
-        });
-      }
-    })();
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      // useLogin.onSuccess will handle cache update and redirect
+      await loginMu(data);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setError("root", {
+        type: "manual",
+        message:
+          error.response?.data?.message || "Incorrect email or password",
+      });
+    }
   };
 
   return (

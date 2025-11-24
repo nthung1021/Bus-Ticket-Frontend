@@ -15,7 +15,7 @@ const ROLES = [
   { key: "operator", label: "Operator" },
 ];
 
-export default function AdminPage() {
+export default function ManageUsersPage() {
   // ProtectedRole wrapper ensures only admin can access
   return (
     <ProtectedRole allowed={["ADMIN"]}>

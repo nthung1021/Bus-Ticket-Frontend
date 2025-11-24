@@ -46,9 +46,7 @@ api.interceptors.response.use(
         // Retry the original request (new cookies are now set)
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, redirect to login
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
+        console.error("Token refresh failed:", refreshError);
       }
     }
 

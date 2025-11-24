@@ -28,6 +28,7 @@ import {
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import ProtectedRole from "@/supporters/ProtectedRole";
 
 const dashboardData = {
   stats: [
@@ -144,7 +145,16 @@ const dashboardData = {
   ],
 };
 
-export default function Dashboard() {
+export default function AdminDashboardPage() {
+  // ProtectedRole wrapper ensures only admin can access
+  return (
+    <ProtectedRole allowed={["ADMIN"]}>
+      <Dashboard />
+    </ProtectedRole>
+  );
+}
+
+function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { theme } = useTheme();
 
