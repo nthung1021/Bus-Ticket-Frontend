@@ -1,7 +1,7 @@
 "use client";
 
-import ProtectedRole from "src/supporters/ProtectedRole";
-import Navbar from "src/supporters/Navbar";
+import ProtectedRole from "@/components/ProtectedRole";
+import Navbar from "@/components/Navbar";
 import {
   useAdminUsers,
   useChangeUserRole,

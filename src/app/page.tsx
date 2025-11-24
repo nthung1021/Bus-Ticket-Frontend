@@ -1,4 +1,4 @@
-import Navbar from "src/supporters/Navbar";
+import Navbar from "@/components/Navbar";
 
 export default function Home() {
   return <Navbar />;

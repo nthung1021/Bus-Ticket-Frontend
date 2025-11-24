@@ -28,7 +28,7 @@ import {
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import ProtectedRole from "@/supporters/ProtectedRole";
+import ProtectedRole from "@/components/ProtectedRole";
 
 const dashboardData = {
   stats: [
