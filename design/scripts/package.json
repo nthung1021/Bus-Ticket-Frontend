@@ -1,0 +1,20 @@
+{
+  "name": "design-tools",
+  "version": "1.0.0",
+  "description": "Design automation tools for Bus Ticket Platform",
+  "main": "generate-mockups.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "wireframe": "node create-wireframe.js",
+    "excalidraw": "node open-excalidraw.js",
+    "screenshot": "node take-screenshots.js"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "open": "^8.4.2",
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  }
+}
