@@ -18,51 +18,72 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-desktop">
-        <div className="navbar-desktop-content">
-          <Link href="/" className="navbar-desktop-brand">
+    <nav className="bg-background border-b border-border">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-between h-16">
+          <Link href="/" className="text-h6 font-bold text-foreground">
             Bus Ticket App
           </Link>
 
           {/* Center menu */}
-          <ul className="navbar-desktop-links">
+          <ul className="hidden md:flex items-center space-x-8">
             <li>
-              <a href="#">About</a>
+              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                About
+              </a>
             </li>
             <li>
-              <a href="#">Pricing</a>
+              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Pricing
+              </a>
             </li>
             <li>
-              <a href="#">Contact</a>
+              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Contact
+              </a>
             </li>
             <li>
-              <a href="#">Blog</a>
+              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Blog
+              </a>
             </li>
           </ul>
 
           {/* RIGHT SIDE — Conditional rendering */}
-          <div className="navbar-desktop-actions">
+          <div className="hidden md:flex items-center space-x-4">
             {!user ? (
               <>
-                <Link href="/login" className="btn-secondary">
+                <Link 
+                  href="/login" 
+                  className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+                >
                   Login
                 </Link>
-                <Link href="/signup" className="btn-primary">
+                <Link 
+                  href="/signup" 
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                >
                   Sign up
                 </Link>
               </>
             ) : (
               <>
-                <span>
+                <span className="text-body text-foreground">
                   Hello, {user?.fullName} ({user?.role?.toUpperCase()})
                 </span>
                 {user?.role === "admin" && (
-                  <Link className="btn-primary" href="/admin/manage-users">
+                  <Link 
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors" 
+                    href="/admin/manage-users"
+                  >
                     Admin
                   </Link>
                 )}
-                <button onClick={handleLogout} className="btn-secondary" disabled={(logoutMutation as any).isLoading}>
+                <button 
+                  onClick={handleLogout} 
+                  className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors" 
+                  disabled={(logoutMutation as any).isLoading}
+                >
                   Logout
                 </button>
               </>
@@ -71,7 +92,7 @@ export default function Navbar() {
 
           {/* MOBILE MENU TOGGLE */}
           <button
-            className="md:hidden text-teal-900"
+            className="md:hidden text-foreground"
             onClick={() => setOpen((v) => !v)}
           >
             ☰
@@ -81,47 +102,70 @@ export default function Navbar() {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="navbar-mobile">
-          <div className="navbar-mobile-menu">
-            <ul className="navbar-mobile-links">
+        <div className="md:hidden bg-card border-t border-border">
+          <div className="px-6 py-4 space-y-4">
+            <ul className="space-y-2">
               <li>
-                <a href="#">About</a>
+                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  About
+                </a>
               </li>
               <li>
-                <a href="#">Pricing</a>
+                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Pricing
+                </a>
               </li>
               <li>
-                <a href="#">Contact</a>
+                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Contact
+                </a>
               </li>
               <li>
-                <a href="#">Blog</a>
+                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Blog
+                </a>
               </li>
             </ul>
 
-            {!user ? (
-              <>
-                <Link href="/login" className="btn-secondary">
-                  Login
-                </Link>
-                <Link href="/register" className="btn-primary">
-                  Sign up
-                </Link>
-              </>
-            ) : (
-              <>
-                <span className="navbar-mobile-username">
-                  Hello, {user?.fullName} ({user?.role?.toUpperCase()})
-                </span>
-                {user?.role === "admin" && (
-                  <Link className="btn-primary" href="/admin/manage-users">
-                    Admin
+            <div className="space-y-3 pt-4 border-t border-border">
+              {!user ? (
+                <>
+                  <Link 
+                    href="/login" 
+                    className="block bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors text-center"
+                  >
+                    Login
                   </Link>
-                )}
-                <button className="btn-secondary" onClick={handleLogout} disabled={(logoutMutation as any).isLoading}>
-                  Logout
-                </button>
-              </>
-            )}
+                  <Link 
+                    href="/signup" 
+                    className="block bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-center"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <span className="block text-body text-foreground py-2">
+                    Hello, {user?.fullName} ({user?.role?.toUpperCase()})
+                  </span>
+                  {user?.role === "admin" && (
+                    <Link 
+                      className="block bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-center" 
+                      href="/admin/manage-users"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <button 
+                    className="w-full bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors" 
+                    onClick={handleLogout} 
+                    disabled={(logoutMutation as any).isLoading}
+                  >
+                    Logout
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

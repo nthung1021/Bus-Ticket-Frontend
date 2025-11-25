@@ -162,7 +162,7 @@ function Dashboard() {
   const gridColor = theme === "dark" ? "#374151" : "#e5e7eb";
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex bg-background">
       {/* Sidebar */}
       <Sidebar />
 
@@ -172,7 +172,7 @@ function Dashboard() {
         <Header />
 
         {/* Content Area */}
-        <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
+        <main className="flex-1 pt-4 px-4 pb-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
