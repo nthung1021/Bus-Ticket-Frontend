@@ -110,7 +110,7 @@ export default function Navbar() {
             ) : (
               <>
                 <span className="navbar-mobile-username">
-                  Hello, {user?.name} ({user?.role?.toUpperCase()})
+                  Hello, {user?.fullName} ({user?.role?.toUpperCase()})
                 </span>
                 {user?.role === "admin" && (
                   <Link className="btn-primary" href="/admin/manage-users">

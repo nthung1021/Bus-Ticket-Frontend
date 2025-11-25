@@ -53,6 +53,7 @@ export const authService = {
       // Try to fetch current user from backend
       // The access token cookie will be sent automatically
       const response = await api.get("/auth/me");
+      console.log(response.data.data);
       return response.data.data;
     } catch (error) {
       // If request fails (e.g., no valid token), return null
