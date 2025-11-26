@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 
 const ROLES = [
-  { key: "customer", label: "Customer" },
+  { key: "customer", label: "Passenger" },
   { key: "admin", label: "Admin" },
   { key: "operator", label: "Operator" },
 ];
@@ -50,7 +50,7 @@ function AdminPageContent() {
   return (
     <>
       <section className="site-container py-12">
-        <h1 className="m-4 font-bold text-2xl">Admin — Manage Users</h1>
+        <h1 className="m-4 font-bold text-2xl">Admin — Manage Passengers</h1>
 
         <div className="bg-background rounded-2xl">
           <table className="min-w-full divide-y divide-foreground">
@@ -66,7 +66,7 @@ function AdminPageContent() {
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
-                  Actions
+                  Action - Change Role
                 </th>
               </tr>
             </thead>
@@ -122,7 +122,7 @@ function UserRow({
         <span
           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass(user.role)}`}
         >
-          {user.role}
+          {user.role.toLocaleUpperCase()}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -152,7 +152,6 @@ function badgeClass(role: string) {
     case "operator":
       return "bg-blue-100 text-blue-800";
     case "customer":
-    default:
       return "bg-green-100 text-green-800";
   }
 }
