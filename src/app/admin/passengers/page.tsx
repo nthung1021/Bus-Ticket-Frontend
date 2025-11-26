@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 
 const ROLES = [
-  { key: "customer", label: "Customer" },
+  { key: "customer", label: "Passenger" },
   { key: "admin", label: "Admin" },
   { key: "operator", label: "Operator" },
 ];
@@ -33,7 +33,6 @@ function AdminPageContent() {
   if (isLoading) {
     return (
       <>
-        <Navbar />
         <div className="site-container py-12">Loading users…</div>
       </>
     );
@@ -41,7 +40,6 @@ function AdminPageContent() {
   if (isError) {
     return (
       <>
-        <Navbar />
         <div className="site-container py-12">
           Error: {String(error?.message)}
         </div>
@@ -51,29 +49,28 @@ function AdminPageContent() {
 
   return (
     <>
-      <Navbar />
       <section className="site-container py-12">
-        <h1 className="m-4 font-bold">Admin — Manage Users</h1>
+        <h1 className="m-4 font-bold text-2xl">Admin — Manage Passengers</h1>
 
-        <div className="bg-white shadow rounded-2xl">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-background rounded-2xl">
+          <table className="min-w-full divide-y divide-foreground">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
-                  Actions
+                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
+                  Action - Change Role
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-background divide-y divide-foreground">
               {users?.map((u) => (
                 <UserRow
                   key={u.userId}
@@ -94,7 +91,7 @@ function AdminPageContent() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-6 py-4 text-center text-sm text-gray-500"
+                    className="px-6 py-4 text-center text-sm text-foreground"
                   >
                     No users
                   </td>
@@ -125,7 +122,7 @@ function UserRow({
         <span
           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass(user.role)}`}
         >
-          {user.role}
+          {user.role.toLocaleUpperCase()}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -133,7 +130,9 @@ function UserRow({
           {ROLES.map((r) => (
             <button
               key={r.key}
-              className={`px-3 py-1 rounded-full text-sm border ${user.role === r.key ? "bg-gray-200" : "hover:bg-gray-50"}`}
+              className={
+                `px-3 py-1 rounded-full text-sm border-foreground border-2
+                ${user.role === r.key ? "bg-gray-400" : "hover:bg-gray-300"}`}
               onClick={() => onChangeRole(r.key)}
               disabled={disabled || user.role === r.key}
             >
@@ -153,7 +152,6 @@ function badgeClass(role: string) {
     case "operator":
       return "bg-blue-100 text-blue-800";
     case "customer":
-    default:
       return "bg-green-100 text-green-800";
   }
 }
