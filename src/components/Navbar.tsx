@@ -151,7 +151,7 @@ export default function Navbar() {
                   {user?.role === "admin" && (
                     <Link 
                       className="block bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-center" 
-                      href="/admin/manage-users"
+                      href="/admin"
                     >
                       Admin
                     </Link>
