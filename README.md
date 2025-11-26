@@ -36,5 +36,11 @@ Information about the UI components architecture and structure, please refer tot
 
 Want to check some mockup dashboards that we are using in our app? Check out this [Dashboard Screenshot](/design/mockups/README.md).
 
+## Public host
+
+Our project is hosted using [Vercel](https://vercel.com). You can check out our web app in this link:
+
+https://bus-ticket-frontend-bice.vercel.app/
+
 
 
