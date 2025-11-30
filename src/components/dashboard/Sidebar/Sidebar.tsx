@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Route,
   Truck,
+  Bus,
   Ticket,
   Users,
   FileText,
@@ -18,6 +19,7 @@ import styles from "./Sidebar.module.css";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
   { icon: Route, label: "Manage Routes", href: "/admin/routes" },
+  { icon: Bus, label: "Manage Buses", href: "/admin/buses" },
   { icon: Truck, label: "Manage Trips", href: "/admin/trips" },
   { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
   { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
