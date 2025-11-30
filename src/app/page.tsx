@@ -56,14 +56,14 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+      <section className="relative bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative max-w-7xl mx-auto px-6 py-16 lg:py-24">
           <div className="text-center space-y-6">
-            <h1 className="text-h1 lg:text-5xl xl:text-6xl font-bold leading-tight">
+            <h1 className="text-h1 font-bold leading-tight">
               Your Journey Starts Here
             </h1>
-            <p className="text-xl lg:text-2xl text-blue-100 max-w-2xl mx-auto">
+            <p className="text-body text-primary-foreground/80 max-w-2xl mx-auto">
               Book bus tickets easily and travel comfortably to your destination
             </p>
           </div>
@@ -131,7 +131,7 @@ export default function Home() {
       <section className="py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center space-y-4 mb-12">
-            <h2 className="text-h2 lg:text-4xl font-bold text-foreground">
+            <h2 className="text-h2 font-bold text-foreground">
               Popular Routes
             </h2>
             <p className="text-body text-muted-foreground max-w-2xl mx-auto">
@@ -216,10 +216,10 @@ export default function Home() {
       {/* Call to Action Section */}
       <section className="py-16 lg:py-20 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
-          <h2 className="text-h2 lg:text-4xl font-bold">
+          <h2 className="text-h2 font-bold">
             Ready to Start Your Journey?
           </h2>
-          <p className="text-xl opacity-90 max-w-2xl mx-auto">
+          <p className="text-body opacity-90 max-w-2xl mx-auto">
             Join thousands of travelers who trust us for comfortable and reliable bus journeys across the country
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">

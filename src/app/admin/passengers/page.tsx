@@ -50,7 +50,7 @@ function AdminPageContent() {
   return (
     <>
       <section className="site-container py-12">
-        <h1 className="m-4 font-bold text-2xl">Admin — Manage Passengers</h1>
+        <h1 className="m-4 font-bold text-h2">Admin — Manage Passengers</h1>
 
         <div className="bg-background rounded-2xl">
           <table className="min-w-full divide-y divide-foreground">
@@ -150,7 +150,7 @@ function badgeClass(role: string) {
     case "admin":
       return "bg-red-100 text-red-800";
     case "operator":
-      return "bg-blue-100 text-blue-800";
+      return "bg-primary/10 text-primary";
     case "customer":
       return "bg-green-100 text-green-800";
   }
