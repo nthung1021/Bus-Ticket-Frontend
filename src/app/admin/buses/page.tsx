@@ -11,8 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Edit, Plus, Search } from "lucide-react";
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
+import { operatorService, Operator } from "@/services/operator.service";
 import { toast } from "sonner";
 
 export default function BusesPage() {
@@ -25,6 +27,7 @@ export default function BusesPage() {
 
 function BusesManagement() {
   const [buses, setBuses] = useState<Bus[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -40,7 +43,18 @@ function BusesManagement() {
 
   useEffect(() => {
     fetchBuses();
+    fetchOperators();
   }, []);
+
+  const fetchOperators = async () => {
+    try {
+      const data = await operatorService.getAll();
+      setOperators(data);
+    } catch (error) {
+      toast.error("Failed to fetch operators");
+      console.error("Error fetching operators:", error);
+    }
+  };
 
   const fetchBuses = async () => {
     try {
@@ -131,13 +145,19 @@ function BusesManagement() {
   const BusForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="operatorId">Operator ID</Label>
-        <Input
-          id="operatorId"
-          value={formData.operatorId}
-          onChange={(e) => setFormData({ ...formData, operatorId: e.target.value })}
-          placeholder="Enter operator ID"
-        />
+        <Label htmlFor="operatorId">Operator</Label>
+        <Select value={formData.operatorId} onValueChange={(value) => setFormData({ ...formData, operatorId: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select an operator" />
+          </SelectTrigger>
+          <SelectContent>
+            {operators.map((operator) => (
+              <SelectItem key={operator.id} value={operator.id}>
+                {operator.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="plateNumber">Plate Number</Label>

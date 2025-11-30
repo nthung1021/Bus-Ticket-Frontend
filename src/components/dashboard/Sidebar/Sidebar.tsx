@@ -5,11 +5,12 @@ import {
   Route,
   Truck,
   Bus,
-  Ticket,
   Users,
+  Ticket,
   FileText,
   Settings,
   Zap,
+  Building,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,8 +22,9 @@ const menuItems = [
   { icon: Route, label: "Manage Routes", href: "/admin/routes" },
   { icon: Bus, label: "Manage Buses", href: "/admin/buses" },
   { icon: Truck, label: "Manage Trips", href: "/admin/trips" },
-  { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
+  { icon: Building, label: "Manage Operators", href: "/admin/operators" },
   { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
+  { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
   { icon: FileText, label: "Reports", href: "/admin/reports" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
