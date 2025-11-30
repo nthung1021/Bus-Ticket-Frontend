@@ -25,6 +25,7 @@ import {
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Loader2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Route, Bus, Trip, TripStatus, formatDateFromBackend } from "@/services/trip.service";
 
 const tripFormSchema = z
     .object({
@@ -52,11 +53,11 @@ const tripFormSchema = z
 type TripFormValues = z.infer<typeof tripFormSchema>;
 
 interface TripFormProps {
-    initialData?: Partial<TripFormValues>;
+    initialData?: Trip;
     onSubmit: (data: TripFormValues) => Promise<void>;
     onCancel: () => void;
-    routes: Array<{ id: string; origin: string; destination: string }>;
-    buses: Array<{ id: string; plateNumber: string; model: string }>;
+    routes: Route[];
+    buses: Bus[];
     isLoading?: boolean;
     className?: string;
 }
@@ -75,10 +76,10 @@ export function TripForm({
         defaultValues: {
             routeId: initialData?.routeId || "",
             busId: initialData?.busId || "",
-            departureTime: initialData?.departureTime || undefined,
-            arrivalTime: initialData?.arrivalTime || undefined,
-            basePrice: initialData?.basePrice || "",
-            status: initialData?.status || "scheduled",
+            departureTime: initialData?.departureTime ? formatDateFromBackend(initialData.departureTime) : undefined,
+            arrivalTime: initialData?.arrivalTime ? formatDateFromBackend(initialData.arrivalTime) : undefined,
+            basePrice: initialData?.basePrice ? initialData.basePrice.toString() : "",
+            status: initialData?.status || TripStatus.SCHEDULED,
         },
     });
 

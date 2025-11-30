@@ -29,7 +29,7 @@ import {
     Filter,
     Calendar,
     MapPin,
-    Bus,
+    Bus as BusIcon,
     DollarSign,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -40,81 +40,61 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import toast from "react-hot-toast";
 import ProtectedRole from "@/components/ProtectedRole";
-
-// Mock data - replace with actual API calls
-const mockRoutes = [
-    { id: "1", origin: "Hanoi", destination: "Ho Chi Minh City" },
-    { id: "2", origin: "Hanoi", destination: "Da Nang" },
-    { id: "3", origin: "Ho Chi Minh City", destination: "Da Nang" },
-    { id: "4", origin: "Hanoi", destination: "Hai Phong" },
-];
-
-const mockBuses = [
-    { id: "1", plateNumber: "29A-12345", model: "Mercedes Sprinter" },
-    { id: "2", plateNumber: "30B-67890", model: "Hyundai Universe" },
-    { id: "3", plateNumber: "51C-11111", model: "Thaco TB120S" },
-    { id: "4", plateNumber: "29D-22222", model: "Samco Primas" },
-];
-
-interface Trip {
-    id: string;
-    routeId: string;
-    busId: string;
-    departureTime: Date;
-    arrivalTime: Date;
-    basePrice: string;
-    status: "scheduled" | "in_progress" | "completed" | "cancelled" | "delayed";
-    route?: { origin: string; destination: string };
-    bus?: { plateNumber: string; model: string };
-}
-
-const mockTrips: Trip[] = [
-    {
-        id: "1",
-        routeId: "1",
-        busId: "1",
-        departureTime: new Date("2024-12-01T08:00:00"),
-        arrivalTime: new Date("2024-12-01T20:00:00"),
-        basePrice: "45.00",
-        status: "scheduled",
-        route: { origin: "Hanoi", destination: "Ho Chi Minh City" },
-        bus: { plateNumber: "29A-12345", model: "Mercedes Sprinter" },
-    },
-    {
-        id: "2",
-        routeId: "2",
-        busId: "2",
-        departureTime: new Date("2024-12-02T09:00:00"),
-        arrivalTime: new Date("2024-12-02T18:00:00"),
-        basePrice: "35.00",
-        status: "scheduled",
-        route: { origin: "Hanoi", destination: "Da Nang" },
-        bus: { plateNumber: "30B-67890", model: "Hyundai Universe" },
-    },
-    {
-        id: "3",
-        routeId: "3",
-        busId: "3",
-        departureTime: new Date("2024-11-28T10:00:00"),
-        arrivalTime: new Date("2024-11-28T16:00:00"),
-        basePrice: "28.00",
-        status: "completed",
-        route: { origin: "Ho Chi Minh City", destination: "Da Nang" },
-        bus: { plateNumber: "51C-11111", model: "Thaco TB120S" },
-    },
-];
+import {
+    getTrips,
+    createTrip,
+    updateTrip,
+    deleteTrip,
+    getRoutes,
+    getBuses,
+    Trip,
+    Route,
+    Bus as BusType,
+    CreateTripDto,
+    UpdateTripDto,
+    formatDateForBackend,
+    formatDateFromBackend,
+    TripStatus,
+} from "@/services/trip.service";
 
 function TripManagementPage() {
-    const [trips, setTrips] = useState<Trip[]>(mockTrips);
-    const [filteredTrips, setFilteredTrips] = useState<Trip[]>(mockTrips);
+    const [trips, setTrips] = useState<Trip[]>([]);
+    const [routes, setRoutes] = useState<Route[]>([]);
+    const [buses, setBuses] = useState<BusType[]>([]);
+    const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [isLoading, setIsLoading] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // Fetch data on component mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setIsInitialLoading(true);
+                const [tripsData, routesData, busesData] = await Promise.all([
+                    getTrips(),
+                    getRoutes(),
+                    getBuses()
+                ]);
+                setTrips(tripsData);
+                setRoutes(routesData);
+                setBuses(busesData);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                toast.error("Failed to load data");
+            } finally {
+                setIsInitialLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     // Filter trips based on search and status
     useEffect(() => {
@@ -151,11 +131,15 @@ function TripManagementPage() {
     const handleDeleteTrip = async (tripId: string) => {
         if (confirm("Are you sure you want to delete this trip?")) {
             try {
-                // TODO: Replace with actual API call
+                setIsLoading(true);
+                await deleteTrip(tripId);
                 setTrips(trips.filter((t) => t.id !== tripId));
                 toast.success("Trip deleted successfully");
             } catch (error) {
+                console.error("Error deleting trip:", error);
                 toast.error("Failed to delete trip");
+            } finally {
+                setIsLoading(false);
             }
         }
     };
@@ -163,33 +147,24 @@ function TripManagementPage() {
     const handleSubmitTrip = async (data: any) => {
         setIsLoading(true);
         try {
-            // TODO: Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            // Format data for backend
+            const tripData: CreateTripDto | UpdateTripDto = {
+                routeId: data.routeId,
+                busId: data.busId,
+                departureTime: formatDateForBackend(data.departureTime),
+                arrivalTime: formatDateForBackend(data.arrivalTime),
+                basePrice: parseFloat(data.basePrice),
+                status: data.status || TripStatus.SCHEDULED,
+            };
 
             if (editingTrip) {
                 // Update existing trip
-                const route = mockRoutes.find((r) => r.id === data.routeId);
-                const bus = mockBuses.find((b) => b.id === data.busId);
-
-                setTrips(
-                    trips.map((t) =>
-                        t.id === editingTrip.id
-                            ? { ...data, id: t.id, route, bus }
-                            : t
-                    )
-                );
+                const updatedTrip = await updateTrip(editingTrip.id, tripData as UpdateTripDto);
+                setTrips(trips.map((t) => t.id === editingTrip.id ? updatedTrip : t));
                 toast.success("Trip updated successfully");
             } else {
                 // Create new trip
-                const route = mockRoutes.find((r) => r.id === data.routeId);
-                const bus = mockBuses.find((b) => b.id === data.busId);
-
-                const newTrip: Trip = {
-                    ...data,
-                    id: String(trips.length + 1),
-                    route,
-                    bus,
-                };
+                const newTrip = await createTrip(tripData as CreateTripDto);
                 setTrips([...trips, newTrip]);
                 toast.success("Trip created successfully");
             }
@@ -197,6 +172,7 @@ function TripManagementPage() {
             setIsDialogOpen(false);
             setEditingTrip(null);
         } catch (error) {
+            console.error("Error saving trip:", error);
             toast.error("Failed to save trip");
         } finally {
             setIsLoading(false);
@@ -294,7 +270,19 @@ function TripManagementPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredTrips.length === 0 ? (
+                                    {isInitialLoading ? (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={7}
+                                                className="text-center py-12 text-muted-foreground"
+                                            >
+                                                <div className="flex items-center justify-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                </div>
+                                                <p className="text-lg font-medium mt-4">Loading trips...</p>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : filteredTrips.length === 0 ? (
                                         <TableRow>
                                             <TableCell
                                                 colSpan={7}
@@ -317,14 +305,14 @@ function TripManagementPage() {
                                                         <MapPin className="h-4 w-4 text-primary" />
                                                         <div>
                                                             <div className="font-medium">
-                                                                {trip.route?.origin} → {trip.route?.destination}
+                                                                {trip.route?.origin || 'N/A'} → {trip.route?.destination || 'N/A'}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <Bus className="h-4 w-4 text-accent" />
+                                                        <BusIcon className="h-4 w-4 text-accent" />
                                                         <div>
                                                             <div className="font-medium">
                                                                 {trip.bus?.plateNumber}
@@ -337,24 +325,24 @@ function TripManagementPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="text-sm">
-                                                        {format(trip.departureTime, "PPP")}
+                                                        {format(parseISO(trip.departureTime), "PPP")}
                                                         <div className="text-xs text-muted-foreground">
-                                                            {format(trip.departureTime, "HH:mm")}
+                                                            {format(parseISO(trip.departureTime), "HH:mm")}
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="text-sm">
-                                                        {format(trip.arrivalTime, "PPP")}
+                                                        {format(parseISO(trip.arrivalTime), "PPP")}
                                                         <div className="text-xs text-muted-foreground">
-                                                            {format(trip.arrivalTime, "HH:mm")}
+                                                            {format(parseISO(trip.arrivalTime), "HH:mm")}
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-1 font-medium">
                                                         <DollarSign className="h-3 w-3" />
-                                                        {trip.basePrice}
+                                                        {trip.basePrice.toFixed(2)}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{getStatusBadge(trip.status)}</TableCell>
@@ -441,8 +429,8 @@ function TripManagementPage() {
                             setIsDialogOpen(false);
                             setEditingTrip(null);
                         }}
-                        routes={mockRoutes}
-                        buses={mockBuses}
+                        routes={routes}
+                        buses={buses}
                         isLoading={isLoading}
                     />
                 </DialogContent>
