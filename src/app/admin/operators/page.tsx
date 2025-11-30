@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Plus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { operatorService, Operator, CreateOperatorDto, UpdateOperatorDto, OperatorStatus } from "@/services/operator.service";
 import { toast } from "sonner";
+import OperatorForm from "@/components/operator/OperatorForm";
 
 export default function OperatorsPage() {
   return (
@@ -165,60 +166,6 @@ function OperatorsManagement() {
     }
   };
 
-  const OperatorForm = ({ isEdit = false }: { isEdit?: boolean }) => (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="name">Operator Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Enter operator name"
-        />
-      </div>
-      <div>
-        <Label htmlFor="contactEmail">Contact Email</Label>
-        <Input
-          id="contactEmail"
-          type="email"
-          value={formData.contactEmail}
-          onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-          placeholder="Enter contact email"
-        />
-      </div>
-      <div>
-        <Label htmlFor="contactPhone">Contact Phone</Label>
-        <Input
-          id="contactPhone"
-          value={formData.contactPhone}
-          onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-          placeholder="Enter contact phone"
-        />
-      </div>
-      <div>
-        <Label htmlFor="status">Status</Label>
-        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as OperatorStatus })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
-            <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
-            <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button variant="outline" onClick={() => isEdit ? setIsEditDialogOpen(false) : setIsCreateDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button onClick={isEdit ? handleUpdateOperator : handleCreateOperator}>
-          {isEdit ? "Update" : "Create"} Operator
-        </Button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex bg-background">
       <Sidebar />
@@ -261,7 +208,12 @@ function OperatorsManagement() {
                       <DialogHeader>
                         <DialogTitle>Create New Operator</DialogTitle>
                       </DialogHeader>
-                      <OperatorForm />
+                      <OperatorForm
+                        formData={formData}
+                        setFormData={setFormData}
+                        onCancel={() => setIsCreateDialogOpen(false)}
+                        onSubmit={handleCreateOperator}
+                      />
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -355,7 +307,13 @@ function OperatorsManagement() {
               <DialogHeader>
                 <DialogTitle>Edit Operator</DialogTitle>
               </DialogHeader>
-              <OperatorForm isEdit={true} />
+              <OperatorForm
+                isEdit={true}
+                formData={formData}
+                setFormData={setFormData}
+                onCancel={() => setIsEditDialogOpen(false)}
+                onSubmit={handleUpdateOperator}
+              />
             </DialogContent>
           </Dialog>
         </main>
