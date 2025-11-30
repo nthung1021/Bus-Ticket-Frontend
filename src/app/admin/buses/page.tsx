@@ -16,6 +16,7 @@ import { Trash2, Edit, Plus, Search } from "lucide-react";
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { toast } from "sonner";
+import BusForm from "@/components/bus/BusForm";
 
 export default function BusesPage() {
   return (
@@ -142,71 +143,6 @@ function BusesManagement() {
       bus.model.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const BusForm = ({ isEdit = false }: { isEdit?: boolean }) => (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="operatorId">Operator</Label>
-        <Select value={formData.operatorId} onValueChange={(value) => setFormData({ ...formData, operatorId: value })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select an operator" />
-          </SelectTrigger>
-          <SelectContent>
-            {operators.map((operator) => (
-              <SelectItem key={operator.id} value={operator.id}>
-                {operator.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="plateNumber">Plate Number</Label>
-        <Input
-          id="plateNumber"
-          value={formData.plateNumber}
-          onChange={(e) => setFormData({ ...formData, plateNumber: e.target.value })}
-          placeholder="Enter plate number"
-        />
-      </div>
-      <div>
-        <Label htmlFor="model">Model</Label>
-        <Input
-          id="model"
-          value={formData.model}
-          onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-          placeholder="Enter bus model"
-        />
-      </div>
-      <div>
-        <Label htmlFor="seatCapacity">Seat Capacity</Label>
-        <Input
-          id="seatCapacity"
-          type="number"
-          value={formData.seatCapacity}
-          onChange={(e) => setFormData({ ...formData, seatCapacity: parseInt(e.target.value) || 0 })}
-          placeholder="Enter seat capacity"
-        />
-      </div>
-      <div>
-        <Label htmlFor="amenities">Amenities (comma-separated)</Label>
-        <Input
-          id="amenities"
-          value={formData.amenities.join(", ")}
-          onChange={(e) => setFormData({ ...formData, amenities: e.target.value.split(",").map(a => a.trim()).filter(a => a) })}
-          placeholder="WiFi, AC, TV, USB"
-        />
-      </div>
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button variant="outline" onClick={() => isEdit ? setIsEditDialogOpen(false) : setIsCreateDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button onClick={isEdit ? handleUpdateBus : handleCreateBus}>
-          {isEdit ? "Update" : "Create"} Bus
-        </Button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex bg-background">
       <Sidebar />
@@ -238,7 +174,13 @@ function BusesManagement() {
                       <DialogHeader>
                         <DialogTitle>Create New Bus</DialogTitle>
                       </DialogHeader>
-                      <BusForm />
+                      <BusForm
+                        formData={formData}
+                        setFormData={setFormData}
+                        onCancel={() => setIsCreateDialogOpen(false)}
+                        onSubmit={handleCreateBus}
+                        operators={operators}
+                      />
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -315,7 +257,14 @@ function BusesManagement() {
               <DialogHeader>
                 <DialogTitle>Edit Bus</DialogTitle>
               </DialogHeader>
-              <BusForm isEdit={true} />
+              <BusForm
+                isEdit={true}
+                formData={formData}
+                setFormData={setFormData}
+                onCancel={() => setIsEditDialogOpen(false)}
+                onSubmit={handleUpdateBus}
+                operators={operators}
+              />
             </DialogContent>
           </Dialog>
         </main>
