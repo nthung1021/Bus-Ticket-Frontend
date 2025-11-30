@@ -18,7 +18,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-background border-b border-border">
+    <nav className="bg-background/95 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="text-h6 font-bold text-foreground">

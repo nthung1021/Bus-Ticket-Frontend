@@ -183,45 +183,47 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-12 px-6 lg:px-8 xl:px-12 space-y-12 max-w-7xl">
       {/* Main Product Section */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Product Image */}
-        <div className="space-y-4">
-          <div className="bg-card border border-border rounded-2xl p-6 group cursor-pointer hover:shadow-lg transition-all duration-300">
-            <img 
-              src={product.image}
-              alt={product.name}
-              className="w-full aspect-[4/3] rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-              <span className="text-caption text-muted-foreground">View 1</span>
+        <div className="bg-card border border-border rounded-2xl p-6 h-fit">
+          <div className="space-y-4">
+            <div className="group cursor-pointer">
+              <img 
+                src={product.image}
+                alt={product.name}
+                className="w-full aspect-[4/3] rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
+              />
             </div>
-            <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-              <span className="text-caption text-muted-foreground">View 2</span>
-            </div>
-            <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-              <span className="text-caption text-muted-foreground">View 3</span>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
+                <span className="text-caption text-muted-foreground">View 1</span>
+              </div>
+              <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
+                <span className="text-caption text-muted-foreground">View 2</span>
+              </div>
+              <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
+                <span className="text-caption text-muted-foreground">View 3</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Product Info */}
-        <div className="space-y-8">
+        <div className="bg-card border border-border rounded-2xl p-6 h-full flex flex-col">
           {/* Header Info */}
-          <div className="space-y-4">
+          <div className="space-y-4 mb-6">
             <div className="inline-block">
               <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-caption font-medium">
                 {product.category}
               </span>
             </div>
-            <h1 className="text-h1 text-foreground leading-tight">{product.name}</h1>
+            <h1 className="text-h2 text-foreground leading-tight">{product.name}</h1>
           </div>
 
           {/* Price */}
-          <div className="bg-card border border-border rounded-xl p-6">
+          <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
             <div className="flex items-center gap-4">
-              <span className="text-h3 text-primary font-bold">
+              <span className="text-h4 text-primary font-bold">
                 {product.price.toLocaleString('vi-VN')} VNĐ
               </span>
               {product.originalPrice && (
@@ -238,84 +240,76 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
           </div>
 
           {/* Route Details */}
-          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-6 space-y-6">
-            <h3 className="text-h5 text-foreground font-semibold flex items-center gap-2">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-gradient-to-br from-primary/5 to-primary/2 border border-primary/20 rounded-xl p-4 mb-6 flex-1">
+            <h3 className="text-h6 text-foreground font-semibold mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Route Information
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-h6 text-foreground mb-2 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-primary"></div>
-                    Departure
-                  </h4>
-                  <p className="text-body font-medium">{product.departure}</p>
-                  <p className="text-caption text-muted-foreground">{product.departureTime}</p>
-                </div>
-                <div>
-                  <h4 className="text-h6 text-foreground mb-2 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-secondary"></div>
-                    Duration
-                  </h4>
-                  <p className="text-body font-medium">{product.duration}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <h4 className="text-caption text-muted-foreground mb-1 flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-primary"></div>
+                  Departure
+                </h4>
+                <p className="text-body font-medium">{product.departure}</p>
+                <p className="text-caption text-muted-foreground">{product.departureTime}</p>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-h6 text-foreground mb-2 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-primary"></div>
-                    Arrival
-                  </h4>
-                  <p className="text-body font-medium">{product.arrival}</p>
-                  <p className="text-caption text-muted-foreground">{product.arrivalTime}</p>
-                </div>
-                <div>
-                  <h4 className="text-h6 text-foreground mb-2 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-secondary"></div>
-                    Bus Type
-                  </h4>
-                  <p className="text-body font-medium">{product.busType}</p>
-                </div>
+              <div>
+                <h4 className="text-caption text-muted-foreground mb-1 flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-primary"></div>
+                  Arrival
+                </h4>
+                <p className="text-body font-medium">{product.arrival}</p>
+                <p className="text-caption text-muted-foreground">{product.arrivalTime}</p>
               </div>
             </div>
-          </Card>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-caption text-muted-foreground mb-1">Duration</h4>
+                <p className="text-body font-medium">{product.duration}</p>
+              </div>
+              <div>
+                <h4 className="text-caption text-muted-foreground mb-1">Bus Type</h4>
+                <p className="text-caption font-medium">{product.busType}</p>
+              </div>
+            </div>
+          </div>
 
           {/* Quantity Selector */}
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <label className="text-h6 text-foreground font-medium flex items-center gap-2">
-              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-muted/30 border border-border rounded-xl p-4 mb-4">
+            <label className="text-caption text-muted-foreground font-medium mb-3 flex items-center gap-2">
+              <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
-              Number of Tickets
+              Tickets
             </label>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Button
                   onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
                   variant="outline"
                   size="sm"
-                  className="w-10 h-10 rounded-full cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className="w-8 h-8 rounded-full cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors p-0"
                   disabled={selectedQuantity <= 1}
                 >
                   -
                 </Button>
-                <span className="text-h5 font-semibold w-12 text-center bg-muted rounded-lg py-2">{selectedQuantity}</span>
+                <span className="text-body font-semibold w-8 text-center">{selectedQuantity}</span>
                 <Button
                   onClick={() => setSelectedQuantity(Math.min(10, selectedQuantity + 1))}
                   variant="outline"
                   size="sm"
-                  className="w-10 h-10 rounded-full cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className="w-8 h-8 rounded-full cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors p-0"
                   disabled={selectedQuantity >= 10}
                 >
                   +
                 </Button>
               </div>
               <div className="text-right">
-                <p className="text-caption text-muted-foreground">Total Price</p>
-                <p className="text-h5 font-bold text-primary">
+                <p className="text-caption text-muted-foreground">Total</p>
+                <p className="text-body font-bold text-primary">
                   {(product.price * selectedQuantity).toLocaleString('vi-VN')} VNĐ
                 </p>
               </div>
@@ -323,18 +317,18 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Button className="bg-primary text-primary-foreground rounded-xl px-8 py-4 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl">
-              <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-auto">
+            <Button className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl">
+              <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
               </svg>
               <span className="font-semibold">Book Now</span>
             </Button>
-            <Button variant="outline" className="border-2 border-border text-foreground rounded-xl px-8 py-4 hover:bg-accent transition-all duration-200 cursor-pointer group">
-              <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Button variant="outline" className="border border-border text-foreground rounded-xl px-4 py-3 hover:bg-accent transition-all duration-200 cursor-pointer group">
+              <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
-              <span className="font-semibold">Save Route</span>
+              <span className="font-semibold">Save</span>
             </Button>
           </div>
         </div>
