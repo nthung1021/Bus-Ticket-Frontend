@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function Home() {
   const [searchData, setSearchData] = useState({
@@ -169,36 +170,36 @@ export default function Home() {
 
   const featuredRoutes = [
     {
-      id: 1,
-      from: "New York",
-      to: "Boston",
-      price: 45,
-      duration: "6h",
-      image: "/placeholder-city-1.jpg"
+      id: "1",
+      from: "Hồ Chí Minh",
+      to: "Đà Lạt",
+      price: 350,
+      duration: "7h",
+      image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop"
     },
     {
-      id: 2,
-      from: "Los Angeles",
-      to: "San Francisco",
-      price: 55,
-      duration: "8h",
-      image: "/placeholder-city-2.jpg"
-    },
-    {
-      id: 3,
-      from: "Chicago",
-      to: "Detroit",
-      price: 35,
-      duration: "5h",
-      image: "/placeholder-city-3.jpg"
-    },
-    {
-      id: 4,
-      from: "Miami",
-      to: "Orlando",
-      price: 25,
+      id: "2",
+      from: "Hà Nội",
+      to: "Hạ Long",
+      price: 280,
       duration: "4h",
-      image: "/placeholder-city-4.jpg"
+      image: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop"
+    },
+    {
+      id: "3",
+      from: "Đà Nẵng",
+      to: "Hội An",
+      price: 120,
+      duration: "1h",
+      image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop"
+    },
+    {
+      id: "4",
+      from: "Cần Thơ",
+      to: "Hồ Chí Minh",
+      price: 180,
+      duration: "4h",
+      image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop"
     }
   ];
 
@@ -403,32 +404,36 @@ export default function Home() {
                   transitionDelay: isVisible(`route-${route.id}`) ? `${index * 150}ms` : '0ms'
                 }}
               >
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
-                <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
-                  <div className="w-full h-full bg-muted flex items-center justify-center">
-                    <span className="text-muted-foreground">Destination Image</span>
-                  </div>
-                  <div className="absolute bottom-4 left-4 z-20 text-white">
-                    <p className="text-sm font-medium">{route.duration} journey</p>
-                  </div>
-                </div>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    <h3 className="text-h5 font-semibold text-foreground">
-                      {route.from} → {route.to}
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <span className="text-h4 font-bold text-primary">
-                        ${route.price}
-                      </span>
-                      <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
-                        Book Now
-                      </Button>
+                <Link href={`/products/${route.id}`} className="block h-full">
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
+                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                      <img 
+                        src={route.image}
+                        alt={`${route.from} to ${route.to}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
+                      <div className="absolute bottom-4 left-4 z-20 text-white">
+                        <p className="text-sm font-medium bg-black/30 px-2 py-1 rounded">{route.duration} journey</p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <CardContent className="p-6">
+                      <div className="space-y-3">
+                        <h3 className="text-h5 font-semibold text-foreground">
+                          {route.from} → {route.to}
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-h4 font-bold text-primary">
+                            {route.price.toLocaleString('vi-VN')}k VNĐ
+                          </span>
+                          <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer" onClick={(e) => e.preventDefault()}>
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
             </div>
             ))}
           </div>
@@ -502,12 +507,16 @@ export default function Home() {
             Join thousands of travelers who trust us for comfortable and reliable bus journeys across the country
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
-              Explore All Routes
-            </Button>
-            <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
-              Download App
-            </Button>
+            <Link href="/products/1">
+              <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
+                Explore All Routes
+              </Button>
+            </Link>
+            <Link href="/products/2">
+              <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
+                Book Popular Route
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
