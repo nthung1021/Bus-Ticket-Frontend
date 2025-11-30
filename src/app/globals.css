@@ -192,3 +192,8 @@
 .dark [class*="bg-card"] {
   border-color: rgb(55 65 81) !important; /* gray-700 */
 }
+
+/* Custom transition durations for background image transitions */
+.duration-2000 {
+  transition-duration: 2000ms;
+}
