@@ -24,7 +24,7 @@ import {
   SeatPricingConfig,
   LayoutTemplate,
 } from '@/services/seat-layout.service';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { Loader2, Save, Eye, Settings } from 'lucide-react';
 
 interface SeatLayoutDialogProps {
@@ -34,6 +34,7 @@ interface SeatLayoutDialogProps {
   onOpenChange: (open: boolean) => void;
   existingLayout?: SeatLayout;
   onSuccess?: () => void;
+  onBusSeatLayoutUpdate?: (busId: string, layout: SeatLayout) => void;
 }
 
 export default function SeatLayoutDialog({
@@ -43,6 +44,7 @@ export default function SeatLayoutDialog({
   onOpenChange,
   existingLayout,
   onSuccess,
+  onBusSeatLayoutUpdate,
 }: SeatLayoutDialogProps) {
   const [activeTab, setActiveTab] = useState('template');
   const [selectedTemplate, setSelectedTemplate] = useState<LayoutTemplate | null>(null);
@@ -86,7 +88,7 @@ export default function SeatLayoutDialog({
         });
       }
     }
-  }, [open, existingLayout]);
+  }, [open]); // Remove existingLayout from dependency array
 
   const fetchTemplates = async () => {
     try {
@@ -112,11 +114,13 @@ export default function SeatLayoutDialog({
       console.log(createDto)
       const newLayout = await seatLayoutService.createFromTemplate(createDto);
       toast.success('Seat layout created successfully');
+      onBusSeatLayoutUpdate?.(busId, newLayout);
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       console.error(error);
-      toast.error(error.response?.data?.message || 'Failed to create seat layout');
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage || 'Failed to create seat layout');
     } finally {
       setSaving(false);
     }
@@ -130,14 +134,14 @@ export default function SeatLayoutDialog({
       
       // Calculate total rows and seats per row from layoutConfig
       const rows = [...new Set(layoutConfig.seats.map(seat => seat.position.row))];
-      const totalRows = Math.max(...rows, 1);
-      const seatsPerRow = Math.max(...Object.values(
+      const totalRows = layoutConfig.seats.length > 0 ? Math.max(...rows, 1) : 0;
+      const seatsPerRow = layoutConfig.seats.length > 0 ? Math.max(...Object.values(
         layoutConfig.seats.reduce((acc, seat) => {
           if (!acc[seat.position.row]) acc[seat.position.row] = [];
           acc[seat.position.row].push(seat);
           return acc;
         }, {} as Record<number, any>)
-      ).map((seats: any) => seats.length), 1);
+      ).map((seats: any) => seats.length), 1) : 0;
 
       // Remove price field from seats as it's not required in backend
       const cleanedLayoutConfig = {
@@ -145,7 +149,7 @@ export default function SeatLayoutDialog({
         seats: layoutConfig.seats.map(({ price, ...seat }) => seat)
       };
 
-      await seatLayoutService.update(existingLayout.id, {
+      const updatedLayout = await seatLayoutService.update(existingLayout.id, {
         layoutType: existingLayout.layoutType || 'custom',
         totalRows,
         seatsPerRow,
@@ -153,10 +157,12 @@ export default function SeatLayoutDialog({
         seatPricing: pricingConfig,
       });
       toast.success('Seat layout updated successfully');
+      onBusSeatLayoutUpdate?.(busId, updatedLayout);
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update seat layout');
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage || 'Failed to update seat layout');
     } finally {
       setSaving(false);
     }
@@ -167,13 +173,121 @@ export default function SeatLayoutDialog({
     try {
       setLayoutType(template.type);
       
-      // For now, let's create a basic preview based on template type
+      // Get template config from backend
       const mockConfig = await generateMockLayoutConfig(template.type);
       setLayoutConfig(mockConfig);
+
+      // If there's an existing layout, update it with the new template
+      if (existingLayout) {
+        await updateExistingLayoutWithTemplate(template, mockConfig);
+      }
     } catch (error) {
       toast.error('Failed to load template preview');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const extractErrorMessage = (error: any): string => {
+    // Try to extract error message from different possible error structures
+    if (error?.response?.data?.message) {
+      return error.response.data.message;
+    }
+    if (error?.response?.data?.error) {
+      return error.response.data.error;
+    }
+    if (error?.response?.data?.errors?.length > 0) {
+      return error.response.data.errors.join(', ');
+    }
+    if (error?.message) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    return 'An unexpected error occurred';
+  };
+
+  const handleLayoutTypeChange = async (type: SeatLayoutType) => {
+    if (!existingLayout || !layoutConfig) return;
+    
+    try {
+      setSaving(true);
+      setSelectedTemplate(null);
+      
+      // Calculate totalRows and seatsPerRow from seats
+      const rows = [...new Set(layoutConfig.seats.map(seat => seat.position.row))];
+      const totalRows = rows.length > 0 ? Math.max(...rows) : 0;
+      const seatsPerRow = Math.max(...layoutConfig.seats.map(seat => seat.position.position), 0);
+      
+      // Call API to update
+      // In the handleLayoutTypeChange function, update the API call to include seatPricing
+      const updatedLayout = await seatLayoutService.update(existingLayout.id, {
+        layoutType: type,
+        totalRows,
+        seatsPerRow,
+        layoutConfig: {
+          ...layoutConfig,
+          seats: layoutConfig.seats.map(({ price, ...seat }) => seat)
+        },
+        seatPricing: pricingConfig  // Add this line
+      });
+      console.log("updated layout", updatedLayout)
+      setLayoutType(type);
+      toast.success('Layout type updated successfully');
+      onBusSeatLayoutUpdate?.(busId, updatedLayout);
+      
+    } catch (error) {
+      const errorMessage = extractErrorMessage(error);
+      console.error('Error updating layout type:', error);
+      toast.error(errorMessage);
+      // Revert UI state on error
+      if (existingLayout) {
+        setLayoutType(existingLayout.layoutType);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateExistingLayoutWithTemplate = async (template: LayoutTemplate, config: SeatLayoutConfig) => {
+    if (!existingLayout) return;
+
+    try {
+      setSaving(true);
+      
+      // Calculate total rows and seats per row from layoutConfig
+      const rows = [...new Set(config.seats.map(seat => seat.position.row))];
+      const totalRows = config.seats.length > 0 ? Math.max(...rows, 1) : 0;
+      const seatsPerRow = config.seats.length > 0 ? Math.max(...Object.values(
+        config.seats.reduce((acc, seat) => {
+          if (!acc[seat.position.row]) acc[seat.position.row] = [];
+          acc[seat.position.row].push(seat);
+          return acc;
+        }, {} as Record<number, any>)
+      ).map((seats: any) => seats.length), 1) : 0;
+
+      // Remove price field from seats as it's not required in backend
+      const cleanedLayoutConfig = {
+        ...config,
+        seats: config.seats.map(({ price, ...seat }) => seat)
+      };
+
+      const updatedLayout = await seatLayoutService.update(existingLayout.id, {
+        layoutType: template.type,
+        totalRows,
+        seatsPerRow,
+        layoutConfig: cleanedLayoutConfig,
+        seatPricing: pricingConfig,
+      });
+      toast.success('Seat layout updated with new template');
+      onBusSeatLayoutUpdate?.(busId, updatedLayout);
+      onSuccess?.();
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage || 'Failed to update seat layout');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -334,6 +448,7 @@ export default function SeatLayoutDialog({
                 pricingConfig={pricingConfig}
                 onLayoutChange={setLayoutConfig}
                 onPricingChange={setPricingConfig}
+                onLayoutTypeChange={handleLayoutTypeChange}
                 readonly={false}
               />
             ) : (

@@ -171,6 +171,13 @@ function BusesManagement() {
     });
   };
 
+  const handleBusSeatLayoutUpdate = (busId: string, layout: SeatLayout) => {
+    setBusSeatLayouts(prev => ({
+      ...prev,
+      [busId]: layout
+    }));
+  };
+
   const filteredBuses = buses.filter(
     (bus) =>
       bus.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -329,6 +336,7 @@ function BusesManagement() {
             onOpenChange={setSeatLayoutDialogOpen}
             existingLayout={selectedBusForLayout ? busSeatLayouts[selectedBusForLayout.id] : undefined}
             onSuccess={handleSeatLayoutSuccess}
+            onBusSeatLayoutUpdate={handleBusSeatLayoutUpdate}
           />
         </main>
       </div>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { SeatInfo, SeatLayoutConfig, SeatPricingConfig } from '@/services/seat-layout.service';
+import { SeatInfo, SeatLayoutConfig, SeatPricingConfig, SeatLayoutType } from '@/services/seat-layout.service';
 import { RotateCcw, Plus, Trash2 } from 'lucide-react';
 
 interface TextSeatEditorProps {
@@ -11,6 +11,7 @@ interface TextSeatEditorProps {
   readonly?: boolean;
   pricingConfig?: SeatPricingConfig;
   onPricingChange?: (config: SeatPricingConfig) => void;
+  onLayoutTypeChange?: (type: SeatLayoutType) => void;
 }
 
 export default function TextSeatEditor({ 
@@ -18,7 +19,8 @@ export default function TextSeatEditor({
   onLayoutChange,
   readonly = false,
   pricingConfig,
-  onPricingChange
+  onPricingChange,
+  onLayoutTypeChange
 }: TextSeatEditorProps) {
   // Group seats by row
   const seatsByRow: Record<number, SeatInfo[]> = {};
@@ -40,6 +42,11 @@ export default function TextSeatEditor({
     if (layoutConfig) {
       onLayoutChange({ ...layoutConfig, seats: updatedSeats });
     }
+  };
+
+  const markAsCustom = () => {
+    // Notify parent component that layout should be marked as CUSTOM
+    onLayoutTypeChange?.(SeatLayoutType.CUSTOM);
   };
 
   const toggleSeatAvailability = (seatId: string) => {
@@ -66,6 +73,8 @@ export default function TextSeatEditor({
 
   const addRow = () => {
     if (!layoutConfig?.seats) return;
+    markAsCustom(); // Mark as CUSTOM when modifying structure
+    
     const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
     const newRow = rows.length > 0 ? Math.max(...rows) + 1 : 1;
     const seatsInRow = rows.length > 0 ? seatsByRow[rows[0]]?.length || 0 : 4;
@@ -75,37 +84,92 @@ export default function TextSeatEditor({
       const seatId = `${newRow}-${String.fromCharCode(65 + i)}`;
       newSeats.push({
         id: seatId,
-        code: seatId,
+        code: `${newRow}${String.fromCharCode(65 + i)}`,
         type: 'normal',
         position: {
-          x: i * 50,
-          y: (newRow - 1) * 50,
           row: newRow,
           position: i + 1,
-          width: 40,
-          height: 40,
+          x: i * (layoutConfig.dimensions.seatWidth + (i > 0 ? layoutConfig.dimensions.aisleWidth : 0)),
+          y: (newRow - 1) * (layoutConfig.dimensions.seatHeight + layoutConfig.dimensions.rowSpacing),
+          width: layoutConfig.dimensions.seatWidth,
+          height: layoutConfig.dimensions.seatHeight,
         },
         isAvailable: true,
       });
     }
     
     if (layoutConfig) {
-      onLayoutChange({
+      const updatedSeats = [...layoutConfig.seats, ...newSeats];
+      const maxRow = Math.max(...updatedSeats.map(seat => seat.position.row));
+      
+      const newLayoutConfig = {
         ...layoutConfig,
-        seats: [...layoutConfig.seats, ...newSeats],
+        seats: updatedSeats,
         dimensions: {
           ...layoutConfig.dimensions,
-          totalHeight: newRow * 50,
+          totalHeight: maxRow * (layoutConfig.dimensions.seatHeight + layoutConfig.dimensions.rowSpacing),
         },
-      });
+      };
+      
+      onLayoutChange(newLayoutConfig);
     }
   };
 
   const removeRow = (rowNumber: number) => {
+    console.log("removeRow called with rowNumber:", rowNumber);
     if (!layoutConfig?.seats) return;
-    const updatedSeats = layoutConfig.seats.filter(seat => seat.position.row !== rowNumber);
-    const remainingRows = [...new Set(updatedSeats.map(seat => seat.position.row))];
-    const maxRow = remainingRows.length > 0 ? Math.max(...remainingRows) : 0;
+    markAsCustom(); // Mark as CUSTOM when modifying structure
+    
+    // Remove seats from the deleted row
+    const seatsAfterDeletion = layoutConfig.seats.filter(seat => seat.position.row !== rowNumber);
+    console.log("seatsAfterDeletion:", seatsAfterDeletion);
+    
+    // Renumber remaining rows to be consecutive
+    const rows = [...new Set(seatsAfterDeletion.map(seat => seat.position.row))].sort((a, b) => a - b);
+    const rowMapping: Record<number, number> = {};
+    
+    // Create mapping from old row numbers to new row numbers
+    rows.forEach((oldRow, index) => {
+      rowMapping[oldRow] = index + 1;
+    });
+    
+    // Update seats with new row numbers and positions
+    const updatedSeats = seatsAfterDeletion.map((seat, index) => {
+      const newRow = rowMapping[seat.position.row];
+      const columnLetter = seat.id.split('-')[1]; // Keep original column letter
+      const newId = `${newRow}-${columnLetter}`;
+      
+      return {
+        ...seat,
+        id: newId,
+        code: `${newRow}${seat.code.substring(1)}`,
+        position: {
+          ...seat.position,
+          row: newRow,
+          y: (newRow - 1) * (layoutConfig.dimensions.seatHeight + layoutConfig.dimensions.rowSpacing),
+        },
+      };
+    });
+    
+    // Check for duplicate IDs
+    const duplicateIds = updatedSeats.filter((seat, index, self) => 
+      self.findIndex(s => s.id === seat.id) !== index
+    );
+    
+    if (duplicateIds.length > 0) {
+      console.error('Duplicate seat IDs found:', duplicateIds.map(s => s.id));
+      // If duplicates found, create unique IDs using position
+      const uniqueSeats = updatedSeats.map((seat, index) => ({
+        ...seat,
+        id: `${seat.position.row}-${seat.position.position}`,
+        code: `${seat.position.row}${String.fromCharCode(64 + seat.position.position)}`,
+      }));
+      console.log('Using unique seats instead:', uniqueSeats);
+      // Use unique seats for the rest of the function
+      updatedSeats.splice(0, updatedSeats.length, ...uniqueSeats);
+    }
+    
+    const maxRow = updatedSeats.length > 0 ? Math.max(...updatedSeats.map(seat => seat.position.row)) : 0;
     
     if (layoutConfig) {
       onLayoutChange({
@@ -113,14 +177,17 @@ export default function TextSeatEditor({
         seats: updatedSeats,
         dimensions: {
           ...layoutConfig.dimensions,
-          totalHeight: Math.max(maxRow * 50, 50),
+          totalHeight: Math.max(maxRow * (layoutConfig.dimensions.seatHeight + layoutConfig.dimensions.rowSpacing), layoutConfig.dimensions.seatHeight),
         },
       });
     }
   };
 
   const addColumn = () => {
+    console.log("addColumn called - stack trace:", new Error().stack);
     if (!layoutConfig?.seats) return;
+    markAsCustom(); // Mark as CUSTOM when modifying structure
+    
     const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
     
     rows.forEach(row => {
@@ -162,6 +229,7 @@ export default function TextSeatEditor({
 
   const removeColumn = (columnIndex: number) => {
     if (!layoutConfig?.seats) return;
+    markAsCustom(); // Mark as CUSTOM when modifying structure
     
     // Filter out seats in the column to be removed
     const updatedSeats = layoutConfig.seats

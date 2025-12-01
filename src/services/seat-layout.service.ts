@@ -120,6 +120,7 @@ class SeatLayoutService {
 
   async getByBusId(busId: string): Promise<SeatLayout> {
     const response = await api.get(`/seat-layouts/bus/${busId}`);
+    console.log(response.data);
     return response.data;
   }
 
@@ -137,8 +138,8 @@ class SeatLayoutService {
 
   async update(id: string, data: UpdateSeatLayoutDto): Promise<SeatLayout> {
     try {
-      console.log(data);
       const response = await api.patch(`/seat-layouts/${id}`, data);
+      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error(`Error updating seat layout ${id}:`, error);
