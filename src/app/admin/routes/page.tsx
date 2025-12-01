@@ -7,11 +7,11 @@ import ProtectedRole from "@/components/ProtectedRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler } from "lucide-react";
+import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler, ChevronDown, Wifi, Car } from "lucide-react";
 import { routeService, Route, CreateRouteDto, UpdateRouteDto } from "@/services/route.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { toast } from "sonner";
@@ -34,12 +34,13 @@ function RoutesManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
+  const [expandedRoutes, setExpandedRoutes] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<CreateRouteDto>({
     operatorId: "",
-    origin: "",
-    destination: "",
-    distanceKm: 0,
-    estimatedMinutes: 0,
+    name: "",
+    description: "",
+    amenities: [],
+    points: [],
   });
 
   useEffect(() => {
@@ -62,6 +63,7 @@ function RoutesManagement() {
       setLoading(true);
       const data = await routeService.getAll();
       setRoutes(data);
+      console.log(data);
     } catch (error) {
       toast.error("Failed to fetch routes");
       console.error("Error fetching routes:", error);
@@ -77,10 +79,10 @@ function RoutesManagement() {
       setIsCreateDialogOpen(false);
       setFormData({
         operatorId: "",
-        origin: "",
-        destination: "",
-        distanceKm: 0,
-        estimatedMinutes: 0,
+        name: "",
+        description: "",
+        amenities: [],
+        points: [],
       });
       fetchRoutes();
     } catch (error) {
@@ -99,10 +101,10 @@ function RoutesManagement() {
       setEditingRoute(null);
       setFormData({
         operatorId: "",
-        origin: "",
-        destination: "",
-        distanceKm: 0,
-        estimatedMinutes: 0,
+        name: "",
+        description: "",
+        amenities: [],
+        points: [],
       });
       fetchRoutes();
     } catch (error) {
@@ -128,18 +130,29 @@ function RoutesManagement() {
     setEditingRoute(route);
     setFormData({
       operatorId: route.operatorId,
-      origin: route.origin,
-      destination: route.destination,
-      distanceKm: route.distanceKm,
-      estimatedMinutes: route.estimatedMinutes,
+      name: route.name || '',
+      description: route.description || '',
+      amenities: route.amenities || [],
+      points: route.points || [],
     });
     setIsEditDialogOpen(true);
   };
 
+  const toggleRouteExpansion = (routeId: string) => {
+    const newExpanded = new Set(expandedRoutes);
+    if (newExpanded.has(routeId)) {
+      newExpanded.delete(routeId);
+    } else {
+      newExpanded.add(routeId);
+    }
+    setExpandedRoutes(newExpanded);
+  };
+
   const filteredRoutes = routes.filter((route) => {
     const matchesSearch = 
-      route.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      route.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      route.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      route.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (route.points?.some(point => point.name.toLowerCase().includes(searchTerm.toLowerCase()))) ||
       (route.operator?.name && route.operator.name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesOperator = operatorFilter === "all" || route.operatorId === operatorFilter;
@@ -212,8 +225,8 @@ function RoutesManagement() {
                     <TableRow>
                       <TableHead>Route</TableHead>
                       <TableHead>Operator</TableHead>
-                      <TableHead>Distance</TableHead>
-                      <TableHead>Duration</TableHead>
+                      <TableHead>Points</TableHead>
+                      <TableHead>Amenities</TableHead>
                       <TableHead>Trips</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -229,11 +242,11 @@ function RoutesManagement() {
                       filteredRoutes.map((route) => (
                         <TableRow key={route.id}>
                           <TableCell className="font-medium">
-                            <div className="flex items-center space-x-2">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <span>{route.origin}</span>
-                              <span className="text-muted-foreground">→</span>
-                              <span>{route.destination}</span>
+                            <div>
+                              <div className="font-semibold">{route.name}</div>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {route.description}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -242,15 +255,47 @@ function RoutesManagement() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-1">
-                              <Ruler className="w-4 h-4 text-muted-foreground" />
-                              <span>{route.distanceKm} km</span>
+                            <div>
+                              <button 
+                                onClick={() => toggleRouteExpansion(route.id)}
+                                className="flex items-center space-x-1 text-sm hover:text-primary transition-colors"
+                              >
+                                <MapPin className="w-4 h-4 text-muted-foreground" />
+                                <span>{route.points?.length || 0} points</span>
+                                <ChevronDown className={`w-3 h-3 transition-transform ${expandedRoutes.has(route.id) ? 'rotate-180' : ''}`} />
+                              </button>
+                              {expandedRoutes.has(route.id) && (
+                                <div className="mt-2 space-y-1">
+                                  {route.points?.slice(0, 3).map((point, index) => (
+                                    <div key={point.id} className="text-xs flex items-center space-x-1">
+                                      <span className="font-medium">#{point.order}</span>
+                                      <span>{point.name}</span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {point.type}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                  {route.points && route.points.length > 3 && (
+                                    <div className="text-xs text-muted-foreground">
+                                      ...and {route.points.length - 3} more
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span>{route.estimatedMinutes} min</span>
+                            <div className="flex flex-wrap gap-1">
+                              {route.amenities?.slice(0, 2).map((amenity) => (
+                                <Badge key={amenity} variant="outline" className="text-xs">
+                                  {amenity}
+                                </Badge>
+                              ))}
+                              {route.amenities && route.amenities.length > 2 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{route.amenities.length - 2}
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>

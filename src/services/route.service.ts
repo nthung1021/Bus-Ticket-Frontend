@@ -1,12 +1,29 @@
 import api from "@/lib/api";
 
+export interface RoutePoint {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  type: "pickup" | "dropoff" | "both";
+  order: number;
+  distanceFromStart?: number;
+  estimatedTimeFromStart?: number;
+  routeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Route {
   id: string;
   operatorId: string;
-  origin: string;
-  destination: string;
-  distanceKm: number;
-  estimatedMinutes: number;
+  name: string;
+  description: string;
+  isActive: boolean;
+  amenities: string[];
+  createdAt: string;
+  updatedAt: string;
+  points?: RoutePoint[];
   operator?: {
     id: string;
     name: string;
@@ -20,18 +37,19 @@ export interface Route {
 
 export interface CreateRouteDto {
   operatorId: string;
-  origin: string;
-  destination: string;
-  distanceKm: number;
-  estimatedMinutes: number;
+  name: string;
+  description: string;
+  amenities?: string[];
+  points?: Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">[];
 }
 
 export interface UpdateRouteDto {
   operatorId?: string;
-  origin?: string;
-  destination?: string;
-  distanceKm?: number;
-  estimatedMinutes?: number;
+  name?: string;
+  description?: string;
+  amenities?: string[];
+  isActive?: boolean;
+  points?: Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">[];
 }
 
 export const routeService = {
