@@ -181,7 +181,7 @@ export default function TextSeatEditor({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap justify-between items-center gap-4">
+      <div className="flex flex-wrap justify-center items-center gap-4">
         <div className="flex flex-wrap gap-2">
           <Button 
             variant="outline" 
@@ -213,10 +213,10 @@ export default function TextSeatEditor({
         </div>
       </div>
 
-      <div className="overflow-auto">
+      <div className="overflow-auto flex justify-center">
         <div className="inline-block">
           {/* Column headers */}
-          <div className="flex items-center mb-2">
+          <div className="flex items-center justify-center mb-2 overflow-auto">
             <div className="w-8"></div>
             <div className="flex">
               {Object.values(seatsByRow)[0]?.map((seat, index) => (
@@ -243,8 +243,8 @@ export default function TextSeatEditor({
           {/* Seat rows */}
           {Object.entries(seatsByRow).map(([row, seats]) => (
             <div key={`row-${row}`} className="flex items-center mb-2">
-              <div className="w-8 flex flex-col items-center">
-                <div className="text-sm font-medium text-gray-500">Row {row}</div>
+              <div className="flex flex-col items-center">
+                <div className="text-sm font-medium text-gray-500 text-center w-20">Row {row}</div>
                 {!readonly && (
                   <Button
                     variant="ghost"
