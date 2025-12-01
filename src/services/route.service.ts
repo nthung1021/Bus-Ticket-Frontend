@@ -19,6 +19,10 @@ export interface Route {
   operatorId: string;
   name: string;
   description: string;
+  origin: string;
+  destination: string;
+  distanceKm: number;
+  estimatedMinutes: number;
   isActive: boolean;
   amenities: string[];
   createdAt: string;
@@ -39,6 +43,10 @@ export interface CreateRouteDto {
   operatorId: string;
   name: string;
   description: string;
+  origin: string;
+  destination: string;
+  distanceKm?: number;
+  estimatedMinutes?: number;
   amenities?: string[];
   points?: Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">[];
 }
@@ -47,6 +55,10 @@ export interface UpdateRouteDto {
   operatorId?: string;
   name?: string;
   description?: string;
+  origin?: string;
+  destination?: string;
+  distanceKm?: number;
+  estimatedMinutes?: number;
   amenities?: string[];
   isActive?: boolean;
   points?: Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">[];

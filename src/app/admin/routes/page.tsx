@@ -39,6 +39,10 @@ function RoutesManagement() {
     operatorId: "",
     name: "",
     description: "",
+    origin: "",
+    destination: "",
+    distanceKm: 0,
+    estimatedMinutes: 0,
     amenities: [],
     points: [],
   });
@@ -81,6 +85,10 @@ function RoutesManagement() {
         operatorId: "",
         name: "",
         description: "",
+        origin: "",
+        destination: "",
+        distanceKm: 0,
+        estimatedMinutes: 0,
         amenities: [],
         points: [],
       });
@@ -118,6 +126,10 @@ function RoutesManagement() {
         operatorId: "",
         name: "",
         description: "",
+        origin: "",
+        destination: "",
+        distanceKm: 0,
+        estimatedMinutes: 0,
         amenities: [],
         points: [],
       });
@@ -147,6 +159,10 @@ function RoutesManagement() {
       operatorId: route.operatorId,
       name: route.name || '',
       description: route.description || '',
+      origin: route.origin || '',
+      destination: route.destination || '',
+      distanceKm: route.distanceKm || 0,
+      estimatedMinutes: route.estimatedMinutes || 0,
       amenities: route.amenities || [],
       points: route.points || [],
     });
@@ -167,6 +183,8 @@ function RoutesManagement() {
     const matchesSearch = 
       route.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       route.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      route.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      route.destination?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (route.points?.some(point => point.name.toLowerCase().includes(searchTerm.toLowerCase()))) ||
       (route.operator?.name && route.operator.name.toLowerCase().includes(searchTerm.toLowerCase()));
     
@@ -239,6 +257,8 @@ function RoutesManagement() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Route</TableHead>
+                      <TableHead>Origin → Destination</TableHead>
+                      <TableHead>Distance/Duration</TableHead>
                       <TableHead>Operator</TableHead>
                       <TableHead>Points</TableHead>
                       <TableHead>Amenities</TableHead>
@@ -249,7 +269,7 @@ function RoutesManagement() {
                   <TableBody>
                     {filteredRoutes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           No routes found
                         </TableCell>
                       </TableRow>
@@ -262,6 +282,31 @@ function RoutesManagement() {
                               <div className="text-sm text-muted-foreground mt-1">
                                 {route.description}
                               </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <div className="font-medium">{route.origin || 'Unknown'}</div>
+                                <div className="text-sm text-muted-foreground">→ {route.destination || 'Unknown'}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {route.distanceKm && (
+                                <div className="flex items-center space-x-1 text-sm">
+                                  <Ruler className="w-3 h-3 text-muted-foreground" />
+                                  <span>{route.distanceKm} km</span>
+                                </div>
+                              )}
+                              {route.estimatedMinutes && (
+                                <div className="flex items-center space-x-1 text-sm">
+                                  <Clock className="w-3 h-3 text-muted-foreground" />
+                                  <span>{route.estimatedMinutes} min</span>
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>

@@ -68,6 +68,51 @@ export default function RouteForm({
         </div>
       </div>
       
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="origin">Origin</Label>
+          <Input
+            id="origin"
+            value={formData.origin || ''}
+            onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+            placeholder="e.g., Ho Chi Minh City"
+          />
+        </div>
+        <div>
+          <Label htmlFor="destination">Destination</Label>
+          <Input
+            id="destination"
+            value={formData.destination || ''}
+            onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+            placeholder="e.g., Nha Trang"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="distanceKm">Distance (km)</Label>
+          <Input
+            id="distanceKm"
+            type="number"
+            step="0.1"
+            value={formData.distanceKm || ''}
+            onChange={(e) => setFormData({ ...formData, distanceKm: parseFloat(e.target.value) || 0 })}
+            placeholder="e.g., 450.5"
+          />
+        </div>
+        <div>
+          <Label htmlFor="estimatedMinutes">Estimated Duration (minutes)</Label>
+          <Input
+            id="estimatedMinutes"
+            type="number"
+            value={formData.estimatedMinutes || ''}
+            onChange={(e) => setFormData({ ...formData, estimatedMinutes: parseInt(e.target.value) || 0 })}
+            placeholder="e.g., 360"
+          />
+        </div>
+      </div>
+      
       <div>
         <Label htmlFor="description">Description</Label>
         <Textarea

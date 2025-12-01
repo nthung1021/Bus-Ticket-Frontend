@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
+import { Route } from "@/services/route.service";
+import { routeService } from "@/services/route.service";
 
 // Search filters interface
 interface SearchFilters {
@@ -18,179 +20,22 @@ interface SearchFilters {
   sortBy: string;
 }
 
-// Mock search result data
+// Search result data based on Route
 interface SearchResult {
   id: string;
   title: string;
-  location: string;
+  origin: string;
+  destination: string;
   departure: string;
   arrival: string;
   price: number;
-  duration: string;
+  duration: number;
+  distance: number;
   image: string;
   description: string;
   category: string;
   rating: number;
 }
-
-const mockResults: SearchResult[] = [
-  {
-    id: "1",
-    title: "Hồ Chí Minh - Đà Lạt Express",
-    location: "Hồ Chí Minh → Đà Lạt",
-    departure: "Hồ Chí Minh",
-    arrival: "Đà Lạt",
-    price: 350000,
-    duration: "7h",
-    image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
-    description: "Luxury express service with comfortable seating and scenic mountain views.",
-    category: "Premium",
-    rating: 4.8
-  },
-  {
-    id: "2",
-    title: "Hà Nội - Hạ Long Bay Tour",
-    location: "Hà Nội → Hạ Long",
-    departure: "Hà Nội",
-    arrival: "Hạ Long",
-    price: 280000,
-    duration: "4h",
-    image: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop",
-    description: "UNESCO World Heritage site tour with comfortable tourist bus service.",
-    category: "Tourist",
-    rating: 4.6
-  },
-  {
-    id: "3",
-    title: "Đà Nẵng - Hội An Heritage",
-    location: "Đà Nẵng → Hội An",
-    departure: "Đà Nẵng",
-    arrival: "Hội An",
-    price: 120000,
-    duration: "1h",
-    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop",
-    description: "Quick journey connecting modern Da Nang to ancient Hoi An town.",
-    category: "Cultural",
-    rating: 4.5
-  },
-  {
-    id: "4",
-    title: "Cần Thơ - Hồ Chí Minh",
-    location: "Cần Thơ → Hồ Chí Minh",
-    departure: "Cần Thơ",
-    arrival: "Hồ Chí Minh",
-    price: 180000,
-    duration: "4h",
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop",
-    description: "Mekong Delta to metropolis route with modern amenities.",
-    category: "Standard",
-    rating: 4.3
-  },
-  {
-    id: "5",
-    title: "Huế - Đà Nẵng Express",
-    location: "Huế → Đà Nẵng",
-    departure: "Huế",
-    arrival: "Đà Nẵng",
-    price: 150000,
-    duration: "3h",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=1470&auto=format&fit=crop",
-    description: "Imperial city to coastal destination with scenic views.",
-    category: "Standard",
-    rating: 4.4
-  },
-  {
-    id: "6",
-    title: "Nha Trang - Đà Lạt Mountain",
-    location: "Nha Trang → Đà Lạt",
-    departure: "Nha Trang",
-    arrival: "Đà Lạt",
-    price: 220000,
-    duration: "5h",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=1470&auto=format&fit=crop",
-    description: "Beach to mountain journey through beautiful landscapes.",
-    category: "Premium",
-    rating: 4.7
-  },
-  {
-    id: "7",
-    title: "Cần Thơ - Phú Quốc Luxury",
-    location: "Cần Thơ → Phú Quốc",
-    departure: "Cần Thơ",
-    arrival: "Phú Quốc",
-    price: 420000,
-    duration: "6h",
-    image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?q=80&w=1470&auto=format&fit=crop",
-    description: "Island paradise route with ferry connection and VIP seating.",
-    category: "Premium",
-    rating: 4.9
-  },
-  {
-    id: "8",
-    title: "Đà Nẵng - Huế Heritage",
-    location: "Đà Nẵng → Huế",
-    departure: "Đà Nẵng",
-    arrival: "Huế",
-    price: 150000,
-    duration: "2.5h",
-    image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?q=80&w=1470&auto=format&fit=crop",
-    description: "Cultural journey through Vietnam's ancient imperial capital.",
-    category: "Cultural",
-    rating: 4.4
-  },
-  {
-    id: "9",
-    title: "Nha Trang - Quy Nhon Coastal",
-    location: "Nha Trang → Quy Nhon",
-    departure: "Nha Trang",
-    arrival: "Quy Nhon",
-    price: 200000,
-    duration: "4h",
-    image: "https://images.unsplash.com/photo-1540979388789-6cee28a1cdc9?q=80&w=1470&auto=format&fit=crop",
-    description: "Beautiful coastal highway with pristine beaches and fishing villages.",
-    category: "Standard",
-    rating: 4.3
-  },
-  {
-    id: "10",
-    title: "Vũng Tàu - Côn Đảo Adventure",
-    location: "Vũng Tàu → Côn Đảo",
-    departure: "Vũng Tàu",
-    arrival: "Côn Đảo",
-    price: 380000,
-    duration: "5h",
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop",
-    description: "Historical island destination with pristine nature and rich heritage.",
-    category: "Tourist",
-    rating: 4.7
-  },
-  {
-    id: "11",
-    title: "Pleiku - Kon Tum Highland",
-    location: "Pleiku → Kon Tum",
-    departure: "Pleiku",
-    arrival: "Kon Tum",
-    price: 120000,
-    duration: "2h",
-    image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=80&w=1469&auto=format&fit=crop",
-    description: "Mountain highland route through ethnic minority villages.",
-    category: "Cultural",
-    rating: 4.2
-  },
-  {
-    id: "12",
-    title: "Sa Pa - Hà Giang Loop",
-    location: "Sa Pa → Hà Giang",
-    departure: "Sa Pa",
-    arrival: "Hà Giang",
-    price: 280000,
-    duration: "6h",
-    image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?q=80&w=1470&auto=format&fit=crop",
-    description: "Spectacular mountain scenery through Vietnam's northern highlands.",
-    category: "Premium",
-    rating: 4.8
-  }
-];
 
 const categories = ["Premium", "Standard", "Tourist", "Cultural"];
 const tripTypes = ["One-way", "Round-trip"];
@@ -200,6 +45,23 @@ const sortOptions = [
   { value: "price-desc", label: "Price: High to Low" },
   { value: "rating", label: "Highest Rated" }
 ];
+
+// Convert Route to SearchResult
+const convertRouteToSearchResult = (route: Route): SearchResult => ({
+  id: route.id,
+  title: route.name || `${route.origin} → ${route.destination}`,
+  origin: route.origin || 'Unknown',
+  destination: route.destination || 'Unknown',
+  departure: route.origin || 'Unknown',
+  arrival: route.destination || 'Unknown',
+  price: Math.floor((route.distanceKm || 100) * 1000), // Estimate price based on distance
+  duration: route.estimatedMinutes || 180,
+  distance: route.distanceKm || 100,
+  image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+  description: route.description || `Route from ${route.origin} to ${route.destination}`,
+  category: route.distanceKm && route.distanceKm > 300 ? "Premium" : "Standard",
+  rating: 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
+});
 
 export default function SearchPage() {
   const [filters, setFilters] = useState<SearchFilters>({
@@ -212,22 +74,45 @@ export default function SearchPage() {
     sortBy: "newest"
   });
 
-  const [results, setResults] = useState<SearchResult[]>(mockResults);
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 6;
 
+  // Fetch routes and convert to search results
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        setLoading(true);
+        const routeData = await routeService.getAll();
+        setRoutes(routeData);
+        const searchResults = routeData.map(convertRouteToSearchResult);
+        setResults(searchResults);
+      } catch (error) {
+        console.error('Error fetching routes:', error);
+        // Fallback to empty results
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoutes();
+  }, []);
+
   // Filter and sort results
   useEffect(() => {
-    let filteredResults = [...mockResults];
+    let filteredResults = [...results];
 
     // Apply filters
     if (filters.query) {
       filteredResults = filteredResults.filter(result =>
         result.title.toLowerCase().includes(filters.query.toLowerCase()) ||
         result.description.toLowerCase().includes(filters.query.toLowerCase()) ||
-        result.departure.toLowerCase().includes(filters.query.toLowerCase()) ||
-        result.arrival.toLowerCase().includes(filters.query.toLowerCase())
+        result.origin.toLowerCase().includes(filters.query.toLowerCase()) ||
+        result.destination.toLowerCase().includes(filters.query.toLowerCase())
       );
     }
 
@@ -532,7 +417,7 @@ export default function SearchPage() {
                             <span className="text-caption font-medium">{result.rating}</span>
                           </div>
                           <p className="text-caption bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
-                            {result.duration} journey
+                            {result.distance} km • {result.duration} min
                           </p>
                         </div>
                       </div>
@@ -546,7 +431,7 @@ export default function SearchPage() {
                               <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               </svg>
-                              {result.location}
+                              {result.origin} → {result.destination}
                             </p>
                             <p className="text-body text-muted-foreground line-clamp-2">
                               {result.description}
