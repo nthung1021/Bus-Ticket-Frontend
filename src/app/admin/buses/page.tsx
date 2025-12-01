@@ -12,11 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Plus, Search } from "lucide-react";
+import { Trash2, Edit, Plus, Search, Settings } from "lucide-react";
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { toast } from "sonner";
 import BusForm from "@/components/bus/BusForm";
+import SeatLayoutDialog from "@/components/seat-layout/SeatLayoutDialog";
+import { seatLayoutService, SeatLayout } from "@/services/seat-layout.service";
 
 export default function BusesPage() {
   return (
@@ -34,6 +36,9 @@ function BusesManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBus, setEditingBus] = useState<Bus | null>(null);
+  const [seatLayoutDialogOpen, setSeatLayoutDialogOpen] = useState(false);
+  const [selectedBusForLayout, setSelectedBusForLayout] = useState<Bus | null>(null);
+  const [busSeatLayouts, setBusSeatLayouts] = useState<{ [busId: string]: SeatLayout }>({});
   const [formData, setFormData] = useState<CreateBusDto>({
     operatorId: "",
     plateNumber: "",
@@ -46,6 +51,13 @@ function BusesManagement() {
     fetchBuses();
     fetchOperators();
   }, []);
+
+  useEffect(() => {
+    // Fetch seat layouts for all buses
+    buses.forEach(bus => {
+      fetchBusSeatLayout(bus.id);
+    });
+  }, [buses]);
 
   const fetchOperators = async () => {
     try {
@@ -137,6 +149,28 @@ function BusesManagement() {
     setIsEditDialogOpen(true);
   };
 
+  const fetchBusSeatLayout = async (busId: string) => {
+    try {
+      const layout = await seatLayoutService.getByBusId(busId);
+      setBusSeatLayouts(prev => ({ ...prev, [busId]: layout }));
+    } catch (error) {
+      // Bus might not have a layout yet, which is fine
+      console.log(`No seat layout found for bus ${busId}`);
+    }
+  };
+
+  const openSeatLayoutDialog = (bus: Bus) => {
+    setSelectedBusForLayout(bus);
+    setSeatLayoutDialogOpen(true);
+  };
+
+  const handleSeatLayoutSuccess = () => {
+    // Refresh seat layouts
+    buses.forEach(bus => {
+      fetchBusSeatLayout(bus.id);
+    });
+  };
+
   const filteredBuses = buses.filter(
     (bus) =>
       bus.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -198,13 +232,14 @@ function BusesManagement() {
                       <TableHead>Seat Capacity</TableHead>
                       <TableHead>Amenities</TableHead>
                       <TableHead>Operator</TableHead>
+                      <TableHead>Seat Layout</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredBuses.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={7} className="text-center py-8">
                           No buses found
                         </TableCell>
                       </TableRow>
@@ -224,8 +259,27 @@ function BusesManagement() {
                             </div>
                           </TableCell>
                           <TableCell>{bus.operator?.name || bus.operatorId}</TableCell>
+                          <TableCell>
+                            {busSeatLayouts[bus.id] ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                {busSeatLayouts[bus.id].layoutType.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-gray-500">
+                                Not Configured
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openSeatLayoutDialog(bus)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Settings className="w-4 h-4" />
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -267,6 +321,15 @@ function BusesManagement() {
               />
             </DialogContent>
           </Dialog>
+
+          <SeatLayoutDialog
+            busId={selectedBusForLayout?.id || ''}
+            busPlateNumber={selectedBusForLayout?.plateNumber || ''}
+            open={seatLayoutDialogOpen}
+            onOpenChange={setSeatLayoutDialogOpen}
+            existingLayout={selectedBusForLayout ? busSeatLayouts[selectedBusForLayout.id] : undefined}
+            onSuccess={handleSeatLayoutSuccess}
+          />
         </main>
       </div>
     </div>
