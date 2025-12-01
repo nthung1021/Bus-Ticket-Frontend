@@ -304,7 +304,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Search Bar */}
-      <section className="bg-card border-b border-border">
+      <section className="bg-card/95 dark:bg-black/90 backdrop-blur-sm border-b border-border/70 dark:border-border/50">
         <div className="container mx-auto px-6 lg:px-8 xl:px-12 py-6 max-w-7xl">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -312,7 +312,7 @@ export default function SearchPage() {
                 placeholder="Search destinations, routes, or cities..."
                 value={filters.query}
                 onChange={(e) => handleFilterChange("query", e.target.value)}
-                className="h-12 text-body"
+                className="h-12 text-body bg-background/90 dark:bg-black/95 border-border/70 dark:border-border/50 focus:border-primary dark:focus:border-primary transition-colors"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
@@ -343,7 +343,7 @@ export default function SearchPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filter Panel */}
           <aside className={`lg:block ${isFilterOpen ? 'block' : 'hidden'} space-y-6`}>
-            <Card className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl p-6 shadow-lg">
+            <Card className="bg-card/90 dark:bg-black/95 backdrop-blur-sm border border-border/70 dark:border-border/40 rounded-xl p-6 shadow-lg dark:shadow-2xl">
               <h3 className="text-h5 font-semibold text-foreground flex items-center gap-2 pb-3 border-b border-border">
                 <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
@@ -359,9 +359,9 @@ export default function SearchPage() {
                   </svg>
                   Trip Type
                 </h4>
-                <div className="space-y-2 bg-muted/20 p-3 rounded-lg border border-border/30">
+                <div className="space-y-2 bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   {tripTypes.map((type) => (
-                    <div key={type} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/40 transition-colors">
+                    <div key={type} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/50 dark:hover:bg-gray-800/50 transition-colors">
                       <Checkbox
                         id={type}
                         checked={filters.tripType.includes(type)}
@@ -384,7 +384,7 @@ export default function SearchPage() {
                   </svg>
                   Price Range (VNĐ)
                 </h4>
-                <div className="bg-muted/20 p-3 rounded-lg border border-border/30">
+                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-medium text-foreground mb-1.5 block">Min Price</label>
@@ -392,7 +392,7 @@ export default function SearchPage() {
                         type="number"
                         value={filters.minPrice}
                         onChange={(e) => handleFilterChange("minPrice", parseInt(e.target.value) || 0)}
-                        className="h-9 bg-background border-border/50 focus:border-primary text-sm"
+                        className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
                         placeholder="0"
                       />
                     </div>
@@ -402,7 +402,7 @@ export default function SearchPage() {
                         type="number"
                         value={filters.maxPrice}
                         onChange={(e) => handleFilterChange("maxPrice", parseInt(e.target.value) || 500000)}
-                        className="h-9 bg-background border-border/50 focus:border-primary text-sm"
+                        className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
                         placeholder="500,000"
                       />
                     </div>
@@ -419,12 +419,12 @@ export default function SearchPage() {
                   </svg>
                   Location
                 </h4>
-                <div className="bg-muted/20 p-3 rounded-lg border border-border/30">
+                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <Input
                     placeholder="Enter departure or destination..."
                     value={filters.location}
                     onChange={(e) => handleFilterChange("location", e.target.value)}
-                    className="h-9 bg-background border-border/50 focus:border-primary text-sm"
+                    className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
                   />
                 </div>
               </div>
@@ -437,9 +437,9 @@ export default function SearchPage() {
                   </svg>
                   Category
                 </h4>
-                <div className="space-y-2 bg-muted/20 p-3 rounded-lg border border-border/30">
+                <div className="space-y-2 bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   {categories.map((category) => (
-                    <div key={category} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/40 transition-colors">
+                    <div key={category} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/50 dark:hover:bg-gray-800/50 transition-colors">
                       <Checkbox
                         id={category}
                         checked={filters.category.includes(category)}
@@ -495,7 +495,7 @@ export default function SearchPage() {
                 <select
                   value={filters.sortBy}
                   onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-                  className="bg-background border border-border rounded-lg px-3 py-2 text-body cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="bg-background/90 dark:bg-black/95 border border-border/70 dark:border-border/50 rounded-lg px-3 py-2 text-body cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
