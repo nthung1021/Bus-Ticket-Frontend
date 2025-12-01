@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { SeatInfo, SeatLayoutConfig, SeatPricingConfig, SeatLayoutType } from '@/services/seat-layout.service';
 import { RotateCcw, Plus, Trash2 } from 'lucide-react';
 
-interface TextSeatEditorProps {
+interface SeatEditorProps {
   layoutConfig: SeatLayoutConfig;
   onLayoutChange: (config: SeatLayoutConfig) => void;
   readonly?: boolean;
@@ -14,14 +14,14 @@ interface TextSeatEditorProps {
   onLayoutTypeChange?: (type: SeatLayoutType) => void;
 }
 
-export default function TextSeatEditor({ 
+export default function SeatEditor({ 
   layoutConfig, 
   onLayoutChange,
   readonly = false,
   pricingConfig,
   onPricingChange,
   onLayoutTypeChange
-}: TextSeatEditorProps) {
+}: SeatEditorProps) {
   // Group seats by row
   const seatsByRow: Record<number, SeatInfo[]> = {};
   if (layoutConfig?.seats) {
