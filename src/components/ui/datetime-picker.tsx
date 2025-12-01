@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Calendar } from "@/components/ui/calendar";
+import { SimpleCalendar } from "@/components/ui/simple-calendar";
 import { TimePicker } from "@/components/ui/time-picker";
 import {
     Popover,
@@ -40,21 +40,20 @@ export function DateTimePicker({
                     <Button
                         variant={"outline"}
                         className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "w-full justify-start text-left font-normal truncate",
                             !date && "text-muted-foreground"
                         )}
                     >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP HH:mm") : <span>{placeholder}</span>}
+                        {date ? format(date, "MMM d, yyyy HH:mm") : <span>{placeholder}</span>}
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                     <div className="p-3 space-y-3">
-                        <Calendar
-                            mode="single"
-                            selected={date}
+                        <SimpleCalendar
+                            date={date}
                             onSelect={setDate}
-                            initialFocus
+                            showOutsideDays={false}
                         />
                         <div className="border-t pt-3">
                             <TimePicker date={date} setDate={setDate} />

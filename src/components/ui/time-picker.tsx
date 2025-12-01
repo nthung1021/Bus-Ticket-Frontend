@@ -30,17 +30,21 @@ export function TimePicker({ date, setDate, label, className }: TimePickerProps)
 
     const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        if (value === "" || (/^\d{0,2}$/.test(value) && parseInt(value) <= 23)) {
-            setHours(value);
-            updateDateTime(value, minutes);
+        // Append new character and take last 2 digits
+        const newValue = value.length > 2 ? value.slice(-2) : value;
+        if (newValue === "" || (/^\d{0,2}$/.test(newValue) && parseInt(newValue) <= 23)) {
+            setHours(newValue);
+            updateDateTime(newValue, minutes);
         }
     };
 
     const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        if (value === "" || (/^\d{0,2}$/.test(value) && parseInt(value) <= 59)) {
-            setMinutes(value);
-            updateDateTime(hours, value);
+        // Append new character and take last 2 digits
+        const newValue = value.length > 2 ? value.slice(-2) : value;
+        if (newValue === "" || (/^\d{0,2}$/.test(newValue) && parseInt(newValue) <= 59)) {
+            setMinutes(newValue);
+            updateDateTime(hours, newValue);
         }
     };
 
@@ -69,7 +73,6 @@ export function TimePicker({ date, setDate, label, className }: TimePickerProps)
                         }
                     }}
                     className="w-16 text-center"
-                    maxLength={2}
                 />
                 <span className="text-muted-foreground">:</span>
                 <Input
@@ -83,7 +86,6 @@ export function TimePicker({ date, setDate, label, className }: TimePickerProps)
                         }
                     }}
                     className="w-16 text-center"
-                    maxLength={2}
                 />
             </div>
         </div>
