@@ -1,0 +1,313 @@
+"use client";
+
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { SeatInfo, SeatLayoutConfig, SeatPricingConfig } from '@/services/seat-layout.service';
+import { RotateCcw, Plus, Trash2 } from 'lucide-react';
+
+interface TextSeatEditorProps {
+  layoutConfig: SeatLayoutConfig;
+  onLayoutChange: (config: SeatLayoutConfig) => void;
+  readonly?: boolean;
+  pricingConfig?: SeatPricingConfig;
+  onPricingChange?: (config: SeatPricingConfig) => void;
+}
+
+export default function TextSeatEditor({ 
+  layoutConfig, 
+  onLayoutChange,
+  readonly = false,
+  pricingConfig,
+  onPricingChange
+}: TextSeatEditorProps) {
+  // Group seats by row
+  const seatsByRow: Record<number, SeatInfo[]> = {};
+  layoutConfig.seats.forEach(seat => {
+    const row = seat.position.row;
+    if (!seatsByRow[row]) {
+      seatsByRow[row] = [];
+    }
+    seatsByRow[row].push(seat);
+  });
+
+  const handleSeatTypeChange = (seatId: string, type: 'normal' | 'vip' | 'business') => {
+    const updatedSeats = layoutConfig.seats.map(seat =>
+      seat.id === seatId ? { ...seat, type } : seat
+    );
+    onLayoutChange({ ...layoutConfig, seats: updatedSeats });
+  };
+
+  const toggleSeatAvailability = (seatId: string) => {
+    const updatedSeats = layoutConfig.seats.map(seat =>
+      seat.id === seatId ? { ...seat, isAvailable: !seat.isAvailable } : seat
+    );
+    onLayoutChange({ ...layoutConfig, seats: updatedSeats });
+  };
+
+  const resetLayout = () => {
+    const resetSeats = layoutConfig.seats.map(seat => ({
+      ...seat,
+      isAvailable: true,
+      type: 'normal' as const,
+    }));
+    onLayoutChange({ ...layoutConfig, seats: resetSeats });
+  };
+
+  const addRow = () => {
+    const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
+    const newRow = rows.length > 0 ? Math.max(...rows) + 1 : 1;
+    const seatsInRow = rows.length > 0 ? seatsByRow[rows[0]].length : 4;
+    
+    const newSeats: SeatInfo[] = [];
+    for (let i = 0; i < seatsInRow; i++) {
+      const seatId = `${newRow}-${String.fromCharCode(65 + i)}`;
+      newSeats.push({
+        id: seatId,
+        code: seatId,
+        type: 'normal',
+        position: {
+          x: i * 50,
+          y: (newRow - 1) * 50,
+          row: newRow,
+          position: i + 1,
+          width: 40,
+          height: 40,
+        },
+        isAvailable: true,
+      });
+    }
+    
+    onLayoutChange({
+      ...layoutConfig,
+      seats: [...layoutConfig.seats, ...newSeats],
+      dimensions: {
+        ...layoutConfig.dimensions,
+        totalHeight: newRow * 50,
+      },
+    });
+  };
+
+  const removeRow = (rowNumber: number) => {
+    const updatedSeats = layoutConfig.seats.filter(seat => seat.position.row !== rowNumber);
+    const remainingRows = [...new Set(updatedSeats.map(seat => seat.position.row))];
+    const maxRow = remainingRows.length > 0 ? Math.max(...remainingRows) : 0;
+    
+    onLayoutChange({
+      ...layoutConfig,
+      seats: updatedSeats,
+      dimensions: {
+        ...layoutConfig.dimensions,
+        totalHeight: Math.max(maxRow * 50, 50),
+      },
+    });
+  };
+
+  const addColumn = () => {
+    const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
+    
+    rows.forEach(row => {
+      const seatsInRow = seatsByRow[row];
+      const newColumn = String.fromCharCode(65 + seatsInRow.length);
+      const seatId = `${row}-${newColumn}`;
+      
+      const newSeat: SeatInfo = {
+        id: seatId,
+        code: seatId,
+        type: 'normal',
+        position: {
+          x: seatsInRow.length * 50,
+          y: (row - 1) * 50,
+          row: row,
+          position: seatsInRow.length + 1,
+          width: 40,
+          height: 40,
+        },
+        isAvailable: true,
+      };
+      
+      layoutConfig.seats.push(newSeat);
+    });
+    
+    const maxColumns = Math.max(...rows.map(row => seatsByRow[row].length)) + 1;
+    
+    onLayoutChange({
+      ...layoutConfig,
+      seats: [...layoutConfig.seats],
+      dimensions: {
+        ...layoutConfig.dimensions,
+        totalWidth: maxColumns * 50,
+      },
+    });
+  };
+
+  const removeColumn = (columnIndex: number) => {
+    const updatedSeats = layoutConfig.seats.filter(seat => seat.position.position !== columnIndex + 1);
+    const remainingSeatsByRow: Record<number, SeatInfo[]> = {};
+    updatedSeats.forEach(seat => {
+      if (!remainingSeatsByRow[seat.position.row]) {
+        remainingSeatsByRow[seat.position.row] = [];
+      }
+      remainingSeatsByRow[seat.position.row].push(seat);
+    });
+    
+    const maxColumns = Math.max(...Object.values(remainingSeatsByRow).map(seats => seats.length), 0);
+    
+    onLayoutChange({
+      ...layoutConfig,
+      seats: updatedSeats,
+      dimensions: {
+        ...layoutConfig.dimensions,
+        totalWidth: Math.max(maxColumns * 50, 50),
+      },
+    });
+  };
+
+  const getSeatClass = (seat: SeatInfo) => {
+    let baseClass = "w-10 h-10 flex items-center justify-center border rounded m-1 text-sm font-medium ";
+    
+    if (!seat.isAvailable) {
+      return baseClass + "bg-gray-300 text-gray-500";
+    }
+    
+    switch (seat.type) {
+      case 'vip':
+        return baseClass + "bg-purple-100 text-purple-800 border-purple-300";
+      case 'business':
+        return baseClass + "bg-blue-100 text-blue-800 border-blue-300";
+      default:
+        return baseClass + "bg-green-100 text-green-800 border-green-300";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={resetLayout}
+            disabled={readonly}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset All
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={addRow}
+            disabled={readonly}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Row
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={addColumn}
+            disabled={readonly}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Column
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-auto">
+        <div className="inline-block">
+          {/* Column headers */}
+          <div className="flex items-center mb-2">
+            <div className="w-8"></div>
+            <div className="flex">
+              {Object.values(seatsByRow)[0]?.map((seat, index) => (
+                <div key={`col-${index}`} className="w-10 flex flex-col items-center">
+                  <div className="text-xs font-medium text-gray-500 mb-1">
+                    {index + 1}
+                  </div>
+                  {!readonly && Object.values(seatsByRow).some(row => row.length > index) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeColumn(index)}
+                      className="w-6 h-6 p-0"
+                      title={`Remove column ${index + 1}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Seat rows */}
+          {Object.entries(seatsByRow).map(([row, seats]) => (
+            <div key={`row-${row}`} className="flex items-center mb-2">
+              <div className="w-8 flex flex-col items-center">
+                <div className="text-sm font-medium text-gray-500">Row {row}</div>
+                {!readonly && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeRow(Number(row))}
+                    className="w-6 h-6 p-0 mt-1"
+                    title={`Remove row ${row}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex">
+                {seats.map(seat => (
+                  <div key={seat.id} className="relative group">
+                    <button
+                      type="button"
+                      className={getSeatClass(seat)}
+                      onClick={() => !readonly && toggleSeatAvailability(seat.id)}
+                      title={`${seat.code} - ${seat.type} (${seat.isAvailable ? 'Available' : 'Unavailable'})`}
+                    >
+                      {seat.position.position}
+                    </button>
+                    {!readonly && (
+                      <div className="absolute z-10 hidden group-hover:block bg-white shadow-lg rounded p-2 w-40">
+                        <select
+                          value={seat.type}
+                          onChange={(e) => handleSeatTypeChange(seat.id, e.target.value as any)}
+                          className="w-full p-1 border rounded text-sm"
+                          disabled={!seat.isAvailable}
+                        >
+                          <option value="normal">Normal</option>
+                          <option value="vip">VIP</option>
+                          <option value="business">Business</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 mt-6 text-sm">
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-green-100 border border-green-300 rounded mr-2"></div>
+          <span>Normal</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded mr-2"></div>
+          <span>VIP</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded mr-2"></div>
+          <span>Business</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-gray-300 rounded mr-2"></div>
+          <span>Unavailable</span>
+        </div>
+      </div>
+    </div>
+  );
+}

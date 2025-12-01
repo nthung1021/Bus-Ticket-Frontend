@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import SeatMapEditor from './SeatMapEditor';
+import TextSeatEditor from './TextSeatEditor';
 import {
   SeatLayout,
   SeatLayoutType,
@@ -408,7 +408,7 @@ export default function SeatLayoutDialog({
 
           <TabsContent value="custom" className="space-y-6">
             {layoutConfig ? (
-              <SeatMapEditor
+              <TextSeatEditor
                 layoutConfig={layoutConfig}
                 pricingConfig={pricingConfig}
                 onLayoutChange={setLayoutConfig}
