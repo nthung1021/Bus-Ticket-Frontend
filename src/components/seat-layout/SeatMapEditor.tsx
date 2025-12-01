@@ -140,9 +140,9 @@ export default function SeatMapEditor({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-6">
         {/* Seat Map Canvas */}
-        <div className="lg:col-span-2">
+        <div className="flex-1">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -230,7 +230,7 @@ export default function SeatMapEditor({
         </div>
 
         {/* Seat Properties Panel */}
-        <div className="space-y-4">
+        <div className="space-y-6 w-full">
           <Card>
             <CardHeader>
               <CardTitle>Seat Properties</CardTitle>
@@ -309,121 +309,127 @@ export default function SeatMapEditor({
           </Card>
 
           {/* Pricing Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Base Price</Label>
-                <Input
-                  type="number"
-                  value={pricingConfig.basePrice}
-                  onChange={(e) =>
-                    onPricingChange({
-                      ...pricingConfig,
-                      basePrice: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  disabled={readonly}
-                />
-              </div>
+          <div className="space-y-6 w-full">
 
-              <div className="space-y-2">
-                <Label>Seat Type Prices</Label>
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Base Price</Label>
+                  <Input
+                    type="number"
+                    value={pricingConfig.basePrice}
+                    onChange={(e) =>
+                      onPricingChange({
+                        ...pricingConfig,
+                        basePrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    disabled={readonly}
+                  />
+                </div>
+
                 <div className="space-y-2">
-                  <div>
-                    <Label className="text-sm">Normal</Label>
-                    <Input
-                      type="number"
-                      value={pricingConfig.seatTypePrices.normal}
-                      onChange={(e) =>
-                        onPricingChange({
-                          ...pricingConfig,
-                          seatTypePrices: {
-                            ...pricingConfig.seatTypePrices,
-                            normal: parseFloat(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      disabled={readonly}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">VIP</Label>
-                    <Input
-                      type="number"
-                      value={pricingConfig.seatTypePrices.vip}
-                      onChange={(e) =>
-                        onPricingChange({
-                          ...pricingConfig,
-                          seatTypePrices: {
-                            ...pricingConfig.seatTypePrices,
-                            vip: parseFloat(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      disabled={readonly}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Business</Label>
-                    <Input
-                      type="number"
-                      value={pricingConfig.seatTypePrices.business}
-                      onChange={(e) =>
-                        onPricingChange({
-                          ...pricingConfig,
-                          seatTypePrices: {
-                            ...pricingConfig.seatTypePrices,
-                            business: parseFloat(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      disabled={readonly}
-                    />
+                  <Label>Seat Type Prices</Label>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-sm">Normal</Label>
+                      <Input
+                        type="number"
+                        value={pricingConfig.seatTypePrices.normal}
+                        onChange={(e) =>
+                          onPricingChange({
+                            ...pricingConfig,
+                            seatTypePrices: {
+                              ...pricingConfig.seatTypePrices,
+                              normal: parseFloat(e.target.value) || 0,
+                            },
+                          })
+                        }
+                        disabled={readonly}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">VIP</Label>
+                      <Input
+                        type="number"
+                        value={pricingConfig.seatTypePrices.vip}
+                        onChange={(e) =>
+                          onPricingChange({
+                            ...pricingConfig,
+                            seatTypePrices: {
+                              ...pricingConfig.seatTypePrices,
+                              vip: parseFloat(e.target.value) || 0,
+                            },
+                          })
+                        }
+                        disabled={readonly}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Business</Label>
+                      <Input
+                        type="number"
+                        value={pricingConfig.seatTypePrices.business}
+                        onChange={(e) =>
+                          onPricingChange({
+                            ...pricingConfig,
+                            seatTypePrices: {
+                              ...pricingConfig.seatTypePrices,
+                              business: parseFloat(e.target.value) || 0,
+                            },
+                          })
+                        }
+                        disabled={readonly}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Layout Statistics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Layout Statistics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Total Seats:</span>
-                <span className="font-semibold">{layoutConfig.seats.length}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Available:</span>
-                <span className="font-semibold text-green-600">
-                  {layoutConfig.seats.filter(s => s.isAvailable).length}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Unavailable:</span>
-                <span className="font-semibold text-red-600">
-                  {layoutConfig.seats.filter(s => !s.isAvailable).length}
-                </span>
-              </div>
-              <Separator />
-              <div className="space-y-1">
-                <div className="text-sm">
-                  <span className="text-gray-600">Normal:</span> {layoutConfig.seats.filter(s => s.type === 'normal').length}
+          <div className="space-y-6 w-full">
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Layout Statistics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Total Seats:</span>
+                  <span className="font-semibold">{layoutConfig.seats.length}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="text-gray-600">VIP:</span> {layoutConfig.seats.filter(s => s.type === 'vip').length}
+                <div className="flex justify-between text-sm">
+                  <span>Available:</span>
+                  <span className="font-semibold text-green-600">
+                    {layoutConfig.seats.filter(s => s.isAvailable).length}
+                  </span>
                 </div>
-                <div className="text-sm">
-                  <span className="text-gray-600">Business:</span> {layoutConfig.seats.filter(s => s.type === 'business').length}
+                <div className="flex justify-between text-sm">
+                  <span>Unavailable:</span>
+                  <span className="font-semibold text-red-600">
+                    {layoutConfig.seats.filter(s => !s.isAvailable).length}
+                  </span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <Separator />
+                <div className="space-y-1">
+                  <div className="text-sm">
+                    <span className="text-gray-600">Normal:</span> {layoutConfig.seats.filter(s => s.type === 'normal').length}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-600">VIP:</span> {layoutConfig.seats.filter(s => s.type === 'vip').length}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-600">Business:</span> {layoutConfig.seats.filter(s => s.type === 'business').length}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
