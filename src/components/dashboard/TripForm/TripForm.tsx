@@ -27,6 +27,14 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Loader2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Route, Bus, Trip, TripStatus, formatDateForBackend } from "@/services/trip.service";
+import {
+    Toast,
+    ToastProvider,
+    ToastViewport,
+    ToastTitle,
+    ToastDescription,
+} from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 const tripFormSchema = z
     .object({
@@ -72,6 +80,8 @@ export function TripForm({
     isLoading = false,
     className,
 }: TripFormProps) {
+    const { toast } = useToast();
+    
     const form = useForm<TripFormValues>({
         resolver: zodResolver(tripFormSchema),
         defaultValues: {
@@ -92,10 +102,31 @@ export function TripForm({
                 departureTime: formatDateForBackend(data.departureTime),
                 arrivalTime: formatDateForBackend(data.arrivalTime),
             };
-            console.log(apiData)
             await onSubmit(apiData as any);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Form submission error:", error);
+            
+            // Extract and display backend error messages
+            let errorMessage = "Failed to create trip";
+            
+            if (error?.response?.data?.message) {
+                if (Array.isArray(error.response.data.message)) {
+                    errorMessage = error.response.data.message.join(", ");
+                } else {
+                    errorMessage = error.response.data.message;
+                }
+            } else if (error?.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            
+            // Show error toast
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
         }
     };
 

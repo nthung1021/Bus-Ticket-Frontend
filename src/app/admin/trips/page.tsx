@@ -83,6 +83,7 @@ function TripManagementPage() {
                     getBuses()
                 ]);
                 setTrips(tripsData);
+                console.log(tripsData)
                 setRoutes(routesData);
                 setBuses(busesData);
             } catch (error) {
@@ -170,9 +171,31 @@ function TripManagementPage() {
 
             setIsDialogOpen(false);
             setEditingTrip(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving trip:", error);
-            toast.error("Failed to save trip");
+            
+            // Extract detailed error message
+            let errorMessage = "Failed to save trip";
+            
+            if (error.response) {
+                // Server responded with error status
+                const serverError = error.response.data;
+                if (serverError.message) {
+                    errorMessage = serverError.message;
+                } else if (serverError.error) {
+                    errorMessage = serverError.error;
+                } else if (Array.isArray(serverError.message)) {
+                    errorMessage = serverError.message.join(', ');
+                }
+            } else if (error.request) {
+                // Request was made but no response received
+                errorMessage = "Network error. Please check your connection.";
+            } else if (error.message) {
+                // Client-side error
+                errorMessage = error.message;
+            }
+            
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -341,7 +364,10 @@ function TripManagementPage() {
                                                 <TableCell>
                                                     <div className="flex items-center gap-1 font-medium">
                                                         <DollarSign className="h-3 w-3" />
-                                                        {trip.basePrice.toFixed(2)}
+                                                        {typeof trip.basePrice === 'number' 
+                                                            ? trip.basePrice.toFixed(2) 
+                                                            : parseFloat(trip.basePrice || '0').toFixed(2)
+                                                        }
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{getStatusBadge(trip.status)}</TableCell>

@@ -65,18 +65,6 @@ export interface Operator {
   routes?: Route[];
 }
 
-export interface Trip {
-  id: string;
-  routeId: string;
-  busId: string;
-  departureTime: Date;
-  arrivalTime: Date;
-  price: number;
-  status: TripStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface Bus {
   id: string;
   operatorId: string;
