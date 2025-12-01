@@ -136,8 +136,14 @@ class SeatLayoutService {
   }
 
   async update(id: string, data: UpdateSeatLayoutDto): Promise<SeatLayout> {
-    const response = await api.patch(`/seat-layouts/${id}`, data);
-    return response.data;
+    try {
+      console.log(data);
+      const response = await api.patch(`/seat-layouts/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating seat layout ${id}:`, error);
+      throw error;
+    }
   }
 
   async delete(id: string): Promise<void> {

@@ -129,8 +129,29 @@ export default function SeatLayoutDialog({
 
     try {
       setSaving(true);
+      
+      // Calculate total rows and seats per row from layoutConfig
+      const rows = [...new Set(layoutConfig.seats.map(seat => seat.position.row))];
+      const totalRows = Math.max(...rows, 1);
+      const seatsPerRow = Math.max(...Object.values(
+        layoutConfig.seats.reduce((acc, seat) => {
+          if (!acc[seat.position.row]) acc[seat.position.row] = [];
+          acc[seat.position.row].push(seat);
+          return acc;
+        }, {} as Record<number, any>)
+      ).map((seats: any) => seats.length), 1);
+
+      // Remove price field from seats as it's not required in backend
+      const cleanedLayoutConfig = {
+        ...layoutConfig,
+        seats: layoutConfig.seats.map(({ price, ...seat }) => seat)
+      };
+
       await seatLayoutService.update(existingLayout.id, {
-        layoutConfig,
+        layoutType: existingLayout.layoutType || 'custom',
+        totalRows,
+        seatsPerRow,
+        layoutConfig: cleanedLayoutConfig,
         seatPricing: pricingConfig,
       });
       toast.success('Seat layout updated successfully');
