@@ -23,56 +23,91 @@ const menuItems = [
   { icon: HelpCircle, label: "Help & Support", href: "/user/help" },
 ];
 
-export function UserSidebar() {
+interface UserSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function UserSidebar({ isOpen = false, onClose }: UserSidebarProps) {
   const pathname = usePathname();
 
+  const sidebarClasses = cn(
+    styles.sidebar,
+    isOpen && "!flex lg:!flex", // Show mobile sidebar when open
+    !isOpen && "hidden lg:flex" // Hide mobile sidebar when closed, show desktop always
+  );
+
+  const handleLinkClick = () => {
+    // Close mobile menu when link is clicked
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className={styles.sidebar}>
-      {/* Logo */}
-      <div className={styles.logoContainer}>
-        <div className={styles.logoWrapper}>
-          <div className={styles.logoIcon}>
-            <Bus className={styles.logoIconSvg} />
+    <>
+      {/* Backdrop for mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden" 
+          onClick={onClose}
+        />
+      )}
+      
+      <aside className={sidebarClasses}>
+        {/* Logo */}
+        <div className={styles.logoContainer}>
+          <div className={styles.logoWrapper}>
+            <div className={styles.logoIcon}>
+              <Bus className={styles.logoIconSvg} />
+            </div>
+            <span className={`${styles.logoText} text-h5`}>BusTicket</span>
           </div>
-          <span className={`${styles.logoText} text-h5`}>BusTicket</span>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className={styles.navigation}>
-        <div className={styles.menuContainer}>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  styles.menuItem,
-                  "text-body",
-                  isActive ? styles.menuItemActive : styles.menuItemInactive,
-                )}
-              >
-                <Icon className={styles.menuIcon} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+        {/* Navigation */}
+        <nav className={styles.navigation}>
+          <div className={styles.menuContainer}>
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={handleLinkClick}
+                  className={cn(
+                    styles.menuItem,
+                    isActive ? styles.menuItemActive : styles.menuItemInactive
+                  )}
+                >
+                  <div className={styles.menuItemContent}>
+                    <Icon
+                      className={cn(
+                        styles.menuItemIcon,
+                        isActive
+                          ? styles.menuItemIconActive
+                          : styles.menuItemIconInactive
+                      )}
+                    />
+                    <span className={styles.menuItemText}>{item.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
 
-      {/* Footer */}
-      <div className={styles.footer}>
-        <div className={styles.footerContent}>
-          <p className={`${styles.footerText} text-body`}>
-            Safe travels with us!
-          </p>
-          <p className={`${styles.footerCopyright} text-caption`}>
-            © {new Date().getFullYear().toString()}
-          </p>
+        {/* Footer */}
+        <div className={styles.footer}>
+          <div className={styles.footerContent}>
+            <p className={`${styles.footerText} text-body`}>
+              Safe travels with us!
+            </p>
+            <p className={`${styles.footerCopyright} text-caption`}>
+              © {new Date().getFullYear().toString()}
+            </p>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -90,18 +90,30 @@ const userDashboardData = {
 };
 
 export default function UserDashboard() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="flex bg-background">
+    <div className="flex bg-background min-h-screen">
       {/* Sidebar */}
-      <UserSidebar />
+      <UserSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col">
-        {/* Header */}
-        <UserHeader />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden p-4 border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-10">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className="font-medium">Menu</span>
+          </button>
+        </div>
 
         {/* Content Area */}
-        <main className="flex-1 pt-4 px-4 pb-4">
+        <main className="flex-1 pt-4 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">

@@ -25,11 +25,36 @@ const menuItems = [
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
+  const sidebarClasses = cn(
+    styles.sidebar,
+    isOpen && "!flex lg:!flex", // Show mobile sidebar when open
+    !isOpen && "hidden lg:flex" // Hide mobile sidebar when closed, show desktop always
+  );
+
+  const handleLinkClick = () => {
+    // Close mobile menu when link is clicked
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {/* Backdrop for mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden" 
+          onClick={onClose}
+        />
+      )}
+      
+      <aside className={sidebarClasses}>
       {/* Logo */}
       <div className={styles.logoContainer}>
         <div className={styles.logoWrapper}>
@@ -50,14 +75,23 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={handleLinkClick}
                 className={cn(
                   styles.menuItem,
-                  "text-body",
-                  isActive ? styles.menuItemActive : styles.menuItemInactive,
+                  isActive ? styles.menuItemActive : styles.menuItemInactive
                 )}
               >
-                <Icon className={styles.menuIcon} />
-                <span>{item.label}</span>
+                <div className={styles.menuItemContent}>
+                  <Icon
+                    className={cn(
+                      styles.menuItemIcon,
+                      isActive
+                        ? styles.menuItemIconActive
+                        : styles.menuItemIconInactive
+                    )}
+                  />
+                  <span className={styles.menuItemText}>{item.label}</span>
+                </div>
               </Link>
             );
           })}
@@ -77,5 +111,6 @@ export function Sidebar() {
         Copyright {new Date().getFullYear().toString()}
       </div>
     </aside>
+    </>
   );
 }
