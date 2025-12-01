@@ -187,9 +187,9 @@ export default function UserDashboard() {
                           <span
                             className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                               trip.status === "Confirmed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                ? "bg-accent/20 text-accent dark:bg-accent/30 dark:text-accent"
                                 : trip.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                  ? "bg-destructive/20 text-destructive dark:bg-destructive/30 dark:text-destructive"
                                   : "bg-muted text-muted-foreground"
                             }`}
                           >
@@ -254,9 +254,9 @@ export default function UserDashboard() {
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   booking.status === "Confirmed"
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                    ? "bg-accent/10 text-accent dark:bg-accent/30 dark:text-accent"
                                     : booking.status === "Completed"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                      ? "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary"
                                       : booking.status === "Cancelled"
                                         ? "bg-destructive/10 text-destructive"
                                         : "bg-muted text-muted-foreground"
@@ -306,11 +306,11 @@ export default function UserDashboard() {
                     Travel Tips
                   </h3>
                   <div className="space-y-3 text-caption">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-blue-700 font-medium">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <p className="text-primary font-medium">
                         Arrive 15 minutes early
                       </p>
-                      <p className="text-blue-600 text-xs mt-1">
+                      <p className="text-primary/80 text-xs mt-1">
                         Please arrive at the station 15 minutes before departure
                         time.
                       </p>

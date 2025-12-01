@@ -22,11 +22,26 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="text-h6 font-bold text-foreground">
-            Bus Ticket App
+            BusTickets
           </Link>
 
           {/* Center menu */}
           <ul className="hidden md:flex items-center space-x-8">
+            <li>
+              <Link href="/" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Home
+              </Link>
+            </li>
+            <li>
+              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Routes
+              </a>
+            </li>
+            <li>
+              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Tickets
+              </a>
+            </li>
             <li>
               <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                 About
@@ -34,17 +49,7 @@ export default function Navbar() {
             </li>
             <li>
               <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                Pricing
-              </a>
-            </li>
-            <li>
-              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                 Contact
-              </a>
-            </li>
-            <li>
-              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                Blog
               </a>
             </li>
           </ul>
@@ -106,23 +111,28 @@ export default function Navbar() {
           <div className="px-6 py-4 space-y-4">
             <ul className="space-y-2">
               <li>
+                <Link href="/" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Routes
+                </a>
+              </li>
+              <li>
+                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Tickets
+                </a>
+              </li>
+              <li>
                 <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
                   About
                 </a>
               </li>
               <li>
                 <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
                   Contact
-                </a>
-              </li>
-              <li>
-                <a href="#" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
-                  Blog
                 </a>
               </li>
             </ul>
@@ -151,7 +161,7 @@ export default function Navbar() {
                   {user?.role === "admin" && (
                     <Link 
                       className="block bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-center" 
-                      href="/admin/manage-users"
+                      href="/admin"
                     >
                       Admin
                     </Link>
