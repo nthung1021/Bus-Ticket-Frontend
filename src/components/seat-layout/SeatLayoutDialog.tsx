@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { SeatInfo, SeatLayoutType, SeatLayoutConfig, seatLayoutService } from '../../services/seat-layout.service';
 import {
   Dialog,
   DialogContent,
@@ -19,13 +20,10 @@ import { Separator } from '@/components/ui/separator';
 import TextSeatEditor from './TextSeatEditor';
 import {
   SeatLayout,
-  SeatLayoutType,
   CreateSeatFromTemplateDto,
   SeatPricingConfig,
-  SeatLayoutConfig,
   LayoutTemplate,
 } from '@/services/seat-layout.service';
-import { seatLayoutService } from '@/services/seat-layout.service';
 import { toast } from 'sonner';
 import { Loader2, Save, Eye, Settings } from 'lucide-react';
 
@@ -166,20 +164,11 @@ export default function SeatLayoutDialog({
 
   const handleTemplateSelect = async (template: LayoutTemplate) => {
     setSelectedTemplate(template);
-    setLayoutType(template.type);
-
     try {
-      setLoading(true);
-      // Create a temporary layout to preview the template
-      const tempDto: CreateSeatFromTemplateDto = {
-        busId: 'temp', // Temporary ID for preview
-        layoutType: template.type,
-        seatPricing: pricingConfig,
-      };
-
-      // We'll need to create a preview endpoint or mock the data
+      setLayoutType(template.type);
+      
       // For now, let's create a basic preview based on template type
-      const mockConfig = generateMockLayoutConfig(template.type);
+      const mockConfig = await generateMockLayoutConfig(template.type);
       setLayoutConfig(mockConfig);
     } catch (error) {
       toast.error('Failed to load template preview');
@@ -188,114 +177,25 @@ export default function SeatLayoutDialog({
     }
   };
 
-  const generateMockLayoutConfig = (type: SeatLayoutType): SeatLayoutConfig => {
-    const baseConfig = {
-      aisles: [1],
-      dimensions: {
-        totalWidth: 200,
-        totalHeight: 400,
-        seatWidth: 40,
-        seatHeight: 40,
-        aisleWidth: 30,
-        rowSpacing: 10,
-      },
-    };
-
-    switch (type) {
-      case SeatLayoutType.STANDARD_2X2:
-        return {
-          ...baseConfig,
-          seats: Array.from({ length: 24 }, (_, i) => ({
-            id: `seat-${i + 1}`,
-            code: `${Math.floor(i / 2) + 1}${String.fromCharCode(65 + (i % 2))}`,
-            type: 'normal' as const,
-            position: {
-              row: Math.floor(i / 2) + 1,
-              position: (i % 2) + 1,
-              x: (i % 2) * 70,
-              y: Math.floor(i / 2) * 50,
-              width: 40,
-              height: 40,
-            },
-            isAvailable: true,
-          })),
-        };
-      
-      case SeatLayoutType.STANDARD_2X3:
-        return {
-          ...baseConfig,
-          aisles: [1, 2],
-          dimensions: {
-            ...baseConfig.dimensions,
-            totalWidth: 230,
-          },
-          seats: Array.from({ length: 30 }, (_, i) => ({
-            id: `seat-${i + 1}`,
-            code: `${Math.floor(i / 3) + 1}${String.fromCharCode(65 + (i % 3))}`,
-            type: i % 3 === 1 ? 'vip' as const : 'normal' as const,
-            position: {
-              row: Math.floor(i / 3) + 1,
-              position: (i % 3) + 1,
-              x: (i % 3) * 65,
-              y: Math.floor(i / 3) * 50,
-              width: 35,
-              height: 40,
-            },
-            isAvailable: true,
-          })),
-        };
-      
-      case SeatLayoutType.VIP_1X2:
-        return {
-          ...baseConfig,
-          dimensions: {
-            ...baseConfig.dimensions,
-            seatWidth: 50,
-            seatHeight: 50,
-          },
-          seats: Array.from({ length: 16 }, (_, i) => ({
-            id: `seat-${i + 1}`,
-            code: `${Math.floor(i / 2) + 1}${String.fromCharCode(65 + (i % 2))}`,
-            type: 'vip' as const,
-            position: {
-              row: Math.floor(i / 2) + 1,
-              position: (i % 2) + 1,
-              x: (i % 2) * 90,
-              y: Math.floor(i / 2) * 60,
-              width: 50,
-              height: 50,
-            },
-            isAvailable: true,
-          })),
-        };
-      
-      case SeatLayoutType.SLEEPER_1X2:
-        return {
-          ...baseConfig,
-          dimensions: {
-            ...baseConfig.dimensions,
-            seatWidth: 60,
-            seatHeight: 80,
-            rowSpacing: 20,
-          },
-          seats: Array.from({ length: 12 }, (_, i) => ({
-            id: `seat-${i + 1}`,
-            code: `${Math.floor(i / 2) + 1}${String.fromCharCode(65 + (i % 2))}`,
-            type: 'business' as const,
-            position: {
-              row: Math.floor(i / 2) + 1,
-              position: (i % 2) + 1,
-              x: (i % 2) * 100,
-              y: Math.floor(i / 2) * 100,
-              width: 60,
-              height: 80,
-            },
-            isAvailable: true,
-          })),
-        };
-      
-      default:
-        return baseConfig as SeatLayoutConfig;
+  const generateMockLayoutConfig = async (type: SeatLayoutType): Promise<SeatLayoutConfig> => {
+    try {
+      const templateConfig = await seatLayoutService.getTemplateConfig(type);
+      return templateConfig.layoutConfig;
+    } catch (error) {
+      console.error('Error fetching template config:', error);
+      // Fallback to a basic config if API fails
+      return {
+        seats: [],
+        aisles: [1],
+        dimensions: {
+          totalWidth: 0,
+          totalHeight: 0,
+          seatWidth: 40,
+          seatHeight: 40,
+          aisleWidth: 30,
+          rowSpacing: 10,
+        },
+      };
     }
   };
 

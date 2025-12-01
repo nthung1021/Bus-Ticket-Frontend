@@ -154,6 +154,15 @@ class SeatLayoutService {
     const response = await api.get("/seat-layouts/templates");
     return response.data;
   }
+
+  async getTemplateConfig(type: SeatLayoutType): Promise<{
+    totalRows: number;
+    seatsPerRow: number;
+    layoutConfig: SeatLayoutConfig;
+  }> {
+    const response = await api.get(`/seat-layouts/template/${type}`);
+    return response.data;
+  }
 }
 
 export const seatLayoutService = new SeatLayoutService();
