@@ -12,6 +12,12 @@ const apiClient = axios.create({
 });
 
 // Types matching backend entities
+export enum PointType {
+  PICKUP = "pickup",
+  DROPOFF = "dropoff",
+  BOTH = "both",
+}
+
 export enum TripStatus {
   SCHEDULED = "scheduled",
   IN_PROGRESS = "in_progress",
@@ -23,10 +29,52 @@ export enum TripStatus {
 export interface Route {
   id: string;
   operatorId: string;
-  origin: string;
-  destination: string;
-  distanceKm: number;
-  estimatedMinutes: number;
+  name: string;
+  description: string;
+  isActive: boolean;
+  amenities: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  points: RoutePoint[];
+  operator?: Operator;
+  trips?: Trip[];
+}
+
+export interface RoutePoint {
+  id: string;
+  routeId: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  type: PointType;
+  order: number;
+  distanceFromStart?: number;
+  estimatedTimeFromStart?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Operator {
+  id: string;
+  name: string;
+  contactEmail: string;
+  contactPhone: string;
+  status: string;
+  approvedAt?: Date;
+  buses?: Bus[];
+  routes?: Route[];
+}
+
+export interface Trip {
+  id: string;
+  routeId: string;
+  busId: string;
+  departureTime: Date;
+  arrivalTime: Date;
+  price: number;
+  status: TripStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Bus {
@@ -42,8 +90,8 @@ export interface Trip {
   id: string;
   routeId: string;
   busId: string;
-  departureTime: string;
-  arrivalTime: string;
+  departureTime: Date;
+  arrivalTime: Date;
   basePrice: number;
   status: TripStatus;
   route?: Route;
@@ -125,6 +173,7 @@ export const deleteTrip = async (id: string): Promise<void> => {
 export const getRoutes = async (): Promise<Route[]> => {
   try {
     const response = await apiClient.get("/routes");
+    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching routes:", error);
@@ -145,7 +194,9 @@ export const getBuses = async (): Promise<Bus[]> => {
 
 // Helper function to format date for backend
 export const formatDateForBackend = (date: Date): string => {
-  return date.toISOString();
+  const isoString = new Date(date).toISOString();
+  // Try without milliseconds if needed
+  return isoString.split(".")[0] + "Z";
 };
 
 // Helper function to format date from backend for display

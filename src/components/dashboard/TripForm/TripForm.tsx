@@ -4,6 +4,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -25,7 +26,7 @@ import {
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Loader2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Route, Bus, Trip, TripStatus, formatDateFromBackend } from "@/services/trip.service";
+import { Route, Bus, Trip, TripStatus, formatDateForBackend } from "@/services/trip.service";
 
 const tripFormSchema = z
     .object({
@@ -76,8 +77,8 @@ export function TripForm({
         defaultValues: {
             routeId: initialData?.routeId || "",
             busId: initialData?.busId || "",
-            departureTime: initialData?.departureTime ? formatDateFromBackend(initialData.departureTime) : undefined,
-            arrivalTime: initialData?.arrivalTime ? formatDateFromBackend(initialData.arrivalTime) : undefined,
+            departureTime: initialData?.departureTime || new Date(),
+            arrivalTime: initialData?.arrivalTime || new Date(),
             basePrice: initialData?.basePrice ? initialData.basePrice.toString() : "",
             status: initialData?.status || TripStatus.SCHEDULED,
         },
@@ -85,7 +86,14 @@ export function TripForm({
 
     const handleSubmit = async (data: TripFormValues) => {
         try {
-            await onSubmit(data);
+            // Convert Date objects to ISO strings for API
+            const apiData = {
+                ...data,
+                departureTime: formatDateForBackend(data.departureTime),
+                arrivalTime: formatDateForBackend(data.arrivalTime),
+            };
+            console.log(apiData)
+            await onSubmit(apiData as any);
         } catch (error) {
             console.error("Form submission error:", error);
         }
@@ -118,7 +126,7 @@ export function TripForm({
                                     <SelectContent>
                                         {routes.map((route) => (
                                             <SelectItem key={route.id} value={route.id}>
-                                                {route.origin} → {route.destination}
+                                                {route.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

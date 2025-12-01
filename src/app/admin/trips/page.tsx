@@ -104,8 +104,7 @@ function TripManagementPage() {
         if (searchQuery) {
             filtered = filtered.filter(
                 (trip) =>
-                    trip.route?.origin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    trip.route?.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    trip.route?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     trip.bus?.plateNumber.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
@@ -305,7 +304,7 @@ function TripManagementPage() {
                                                         <MapPin className="h-4 w-4 text-primary" />
                                                         <div>
                                                             <div className="font-medium">
-                                                                {trip.route?.origin || 'N/A'} → {trip.route?.destination || 'N/A'}
+                                                                {trip.route?.name || 'N/A'}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -325,17 +324,17 @@ function TripManagementPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="text-sm">
-                                                        {format(parseISO(trip.departureTime), "PPP")}
+                                                        {format(trip.departureTime, "PPP")}
                                                         <div className="text-xs text-muted-foreground">
-                                                            {format(parseISO(trip.departureTime), "HH:mm")}
+                                                            {format(trip.departureTime, "HH:mm")}
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="text-sm">
-                                                        {format(parseISO(trip.arrivalTime), "PPP")}
+                                                        {format(trip.arrivalTime, "PPP")}
                                                         <div className="text-xs text-muted-foreground">
-                                                            {format(parseISO(trip.arrivalTime), "HH:mm")}
+                                                            {format(trip.arrivalTime, "HH:mm")}
                                                         </div>
                                                     </div>
                                                 </TableCell>

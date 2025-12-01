@@ -70,6 +70,7 @@ export const routeService = {
 
   update: async (id: string, data: UpdateRouteDto): Promise<Route> => {
     const response = await api.put(`/routes/${id}`, data);
+    console.log(response);
     return response.data;
   },
 

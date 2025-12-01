@@ -95,7 +95,22 @@ function RoutesManagement() {
     if (!editingRoute) return;
 
     try {
-      await routeService.update(editingRoute.id, formData as UpdateRouteDto);
+      // Filter out system fields from points
+      const cleanedData = {
+        ...formData,
+        points: formData.points?.map(point => ({
+          name: point.name,
+          latitude: point.latitude,
+          longitude: point.longitude,
+          type: point.type,
+          order: point.order,
+          distanceFromStart: point.distanceFromStart,
+          estimatedTimeFromStart: point.estimatedTimeFromStart
+        })) || []
+      };
+      
+      console.log('Updating route with cleaned data:', cleanedData);
+      await routeService.update(editingRoute.id, cleanedData as UpdateRouteDto);
       toast.success("Route updated successfully");
       setIsEditDialogOpen(false);
       setEditingRoute(null);
