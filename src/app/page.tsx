@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 
 export default function Home() {
+  const router = useRouter();
   const [searchData, setSearchData] = useState({
     from: "",
     to: "",
@@ -25,7 +27,7 @@ export default function Home() {
     to: false,
     date: false
   });
-  
+
   // Refs for animation elements
   const featuredRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export default function Home() {
   // Auto-change background every 6 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => 
+      setCurrentImageIndex((prevIndex) =>
         prevIndex === backgroundImages.length - 1 ? 0 : prevIndex + 1
       );
     }, 6000);
@@ -100,22 +102,32 @@ export default function Home() {
   const removeDiacritics = (str: string): string => {
     return str
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/đ/g, 'd')
       .replace(/Đ/g, 'D')
       .toLowerCase();
+  };
+
+  const toUnsignedName = (str: string): string => {
+    const normalized = removeDiacritics(str || '').trim();
+    if (!normalized) return '';
+    return normalized
+      .split(' ')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   // Filter cities based on input with diacritic-insensitive search
   const filterCities = (input: string): string[] => {
     if (!input.trim()) return [];
     const normalizedInput = removeDiacritics(input);
-    
+
     return popularCities
       .filter(city => {
         const normalizedCity = removeDiacritics(city);
         return normalizedCity.includes(normalizedInput) ||
-               city.toLowerCase().includes(input.toLowerCase());
+          city.toLowerCase().includes(input.toLowerCase());
       })
       .slice(0, 5);
   };
@@ -175,13 +187,19 @@ export default function Home() {
       to: !searchData.to.trim(),
       date: !searchData.date
     };
-    
+
     setValidationErrors(errors);
-    
+
     // If all fields are valid, proceed with search
     if (!errors.from && !errors.to && !errors.date) {
-      // TODO: Implement search functionality
-      console.log("Search data:", searchData);
+      const query = new URLSearchParams({
+        origin: toUnsignedName(searchData.from),
+        destination: toUnsignedName(searchData.to),
+        date: searchData.date,
+        passengers: String(searchData.passengers ?? 1),
+      });
+
+      router.push(`/search?${query.toString()}`);
     }
   };
 
@@ -229,9 +247,8 @@ export default function Home() {
           {backgroundImages.map((image, index) => (
             <div
               key={index}
-              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-2000 ease-in-out ${
-                index === currentImageIndex ? "opacity-100" : "opacity-0"
-              }`}
+              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-2000 ease-in-out ${index === currentImageIndex ? "opacity-100" : "opacity-0"
+                }`}
               style={{
                 backgroundImage: `url(${image})`,
               }}
@@ -240,7 +257,7 @@ export default function Home() {
           {/* Dark overlay for better text readability */}
           <div className="absolute inset-0 bg-black/50" />
         </div>
-        
+
         {/* Content */}
         <div className="relative h-full max-w-7xl mx-auto px-6 flex flex-col justify-center items-center text-white">
           <div className="text-center space-y-8 mb-16">
@@ -282,9 +299,8 @@ export default function Home() {
                             setShowFromSuggestions(suggestions.length > 0);
                           }
                         }}
-                        className={`h-10 pr-10 bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${
-                          validationErrors.from ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
-                        }`}
+                        className={`h-10 pr-10 bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${validationErrors.from ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
+                          }`}
                         autoComplete="off"
                       />
                       {validationErrors.from && (
@@ -298,7 +314,7 @@ export default function Home() {
                         </div>
                       )}
                       {showFromSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[105] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[104] mt-1 max-h-48 overflow-y-auto">
                           {fromSuggestions.map((city, index) => (
                             <div
                               key={index}
@@ -337,9 +353,8 @@ export default function Home() {
                             setShowToSuggestions(suggestions.length > 0);
                           }
                         }}
-                        className={`h-10 pr-10 bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${
-                          validationErrors.to ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
-                        }`}
+                        className={`h-10 pr-10 bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${validationErrors.to ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
+                          }`}
                         autoComplete="off"
                       />
                       {validationErrors.to && (
@@ -385,9 +400,8 @@ export default function Home() {
                           }
                         }}
                         min={getMinDate()}
-                        className={`h-10 cursor-pointer bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${
-                          validationErrors.date ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
-                        }`}
+                        className={`h-10 cursor-pointer bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${validationErrors.date ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
+                          }`}
                       />
                       {validationErrors.date && (
                         <div className="absolute top-full left-0 right-0 z-48 mt-1">
@@ -419,7 +433,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex items-end">
-                    <Button 
+                    <Button
                       onClick={handleSearch}
                       size="lg"
                       className="w-full h-10 text-base font-semibold cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-200 flex items-center gap-2"
@@ -440,14 +454,13 @@ export default function Home() {
       {/* Featured Routes Section */}
       <section className="py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-6">
-          <div 
+          <div
             ref={featuredRef}
             id="featured-header"
-            className={`text-center space-y-4 mb-12 transition-all duration-1000 ease-out ${
-              isVisible('featured-header') 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-8'
-            }`}
+            className={`text-center space-y-4 mb-12 transition-all duration-1000 ease-out ${isVisible('featured-header')
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-8'
+              }`}
           >
             <h2 className="text-h2 font-bold text-foreground">
               Popular Routes
@@ -463,11 +476,10 @@ export default function Home() {
                 key={route.id}
                 ref={(el) => { routeRefs.current[index] = el; }}
                 id={`route-${route.id}`}
-                className={`transition-all duration-1000 ease-out ${
-                  isVisible(`route-${route.id}`) 
-                    ? 'opacity-100 translate-y-0' 
-                    : 'opacity-0 translate-y-8'
-                }`}
+                className={`transition-all duration-1000 ease-out ${isVisible(`route-${route.id}`)
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-8'
+                  }`}
                 style={{
                   transitionDelay: isVisible(`route-${route.id}`) ? `${index * 150}ms` : '0ms'
                 }}
@@ -475,7 +487,7 @@ export default function Home() {
                 <Link href={`/products/${route.id}`} className="block h-full">
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                      <img 
+                      <img
                         src={route.image}
                         alt={`${route.from} to ${route.to}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -502,7 +514,7 @@ export default function Home() {
                     </CardContent>
                   </Card>
                 </Link>
-            </div>
+              </div>
             ))}
           </div>
         </div>
@@ -511,14 +523,13 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-6">
-          <div 
+          <div
             ref={featuresRef}
             id="features"
-            className={`grid grid-cols-1 md:grid-cols-3 gap-8 transition-all duration-1000 ease-out ${
-              isVisible('features') 
-                ? 'opacity-100 translate-y-0' 
-                : 'opacity-0 translate-y-8'
-            }`}
+            className={`grid grid-cols-1 md:grid-cols-3 gap-8 transition-all duration-1000 ease-out ${isVisible('features')
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-8'
+              }`}
           >
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
@@ -559,14 +570,13 @@ export default function Home() {
 
       {/* Call to Action Section */}
       <section className="py-16 lg:py-20 bg-primary text-primary-foreground">
-        <div 
+        <div
           ref={ctaRef}
           id="cta"
-          className={`max-w-4xl mx-auto px-6 text-center space-y-6 transition-all duration-1000 ease-out ${
-            isVisible('cta') 
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-8'
-          }`}
+          className={`max-w-4xl mx-auto px-6 text-center space-y-6 transition-all duration-1000 ease-out ${isVisible('cta')
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 translate-y-8'
+            }`}
         >
           <h2 className="text-h2 font-bold">
             Ready to Start Your Journey?
