@@ -94,7 +94,7 @@ export default function SeatLayoutDialog({
     try {
       setLoading(true);
       const response = await seatLayoutService.getTemplates();
-      console.log(response)
+      // console.log(response)
       setTemplates(response.templates);
     } catch (error) {
       toast.error('Failed to load templates');

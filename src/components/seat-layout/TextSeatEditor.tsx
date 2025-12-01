@@ -22,41 +22,53 @@ export default function TextSeatEditor({
 }: TextSeatEditorProps) {
   // Group seats by row
   const seatsByRow: Record<number, SeatInfo[]> = {};
-  layoutConfig.seats.forEach(seat => {
-    const row = seat.position.row;
-    if (!seatsByRow[row]) {
-      seatsByRow[row] = [];
-    }
-    seatsByRow[row].push(seat);
-  });
+  if (layoutConfig?.seats) {
+    layoutConfig.seats.forEach(seat => {
+      const row = seat.position.row;
+      if (!seatsByRow[row]) {
+        seatsByRow[row] = [];
+      }
+      seatsByRow[row].push(seat);
+    });
+  }
 
   const handleSeatTypeChange = (seatId: string, type: 'normal' | 'vip' | 'business') => {
+    if (!layoutConfig?.seats) return;
     const updatedSeats = layoutConfig.seats.map(seat =>
       seat.id === seatId ? { ...seat, type } : seat
     );
-    onLayoutChange({ ...layoutConfig, seats: updatedSeats });
+    if (layoutConfig) {
+      onLayoutChange({ ...layoutConfig, seats: updatedSeats });
+    }
   };
 
   const toggleSeatAvailability = (seatId: string) => {
+    if (!layoutConfig?.seats) return;
     const updatedSeats = layoutConfig.seats.map(seat =>
       seat.id === seatId ? { ...seat, isAvailable: !seat.isAvailable } : seat
     );
-    onLayoutChange({ ...layoutConfig, seats: updatedSeats });
+    if (layoutConfig) {
+      onLayoutChange({ ...layoutConfig, seats: updatedSeats });
+    }
   };
 
   const resetLayout = () => {
+    if (!layoutConfig?.seats) return;
     const resetSeats = layoutConfig.seats.map(seat => ({
       ...seat,
       isAvailable: true,
       type: 'normal' as const,
     }));
-    onLayoutChange({ ...layoutConfig, seats: resetSeats });
+    if (layoutConfig) {
+      onLayoutChange({ ...layoutConfig, seats: resetSeats });
+    }
   };
 
   const addRow = () => {
+    if (!layoutConfig?.seats) return;
     const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
     const newRow = rows.length > 0 ? Math.max(...rows) + 1 : 1;
-    const seatsInRow = rows.length > 0 ? seatsByRow[rows[0]].length : 4;
+    const seatsInRow = rows.length > 0 ? seatsByRow[rows[0]]?.length || 0 : 4;
     
     const newSeats: SeatInfo[] = [];
     for (let i = 0; i < seatsInRow; i++) {
@@ -77,36 +89,42 @@ export default function TextSeatEditor({
       });
     }
     
-    onLayoutChange({
-      ...layoutConfig,
-      seats: [...layoutConfig.seats, ...newSeats],
-      dimensions: {
-        ...layoutConfig.dimensions,
-        totalHeight: newRow * 50,
-      },
-    });
+    if (layoutConfig) {
+      onLayoutChange({
+        ...layoutConfig,
+        seats: [...layoutConfig.seats, ...newSeats],
+        dimensions: {
+          ...layoutConfig.dimensions,
+          totalHeight: newRow * 50,
+        },
+      });
+    }
   };
 
   const removeRow = (rowNumber: number) => {
+    if (!layoutConfig?.seats) return;
     const updatedSeats = layoutConfig.seats.filter(seat => seat.position.row !== rowNumber);
     const remainingRows = [...new Set(updatedSeats.map(seat => seat.position.row))];
     const maxRow = remainingRows.length > 0 ? Math.max(...remainingRows) : 0;
     
-    onLayoutChange({
-      ...layoutConfig,
-      seats: updatedSeats,
-      dimensions: {
-        ...layoutConfig.dimensions,
-        totalHeight: Math.max(maxRow * 50, 50),
-      },
-    });
+    if (layoutConfig) {
+      onLayoutChange({
+        ...layoutConfig,
+        seats: updatedSeats,
+        dimensions: {
+          ...layoutConfig.dimensions,
+          totalHeight: Math.max(maxRow * 50, 50),
+        },
+      });
+    }
   };
 
   const addColumn = () => {
+    if (!layoutConfig?.seats) return;
     const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
     
     rows.forEach(row => {
-      const seatsInRow = seatsByRow[row];
+      const seatsInRow = seatsByRow[row] || [];
       const newColumn = String.fromCharCode(65 + seatsInRow.length);
       const seatId = `${row}-${newColumn}`;
       
@@ -130,18 +148,41 @@ export default function TextSeatEditor({
     
     const maxColumns = Math.max(...rows.map(row => seatsByRow[row].length)) + 1;
     
-    onLayoutChange({
-      ...layoutConfig,
-      seats: [...layoutConfig.seats],
-      dimensions: {
-        ...layoutConfig.dimensions,
-        totalWidth: maxColumns * 50,
-      },
-    });
+    if (layoutConfig) {
+      onLayoutChange({
+        ...layoutConfig,
+        seats: [...layoutConfig.seats],
+        dimensions: {
+          ...layoutConfig.dimensions,
+          totalWidth: maxColumns * 50,
+        },
+      });
+    }
   };
 
   const removeColumn = (columnIndex: number) => {
-    const updatedSeats = layoutConfig.seats.filter(seat => seat.position.position !== columnIndex + 1);
+    if (!layoutConfig?.seats) return;
+    
+    // Filter out seats in the column to be removed
+    const updatedSeats = layoutConfig.seats
+      .filter(seat => seat.position.position !== columnIndex + 1)
+      .map(seat => {
+        // If seat is to the right of removed column, shift it left
+        if (seat.position.position > columnIndex + 1) {
+          return {
+            ...seat,
+            position: {
+              ...seat.position,
+              position: seat.position.position - 1,
+              x: seat.position.x - 50,
+            },
+            id: `${seat.position.row}-${String.fromCharCode(64 + seat.position.position - 1)}`,
+            code: `${seat.position.row}${String.fromCharCode(64 + seat.position.position - 1)}`,
+          };
+        }
+        return seat;
+      });
+    
     const remainingSeatsByRow: Record<number, SeatInfo[]> = {};
     updatedSeats.forEach(seat => {
       if (!remainingSeatsByRow[seat.position.row]) {
@@ -152,14 +193,16 @@ export default function TextSeatEditor({
     
     const maxColumns = Math.max(...Object.values(remainingSeatsByRow).map(seats => seats.length), 0);
     
-    onLayoutChange({
-      ...layoutConfig,
-      seats: updatedSeats,
-      dimensions: {
-        ...layoutConfig.dimensions,
-        totalWidth: Math.max(maxColumns * 50, 50),
-      },
-    });
+    if (layoutConfig) {
+      onLayoutChange({
+        ...layoutConfig,
+        seats: updatedSeats,
+        dimensions: {
+          ...layoutConfig.dimensions,
+          totalWidth: Math.max(maxColumns * 50, 50),
+        },
+      });
+    }
   };
 
   const getSeatClass = (seat: SeatInfo) => {
