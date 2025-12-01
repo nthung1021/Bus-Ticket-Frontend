@@ -54,7 +54,7 @@ const Footer = () => {
       </div>
 
       {/* Footer Content */}
-      <div className="relative z-50">
+      <div className="relative z-40">
         {/* Main Footer Section */}
         <div className="bg-card/95 dark:bg-card/90 backdrop-blur-md border-t border-border/50">
           <div className="max-w-7xl mx-auto px-6 py-16">

@@ -24,35 +24,14 @@ const menuItems = [
 ];
 
 interface UserSidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  // No props needed for desktop-only sidebar
 }
 
-export function UserSidebar({ isOpen = false, onClose }: UserSidebarProps) {
+export function UserSidebar({}: UserSidebarProps = {}) {
   const pathname = usePathname();
 
-  const sidebarClasses = cn(
-    styles.sidebar,
-    isOpen && "!flex lg:!flex", // Show mobile sidebar when open
-    !isOpen && "hidden lg:flex" // Hide mobile sidebar when closed, show desktop always
-  );
-
-  const handleLinkClick = () => {
-    // Close mobile menu when link is clicked
-    if (onClose) onClose();
-  };
-
   return (
-    <>
-      {/* Backdrop for mobile */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden" 
-          onClick={onClose}
-        />
-      )}
-      
-      <aside className={sidebarClasses}>
+    <aside className={`${styles.sidebar} hidden lg:flex`}>
         {/* Logo */}
         <div className={styles.logoContainer}>
           <div className={styles.logoWrapper}>
@@ -73,7 +52,6 @@ export function UserSidebar({ isOpen = false, onClose }: UserSidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={handleLinkClick}
                   className={cn(
                     styles.menuItem,
                     isActive ? styles.menuItemActive : styles.menuItemInactive
@@ -108,6 +86,5 @@ export function UserSidebar({ isOpen = false, onClose }: UserSidebarProps) {
           </div>
         </div>
       </aside>
-    </>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { UserSidebar } from "@/components/dashboard/UserSidebar/UserSidebar";
+import { MobileNavDropdown } from "@/components/dashboard/MobileNavDropdown/MobileNavDropdown";
 import { UserHeader } from "@/components/dashboard/UserHeader/UserHeader";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
-import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar } from "lucide-react";
-import { useState } from "react";
+import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar, LayoutDashboard, CreditCard, User, Bell, HelpCircle } from "lucide-react";
 
 const userDashboardData = {
   stats: [
@@ -89,28 +89,25 @@ const userDashboardData = {
   ],
 };
 
-export default function UserDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const mobileMenuItems = [
+  { icon: LayoutDashboard, label: "Overview", href: "/user" },
+  { icon: Ticket, label: "My Bookings", href: "/user/bookings" },
+  { icon: CreditCard, label: "Payment", href: "/user/payment" },
+  { icon: User, label: "Profile", href: "/user/profile" },
+  { icon: Bell, label: "Notifications", href: "/user/notifications" },
+  { icon: HelpCircle, label: "Help & Support", href: "/user/help" },
+];
 
+export default function UserDashboard() {
   return (
     <div className="flex bg-background min-h-screen">
-      {/* Sidebar */}
-      <UserSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Sidebar - Desktop only */}
+      <UserSidebar />
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col">
-        {/* Mobile Menu Button */}
-        <div className="lg:hidden p-4 border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-10">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <span className="font-medium">Menu</span>
-          </button>
-        </div>
+        {/* Mobile Navigation Dropdown */}
+        <MobileNavDropdown menuItems={mobileMenuItems} title="User Dashboard" />
 
         {/* Content Area */}
         <main className="flex-1 pt-4 px-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
+import { MobileNavDropdown } from "@/components/dashboard/MobileNavDropdown/MobileNavDropdown";
 import { Header } from "@/components/dashboard/Header/Header";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
 import {
@@ -24,11 +25,26 @@ import {
   TrendingUp,
   Plus,
   FileText,
+  LayoutDashboard,
+  Truck,
+  Ticket,
+  Users,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import ProtectedRole from "@/components/ProtectedRole";
+
+const mobileMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
+  { icon: Route, label: "Manage Routes", href: "/admin/routes" },
+  { icon: Truck, label: "Manage Trips", href: "/admin/trips" },
+  { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
+  { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
+  { icon: FileText, label: "Reports", href: "/admin/reports" },
+  { icon: Settings, label: "Settings", href: "/admin/settings" },
+];
 
 const dashboardData = {
   stats: [
@@ -157,30 +173,19 @@ export default function AdminDashboardPage() {
 function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { theme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Dynamic grid color based on theme
   const gridColor = theme === "dark" ? "#374151" : "#e5e7eb";
 
   return (
     <div className="flex bg-background min-h-screen">
-      {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Sidebar - Desktop only */}
+      <Sidebar />
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col">
-        {/* Mobile Menu Button */}
-        <div className="lg:hidden p-4 border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-10">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <span className="font-medium">Menu</span>
-          </button>
-        </div>
+        {/* Mobile Navigation Dropdown */}
+        <MobileNavDropdown menuItems={mobileMenuItems} title="Admin Dashboard" />
 
         {/* Content Area */}
         <main className="flex-1 pt-4 px-4">
