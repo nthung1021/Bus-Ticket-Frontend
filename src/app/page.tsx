@@ -20,6 +20,11 @@ export default function Home() {
   const [showToSuggestions, setShowToSuggestions] = useState(false);
   const [fromSuggestions, setFromSuggestions] = useState<string[]>([]);
   const [toSuggestions, setToSuggestions] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState({
+    from: false,
+    to: false,
+    date: false
+  });
   
   // Refs for animation elements
   const featuredRef = useRef<HTMLDivElement>(null);
@@ -164,8 +169,20 @@ export default function Home() {
   }, []);
 
   const handleSearch = () => {
-    // TODO: Implement search functionality
-    console.log("Search data:", searchData);
+    // Validate all fields
+    const errors = {
+      from: !searchData.from.trim(),
+      to: !searchData.to.trim(),
+      date: !searchData.date
+    };
+    
+    setValidationErrors(errors);
+    
+    // If all fields are valid, proceed with search
+    if (!errors.from && !errors.to && !errors.date) {
+      // TODO: Implement search functionality
+      console.log("Search data:", searchData);
+    }
   };
 
   const featuredRoutes = [
@@ -237,9 +254,9 @@ export default function Home() {
 
           {/* Search Form */}
           <div className="max-w-6xl mx-auto">
-            <Card className="bg-white/95 backdrop-blur-sm rounded-4xl shadow-lg overflow-visible">
-              <CardContent className="p-2 mx-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 overflow-visible">
+            <Card className="bg-white/95 dark:bg-black/90 backdrop-blur-sm rounded-4xl shadow-lg dark:shadow-2xl overflow-visible border-0 dark:border dark:border-border/30">
+              <CardContent className="p-2 mx-12 pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-4 overflow-visible">
                   <div className="space-y-2 relative z-10" ref={fromInputRef}>
                     <label className="text-sm font-medium text-foreground flex items-center gap-1">
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +269,12 @@ export default function Home() {
                       <Input
                         placeholder="Enter departure city"
                         value={searchData.from}
-                        onChange={(e) => handleFromChange(e.target.value)}
+                        onChange={(e) => {
+                          handleFromChange(e.target.value);
+                          if (validationErrors.from && e.target.value.trim()) {
+                            setValidationErrors(prev => ({ ...prev, from: false }));
+                          }
+                        }}
                         onFocus={() => {
                           if (searchData.from.length > 0) {
                             const suggestions = filterCities(searchData.from);
@@ -260,16 +282,28 @@ export default function Home() {
                             setShowFromSuggestions(suggestions.length > 0);
                           }
                         }}
-                        className="h-10 pr-10"
+                        className={`h-10 pr-10 bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${
+                          validationErrors.from ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
+                        }`}
                         autoComplete="off"
                       />
+                      {validationErrors.from && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1">
+                          <p className="text-foreground dark:text-white text-xs bg-background/95 dark:bg-black/95 border border-border/50 dark:border-white/20 rounded px-2 py-1 shadow-lg backdrop-blur-sm flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Please enter departure city
+                          </p>
+                        </div>
+                      )}
                       {showFromSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white border border-border rounded-md shadow-xl z-[100] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[105] mt-1 max-h-48 overflow-y-auto">
                           {fromSuggestions.map((city, index) => (
                             <div
                               key={index}
                               onClick={() => selectFromCity(city)}
-                              className="px-3 py-2 hover:bg-muted cursor-pointer text-sm border-b last:border-b-0 transition-colors"
+                              className="px-3 py-2 hover:bg-muted dark:hover:bg-gray-800/50 cursor-pointer text-sm border-b dark:border-border/20 last:border-b-0 transition-colors text-foreground"
                             >
                               {city}
                             </div>
@@ -290,7 +324,12 @@ export default function Home() {
                       <Input
                         placeholder="Enter destination city"
                         value={searchData.to}
-                        onChange={(e) => handleToChange(e.target.value)}
+                        onChange={(e) => {
+                          handleToChange(e.target.value);
+                          if (validationErrors.to && e.target.value.trim()) {
+                            setValidationErrors(prev => ({ ...prev, to: false }));
+                          }
+                        }}
                         onFocus={() => {
                           if (searchData.to.length > 0) {
                             const suggestions = filterCities(searchData.to);
@@ -298,16 +337,28 @@ export default function Home() {
                             setShowToSuggestions(suggestions.length > 0);
                           }
                         }}
-                        className="h-10 pr-10"
+                        className={`h-10 pr-10 bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${
+                          validationErrors.to ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
+                        }`}
                         autoComplete="off"
                       />
+                      {validationErrors.to && (
+                        <div className="absolute top-full left-0 right-0 z-49 mt-1">
+                          <p className="text-foreground dark:text-white text-xs bg-background/95 dark:bg-black/95 border border-border/50 dark:border-white/20 rounded px-2 py-1 shadow-lg backdrop-blur-sm flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Please enter destination city
+                          </p>
+                        </div>
+                      )}
                       {showToSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white border border-border rounded-md shadow-xl z-[100] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[104] mt-1 max-h-48 overflow-y-auto">
                           {toSuggestions.map((city, index) => (
                             <div
                               key={index}
                               onClick={() => selectToCity(city)}
-                              className="px-3 py-2 hover:bg-muted cursor-pointer text-sm border-b last:border-b-0 transition-colors"
+                              className="px-3 py-2 hover:bg-muted dark:hover:bg-gray-800/50 cursor-pointer text-sm border-b dark:border-border/20 last:border-b-0 transition-colors text-foreground"
                             >
                               {city}
                             </div>
@@ -316,21 +367,39 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative">
                     <label className="text-sm font-medium text-foreground flex items-center gap-1">
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       Departure Date
                     </label>
-                    <Input
-                      type="date"
-                      value={searchData.date}
-                      onChange={(e) => setSearchData({ ...searchData, date: e.target.value })}
-                      min={getMinDate()}
-                      className="h-10 cursor-pointer"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        value={searchData.date}
+                        onChange={(e) => {
+                          setSearchData({ ...searchData, date: e.target.value });
+                          if (validationErrors.date && e.target.value) {
+                            setValidationErrors(prev => ({ ...prev, date: false }));
+                          }
+                        }}
+                        min={getMinDate()}
+                        className={`h-10 cursor-pointer bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors ${
+                          validationErrors.date ? 'border-foreground dark:border-white focus:border-foreground dark:focus:border-white' : ''
+                        }`}
+                      />
+                      {validationErrors.date && (
+                        <div className="absolute top-full left-0 right-0 z-48 mt-1">
+                          <p className="text-foreground dark:text-white text-xs bg-background/95 dark:bg-black/95 border border-border/50 dark:border-white/20 rounded px-2 py-1 shadow-lg backdrop-blur-sm flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Please select departure date
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground flex items-center gap-1">
@@ -345,7 +414,7 @@ export default function Home() {
                       max="10"
                       value={searchData.passengers}
                       onChange={(e) => setSearchData({ ...searchData, passengers: Math.max(1, parseInt(e.target.value) || 1) })}
-                      className="h-10 cursor-pointer"
+                      className="h-10 cursor-pointer bg-background/90 dark:bg-black/80 border-border/60 dark:border-border/40 focus:border-primary transition-colors"
                       placeholder="1"
                     />
                   </div>
@@ -353,8 +422,7 @@ export default function Home() {
                     <Button 
                       onClick={handleSearch}
                       size="lg"
-                      disabled={!searchData.from || !searchData.to || !searchData.date}
-                      className="w-full h-10 text-base font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 bg-primary hover:bg-primary/90 transition-all duration-200 flex items-center gap-2"
+                      className="w-full h-10 text-base font-semibold cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-200 flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

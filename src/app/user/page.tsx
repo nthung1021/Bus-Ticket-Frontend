@@ -1,10 +1,10 @@
 "use client";
 
 import { UserSidebar } from "@/components/dashboard/UserSidebar/UserSidebar";
+import { MobileNavDropdown } from "@/components/dashboard/MobileNavDropdown/MobileNavDropdown";
 import { UserHeader } from "@/components/dashboard/UserHeader/UserHeader";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
-import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar } from "lucide-react";
-import { useState } from "react";
+import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar, LayoutDashboard, CreditCard, User, Bell, HelpCircle } from "lucide-react";
 
 const userDashboardData = {
   stats: [
@@ -89,19 +89,28 @@ const userDashboardData = {
   ],
 };
 
+const mobileMenuItems = [
+  { icon: LayoutDashboard, label: "Overview", href: "/user" },
+  { icon: Ticket, label: "My Bookings", href: "/user/bookings" },
+  { icon: CreditCard, label: "Payment", href: "/user/payment" },
+  { icon: User, label: "Profile", href: "/user/profile" },
+  { icon: Bell, label: "Notifications", href: "/user/notifications" },
+  { icon: HelpCircle, label: "Help & Support", href: "/user/help" },
+];
+
 export default function UserDashboard() {
   return (
-    <div className="flex bg-background">
-      {/* Sidebar */}
+    <div className="flex bg-background min-h-screen">
+      {/* Sidebar - Desktop only */}
       <UserSidebar />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col">
-        {/* Header */}
-        <UserHeader />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Navigation Dropdown */}
+        <MobileNavDropdown menuItems={mobileMenuItems} title="User Dashboard" />
 
         {/* Content Area */}
-        <main className="flex-1 pt-4 px-4 pb-4">
+        <main className="flex-1 pt-4 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">

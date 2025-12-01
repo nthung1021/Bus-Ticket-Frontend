@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
+import { MobileNavDropdown } from "@/components/dashboard/MobileNavDropdown/MobileNavDropdown";
 import { Header } from "@/components/dashboard/Header/Header";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
 import {
@@ -24,11 +25,26 @@ import {
   TrendingUp,
   Plus,
   FileText,
+  LayoutDashboard,
+  Truck,
+  Ticket,
+  Users,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import ProtectedRole from "@/components/ProtectedRole";
+
+const mobileMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
+  { icon: Route, label: "Manage Routes", href: "/admin/routes" },
+  { icon: Truck, label: "Manage Trips", href: "/admin/trips" },
+  { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
+  { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
+  { icon: FileText, label: "Reports", href: "/admin/reports" },
+  { icon: Settings, label: "Settings", href: "/admin/settings" },
+];
 
 const dashboardData = {
   stats: [
@@ -162,17 +178,17 @@ function Dashboard() {
   const gridColor = theme === "dark" ? "#374151" : "#e5e7eb";
 
   return (
-    <div className="flex bg-background">
-      {/* Sidebar */}
+    <div className="flex bg-background min-h-screen">
+      {/* Sidebar - Desktop only */}
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col">
-        {/* Header */}
-        <Header />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Navigation Dropdown */}
+        <MobileNavDropdown menuItems={mobileMenuItems} title="Admin Dashboard" />
 
         {/* Content Area */}
-        <main className="flex-1 pt-4 px-4 pb-4">
+        <main className="flex-1 pt-4 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">

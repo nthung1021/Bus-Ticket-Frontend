@@ -25,11 +25,15 @@ const menuItems = [
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  // No props needed for desktop-only sidebar
+}
+
+export function Sidebar({}: SidebarProps = {}) {
   const pathname = usePathname();
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} hidden lg:flex`}>
       {/* Logo */}
       <div className={styles.logoContainer}>
         <div className={styles.logoWrapper}>
@@ -52,12 +56,20 @@ export function Sidebar() {
                 href={item.href}
                 className={cn(
                   styles.menuItem,
-                  "text-body",
-                  isActive ? styles.menuItemActive : styles.menuItemInactive,
+                  isActive ? styles.menuItemActive : styles.menuItemInactive
                 )}
               >
-                <Icon className={styles.menuIcon} />
-                <span>{item.label}</span>
+                <div className={styles.menuItemContent}>
+                  <Icon
+                    className={cn(
+                      styles.menuItemIcon,
+                      isActive
+                        ? styles.menuItemIconActive
+                        : styles.menuItemIconInactive
+                    )}
+                  />
+                  <span className={styles.menuItemText}>{item.label}</span>
+                </div>
               </Link>
             );
           })}

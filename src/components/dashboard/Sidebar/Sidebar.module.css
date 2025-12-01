@@ -1,7 +1,18 @@
 @reference "../../../app/globals.css";
 
 .sidebar {
-  @apply fixed left-0 top-0 h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col z-40;
+  @apply lg:fixed lg:left-0 lg:w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col z-40;
+  @apply hidden lg:flex;
+  /* Fixed positioning: below header, above footer, no scroll movement */
+  top: 4rem; /* Below navbar */
+  bottom: 0;
+  height: calc(100vh - 4rem); /* Full height minus navbar */
+  overflow-y: auto; /* Allow sidebar content to scroll if needed */
+}
+
+.sidebarMobile {
+  @apply fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col backdrop-blur-sm bg-sidebar/95 z-40 lg:hidden;
+  /* Mobile sidebar that slides in */
 }
 
 .logoContainer {
@@ -36,6 +47,18 @@
   @apply flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors;
 }
 
+.menuItemContent {
+  @apply flex items-center gap-3 w-full;
+}
+
+.menuItemIcon {
+  @apply w-5 h-5 flex-shrink-0;
+}
+
+.menuItemText {
+  @apply flex-1;
+}
+
 .menuItemActive {
   @apply bg-sidebar-primary text-sidebar-primary-foreground;
 }
@@ -44,8 +67,12 @@
   @apply text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
 }
 
-.menuIcon {
-  @apply w-5 h-5;
+.menuItemIconActive {
+  @apply text-sidebar-primary-foreground;
+}
+
+.menuItemIconInactive {
+  @apply text-sidebar-foreground;
 }
 
 .quickActionsContainer {

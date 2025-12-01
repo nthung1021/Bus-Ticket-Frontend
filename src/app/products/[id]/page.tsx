@@ -231,7 +231,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
                   <span className="text-body text-muted-foreground line-through">
                     {product.originalPrice.toLocaleString('vi-VN')} VNĐ
                   </span>
-                  <span className="bg-destructive/10 text-destructive px-2 py-1 rounded text-caption font-medium">
+                  <span className="bg-accent text-white px-2 py-1 rounded text-caption font-medium">
                     Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
                   </span>
                 </div>

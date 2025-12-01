@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const Footer = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const pathname = usePathname();
+  
+  // Check if current page is a dashboard page
+  const isDashboardPage = pathname?.startsWith('/user') || pathname?.startsWith('/admin');
 
   // Background images for automatic transition
   const backgroundImages = [
@@ -28,7 +33,7 @@ const Footer = () => {
   }, [backgroundImages.length]);
 
   return (
-    <footer className="relative overflow-hidden">
+    <footer className={`relative overflow-hidden ${isDashboardPage ? 'lg:ml-64 lg:w-auto' : ''}`}>
       {/* Background Images with Transitions */}
       <div className="absolute inset-0">
         {backgroundImages.map((image, index) => (
@@ -49,7 +54,7 @@ const Footer = () => {
       </div>
 
       {/* Footer Content */}
-      <div className="relative z-10">
+      <div className="relative z-40">
         {/* Main Footer Section */}
         <div className="bg-card/95 dark:bg-card/90 backdrop-blur-md border-t border-border/50">
           <div className="max-w-7xl mx-auto px-6 py-16">
