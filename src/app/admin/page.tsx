@@ -284,9 +284,8 @@ function Dashboard() {
                       {dashboardData.recentBookings.map((booking, index) => (
                         <tr
                           key={booking.id}
-                          className={`border-b border-border hover:bg-muted transition-colors ${
-                            index % 2 === 0 ? "bg-card" : "bg-muted"
-                          }`}
+                          className={`border-b border-border hover:bg-muted transition-colors ${index % 2 === 0 ? "bg-card" : "bg-muted"
+                            }`}
                         >
                           <td className="py-4 px-2 md:px-4 text-foreground font-medium">
                             {booking.id}
@@ -305,15 +304,14 @@ function Dashboard() {
                           </td>
                           <td className="py-4 px-2 md:px-4">
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                booking.status === "Confirmed"
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === "Confirmed"
                                   ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                   : booking.status === "Pending"
                                     ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                                     : booking.status === "Cancelled"
                                       ? "bg-destructive/10 text-destructive"
                                       : "bg-muted text-muted-foreground"
-                              }`}
+                                }`}
                             >
                               {booking.status}
                             </span>
@@ -408,6 +406,7 @@ function Dashboard() {
                       className="w-full justify-start"
                       variant="outline"
                       size="sm"
+                      onClick={() => window.location.href = '/admin/trips'}
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add New Trip
