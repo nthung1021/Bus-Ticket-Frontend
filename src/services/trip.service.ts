@@ -117,7 +117,7 @@ export const getTrips = async (): Promise<Trip[]> => {
 
 export const getTripById = async (id: string): Promise<Trip> => {
   try {
-    const response = await apiClient.get(`/trips/${id}`);
+    const response = await apiClient.get(`/trips/admin/${id}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching trip:", error);
