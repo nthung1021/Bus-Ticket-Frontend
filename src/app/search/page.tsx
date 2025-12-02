@@ -31,7 +31,7 @@ interface SearchResult {
   departure: string;
   arrival: string;
   price: number;
-  duration: number;
+  duration: string;
   distance: number;
   image: string;
   description: string;
@@ -57,7 +57,7 @@ const convertRouteToSearchResult = (route: Route): SearchResult => ({
   departure: route.origin || 'Unknown',
   arrival: route.destination || 'Unknown',
   price: Math.floor((route.distanceKm || 100) * 1000), // Estimate price based on distance
-  duration: route.estimatedMinutes || 180,
+  duration: String(route.estimatedMinutes || 180),
   distance: route.distanceKm || 100,
   image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
   description: route.description || `Route from ${route.origin} to ${route.destination}`,
@@ -136,6 +136,8 @@ export default function SearchPage() {
               trip.operator?.name && departureCity && arrivalCity
                 ? `${trip.operator.name} ${departureCity} - ${arrivalCity}`
                 : `${departureCity} - ${arrivalCity}`,
+            origin: departureCity || "",
+            destination: arrivalCity || "",
             location:
               departureCity && arrivalCity
                 ? `${departureCity} → ${arrivalCity}`
@@ -147,6 +149,10 @@ export default function SearchPage() {
               ? Number(trip.pricing.basePrice)
               : 0,
             duration: durationLabel,
+            distance:
+              trip.route?.distanceKm != null
+                ? Number(trip.route.distanceKm)
+                : 0,
             image:
               "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
             description:
@@ -174,27 +180,6 @@ export default function SearchPage() {
         setIsLoading(false);
       });
   }, [origin, destination, date]);
-
-  // Fetch routes and convert to search results
-  useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        setLoading(true);
-        const routeData = await routeService.getAll();
-        setRoutes(routeData);
-        const searchResults = routeData.map(convertRouteToSearchResult);
-        setResults(searchResults);
-      } catch (error) {
-        console.error('Error fetching routes:', error);
-        // Fallback to empty results
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoutes();
-  }, []);
 
   // Filter and sort results
   useEffect(() => {
@@ -293,7 +278,7 @@ export default function SearchPage() {
                 value={filters.query}
                 onChange={(e) => handleFilterChange("query", e.target.value)}
                 className="h-12 text-body bg-background/90 dark:bg-black/95 border-border/70 dark:border-border/50 focus:border-primary dark:focus:border-primary transition-colors"
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               />
             </div>
             <Button
@@ -661,7 +646,7 @@ export default function SearchPage() {
                             </span>
                           </div>
                           <p className="text-caption bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
-                            {result.distance} km • {result.duration} min
+                            {result.distance} km • {result.duration}
                           </p>
                         </div>
                       </div>
