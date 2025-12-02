@@ -81,7 +81,7 @@ export function TripForm({
     className,
 }: TripFormProps) {
     const { toast } = useToast();
-    
+
     const form = useForm<TripFormValues>({
         resolver: zodResolver(tripFormSchema),
         defaultValues: {
@@ -105,10 +105,10 @@ export function TripForm({
             await onSubmit(apiData as any);
         } catch (error: any) {
             console.error("Form submission error:", error);
-            
+
             // Extract and display backend error messages
             let errorMessage = "Failed to create trip";
-            
+
             if (error?.response?.data?.message) {
                 if (Array.isArray(error.response.data.message)) {
                     errorMessage = error.response.data.message.join(", ");
@@ -120,7 +120,7 @@ export function TripForm({
             } else if (error?.message) {
                 errorMessage = error.message;
             }
-            
+
             // Show error toast
             toast({
                 title: "Error",
