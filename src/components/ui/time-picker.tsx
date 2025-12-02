@@ -15,16 +15,16 @@ interface TimePickerProps {
 
 export function TimePicker({ date, setDate, label, className }: TimePickerProps) {
     const [hours, setHours] = React.useState<string>(
-        date ? String(date.getHours()).padStart(2, "0") : "00"
+        date ? String(date.getHours).padStart(2, "0") : "00"
     );
     const [minutes, setMinutes] = React.useState<string>(
-        date ? String(date.getMinutes()).padStart(2, "0") : "00"
+        date ? String(date.getMinutes).padStart(2, "0") : "00"
     );
 
     React.useEffect(() => {
         if (date) {
-            setHours(String(date.getHours()).padStart(2, "0"));
-            setMinutes(String(date.getMinutes()).padStart(2, "0"));
+            setHours(String(date.getHours).padStart(2, "0"));
+            setMinutes(String(date.getMinutes).padStart(2, "0"));
         }
     }, [date]);
 
