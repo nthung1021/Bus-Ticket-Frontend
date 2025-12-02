@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +65,7 @@ const convertRouteToSearchResult = (route: Route): SearchResult => ({
   rating: 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
 });
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<SearchFilters>({
