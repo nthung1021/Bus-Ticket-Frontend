@@ -274,7 +274,7 @@ export default function Home() {
             <Card className="bg-white/95 dark:bg-black/90 backdrop-blur-sm rounded-4xl shadow-lg dark:shadow-2xl overflow-visible border-0 dark:border dark:border-border/30">
               <CardContent className="p-2 mx-12 pb-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-4 overflow-visible">
-                  <div className="space-y-2 relative z-10" ref={fromInputRef}>
+                  <div className="space-y-2 relative" ref={fromInputRef}>
                     <label className="text-sm font-medium text-foreground flex items-center gap-1">
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -328,7 +328,7 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  <div className="space-y-2 relative z-10" ref={toInputRef}>
+                  <div className="space-y-2 relative" ref={toInputRef}>
                     <label className="text-sm font-medium text-foreground flex items-center gap-1">
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
