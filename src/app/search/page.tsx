@@ -810,7 +810,7 @@ export default function SearchPage() {
                             <span className="text-h5 font-bold text-primary">
                               {result.price.toLocaleString("vi-VN")} VNĐ
                             </span>
-                            <Link href={`/products/${result.id}`}>
+                            <Link href={`/trips/${result.id}`}>
                               <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
                                 View Details
                               </Button>

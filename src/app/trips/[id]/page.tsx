@@ -7,11 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
 
-interface ProductParams {
+interface TripParams {
   id: string;
 }
 
-interface Product {
+interface Trip {
   id: string;
   name: string;
   category: string;
@@ -31,16 +31,16 @@ interface Product {
 
 // Optional mock data map kept for the "Related Routes" section.
 // It is empty by default; you can populate it with curated routes if desired.
-const mockProducts: Record<string, Product> = {};
+const mockTrips: Record<string, Trip> = {};
 
-export default function ProductDetailPage({ params }: { params: Promise<ProductParams> }) {
+export default function TripDetailPage({ params }: { params: Promise<TripParams> }) {
   const resolvedParams = use(params);
-  const [product, setProduct] = useState<Product | null>(null);
+  const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchTrip = async () => {
       try {
         setLoading(true);
 
@@ -49,7 +49,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
         const trip = response.data?.data;
 
         if (!trip) {
-          setProduct(null);
+          setTrip(null);
           return;
         }
 
@@ -76,7 +76,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
           descriptionParts.push(trip.bus.amenities.join(", "));
         }
 
-        const mappedProduct: Product = {
+        const mappedTrip: Trip = {
           id: trip.tripId,
           name:
             trip.operator?.name && departureCity && arrivalCity
@@ -110,16 +110,16 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
             : "",
         };
 
-        setProduct(mappedProduct);
+        setTrip(mappedTrip);
       } catch (error) {
         console.error("Failed to load trip details", error);
-        setProduct(null);
+        setTrip(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProduct();
+    fetchTrip();
   }, [resolvedParams.id]);
 
   if (loading) {
@@ -147,7 +147,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
     );
   }
 
-  if (!product) {
+  if (!trip) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="container mx-auto py-12 px-6 lg:px-8 xl:px-12 max-w-4xl">
@@ -177,22 +177,22 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
     );
   }
 
-  const relatedProducts = Object.values(mockProducts)
-    .filter(p => p.id !== product.id)
+  const relatedTrips = Object.values(mockTrips)
+    .filter(p => p.id !== trip.id)
     .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-12 px-6 lg:px-8 xl:px-12 space-y-12 max-w-7xl">
-        {/* Main Product Section */}
+        {/* Main Trip Section */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Product Image */}
+          {/* Trip Image */}
           <div className="bg-card border border-border rounded-2xl p-6 h-fit">
             <div className="space-y-4">
               <div className="group cursor-pointer">
                 <img
-                  src={product.image}
-                  alt={product.name}
+                  src={trip.image}
+                  alt={trip.name}
                   className="w-full aspect-[4/3] rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
                 />
               </div>
@@ -210,31 +210,31 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
             </div>
           </div>
 
-          {/* Product Info */}
+          {/* Trip Info */}
           <div className="bg-card border border-border rounded-2xl p-6 h-full flex flex-col">
             {/* Header Info */}
             <div className="space-y-4 mb-6">
               <div className="inline-block">
                 <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-caption font-medium">
-                  {product.category}
+                  {trip.category}
                 </span>
               </div>
-              <h1 className="text-h2 text-foreground leading-tight">{product.name}</h1>
+              <h1 className="text-h2 text-foreground leading-tight">{trip.name}</h1>
             </div>
 
             {/* Price */}
             <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
               <div className="flex items-center gap-4">
                 <span className="text-h4 text-primary font-bold">
-                  {product.price.toLocaleString('vi-VN')} VNĐ
+                  {trip.price.toLocaleString('vi-VN')} VNĐ
                 </span>
-                {product.originalPrice && (
+                {trip.originalPrice && (
                   <div className="flex items-center gap-2">
                     <span className="text-body text-muted-foreground line-through">
-                      {product.originalPrice.toLocaleString('vi-VN')} VNĐ
+                      {trip.originalPrice.toLocaleString('vi-VN')} VNĐ
                     </span>
                     <span className="bg-accent text-white px-2 py-1 rounded text-caption font-medium">
-                      Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                      Save {Math.round(((trip.originalPrice - trip.price) / trip.originalPrice) * 100)}%
                     </span>
                   </div>
                 )}
@@ -255,26 +255,26 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
                     <div className="w-2 h-2 rounded-full bg-primary"></div>
                     Departure
                   </h4>
-                  <p className="text-body font-medium">{product.departure}</p>
-                  <p className="text-caption text-muted-foreground">{product.departureTime}</p>
+                  <p className="text-body font-medium">{trip.departure}</p>
+                  <p className="text-caption text-muted-foreground">{trip.departureTime}</p>
                 </div>
                 <div>
                   <h4 className="text-caption text-muted-foreground mb-1 flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-primary"></div>
                     Arrival
                   </h4>
-                  <p className="text-body font-medium">{product.arrival}</p>
-                  <p className="text-caption text-muted-foreground">{product.arrivalTime}</p>
+                  <p className="text-body font-medium">{trip.arrival}</p>
+                  <p className="text-caption text-muted-foreground">{trip.arrivalTime}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-caption text-muted-foreground mb-1">Duration</h4>
-                  <p className="text-body font-medium">{product.duration}</p>
+                  <p className="text-body font-medium">{trip.duration}</p>
                 </div>
                 <div>
                   <h4 className="text-caption text-muted-foreground mb-1">Bus Type</h4>
-                  <p className="text-caption font-medium">{product.busType}</p>
+                  <p className="text-caption font-medium">{trip.busType}</p>
                 </div>
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {(product.price * selectedQuantity).toLocaleString('vi-VN')} VNĐ
+                    {(trip.price * selectedQuantity).toLocaleString('vi-VN')} VNĐ
                   </p>
                 </div>
               </div>
@@ -343,7 +343,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
             Route Description
           </h2>
           <p className="text-body leading-relaxed text-foreground text-lg">
-            {product.description}
+            {trip.description}
           </p>
         </section>
 
@@ -355,7 +355,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
               Features
             </h2>
             <ul className="space-y-4">
-              {product.features.map((feature, index) => (
+              {trip.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-4 group cursor-pointer p-3 rounded-lg hover:bg-muted/30 transition-colors">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,7 +374,7 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
               Amenities
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {product.amenities.map((amenity, index) => (
+              {trip.amenities.map((amenity, index) => (
                 <div key={index} className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 text-center group hover:from-primary/5 hover:to-primary/10 hover:border-primary/20 transition-all duration-200 cursor-pointer">
                   <div className="w-8 h-8 mx-auto mb-2 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,19 +401,19 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {relatedProducts.map((relatedProduct) => (
-              <Link key={relatedProduct.id} href={`/products/${relatedProduct.id}`} className="group cursor-pointer">
+            {relatedTrips.map((relatedTrip) => (
+              <Link key={relatedTrip.id} href={`/trips/${relatedTrip.id}`} className="group cursor-pointer">
                 <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] h-full">
                   <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                     <img
-                      src={relatedProduct.image}
-                      alt={relatedProduct.name}
+                      src={relatedTrip.image}
+                      alt={relatedTrip.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
                       <p className="text-caption font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                        {relatedProduct.duration}
+                        {relatedTrip.duration}
                       </p>
                     </div>
                     <div className="absolute top-4 right-4">
@@ -427,18 +427,18 @@ export default function ProductDetailPage({ params }: { params: Promise<ProductP
                   <CardContent className="p-6 space-y-4">
                     <div className="space-y-2">
                       <h3 className="text-h5 font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                        {relatedProduct.name}
+                        {relatedTrip.name}
                       </h3>
                       <p className="text-caption text-muted-foreground flex items-center gap-2">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         </svg>
-                        {relatedProduct.departure} → {relatedProduct.arrival}
+                        {relatedTrip.departure} → {relatedTrip.arrival}
                       </p>
                     </div>
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-h6 font-bold text-primary">
-                        {relatedProduct.price.toLocaleString('vi-VN')} VNĐ
+                        {relatedTrip.price.toLocaleString('vi-VN')} VNĐ
                       </span>
                       <Button size="sm" className="group-hover:bg-primary/90 text-caption cursor-pointer px-4 py-2">
                         View Details
