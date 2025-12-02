@@ -1,10 +1,10 @@
 "use client";
 
 import { UserSidebar } from "@/components/dashboard/UserSidebar/UserSidebar";
+import { MobileNavDropdown } from "@/components/dashboard/MobileNavDropdown/MobileNavDropdown";
 import { UserHeader } from "@/components/dashboard/UserHeader/UserHeader";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
-import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar } from "lucide-react";
-import { useState } from "react";
+import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar, LayoutDashboard, CreditCard, User, Bell, HelpCircle } from "lucide-react";
 
 const userDashboardData = {
   stats: [
@@ -89,19 +89,28 @@ const userDashboardData = {
   ],
 };
 
+const mobileMenuItems = [
+  { icon: LayoutDashboard, label: "Overview", href: "/user" },
+  { icon: Ticket, label: "My Bookings", href: "/user/bookings" },
+  { icon: CreditCard, label: "Payment", href: "/user/payment" },
+  { icon: User, label: "Profile", href: "/user/profile" },
+  { icon: Bell, label: "Notifications", href: "/user/notifications" },
+  { icon: HelpCircle, label: "Help & Support", href: "/user/help" },
+];
+
 export default function UserDashboard() {
   return (
-    <div className="flex bg-background">
-      {/* Sidebar */}
+    <div className="flex bg-background min-h-screen">
+      {/* Sidebar - Desktop only */}
       <UserSidebar />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col">
-        {/* Header */}
-        <UserHeader />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Navigation Dropdown */}
+        <MobileNavDropdown menuItems={mobileMenuItems} title="User Dashboard" />
 
         {/* Content Area */}
-        <main className="flex-1 pt-4 px-4 pb-4">
+        <main className="flex-1 pt-4 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
@@ -187,9 +196,9 @@ export default function UserDashboard() {
                           <span
                             className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                               trip.status === "Confirmed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                ? "bg-accent/20 text-accent dark:bg-accent/30 dark:text-accent"
                                 : trip.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                  ? "bg-destructive/20 text-destructive dark:bg-destructive/30 dark:text-destructive"
                                   : "bg-muted text-muted-foreground"
                             }`}
                           >
@@ -254,9 +263,9 @@ export default function UserDashboard() {
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   booking.status === "Confirmed"
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                    ? "bg-accent/10 text-accent dark:bg-accent/30 dark:text-accent"
                                     : booking.status === "Completed"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                      ? "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary"
                                       : booking.status === "Cancelled"
                                         ? "bg-destructive/10 text-destructive"
                                         : "bg-muted text-muted-foreground"
@@ -306,11 +315,11 @@ export default function UserDashboard() {
                     Travel Tips
                   </h3>
                   <div className="space-y-3 text-caption">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-blue-700 font-medium">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <p className="text-primary font-medium">
                         Arrive 15 minutes early
                       </p>
-                      <p className="text-blue-600 text-xs mt-1">
+                      <p className="text-primary/80 text-xs mt-1">
                         Please arrive at the station 15 minutes before departure
                         time.
                       </p>

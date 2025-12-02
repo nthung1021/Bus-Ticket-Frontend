@@ -192,3 +192,18 @@
 .dark [class*="bg-card"] {
   border-color: rgb(55 65 81) !important; /* gray-700 */
 }
+
+/* Calendar styles to fix head_row spacing */
+.rdp-weekdays {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: space-between !important;
+}
+
+.rdp-weekday {
+  width: 2.25rem !important; /* w-9 */
+  text-align: center !important;
+  font-size: 0.8rem !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border-radius: 0.375rem !important;
+}
