@@ -4,11 +4,13 @@ import {
   LayoutDashboard,
   Route,
   Truck,
-  Ticket,
+  Bus,
   Users,
+  Ticket,
   FileText,
   Settings,
   Zap,
+  Building,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,18 +20,24 @@ import styles from "./Sidebar.module.css";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
   { icon: Route, label: "Manage Routes", href: "/admin/routes" },
+  { icon: Bus, label: "Manage Buses", href: "/admin/buses" },
   { icon: Truck, label: "Manage Trips", href: "/admin/trips" },
-  { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
+  { icon: Building, label: "Manage Operators", href: "/admin/operators" },
   { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
+  { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
   { icon: FileText, label: "Reports", href: "/admin/reports" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  // No props needed for desktop-only sidebar
+}
+
+export function Sidebar({}: SidebarProps = {}) {
   const pathname = usePathname();
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} hidden lg:flex`}>
       {/* Logo */}
       <div className={styles.logoContainer}>
         <div className={styles.logoWrapper}>
@@ -52,12 +60,20 @@ export function Sidebar() {
                 href={item.href}
                 className={cn(
                   styles.menuItem,
-                  "text-body",
-                  isActive ? styles.menuItemActive : styles.menuItemInactive,
+                  isActive ? styles.menuItemActive : styles.menuItemInactive
                 )}
               >
-                <Icon className={styles.menuIcon} />
-                <span>{item.label}</span>
+                <div className={styles.menuItemContent}>
+                  <Icon
+                    className={cn(
+                      styles.menuItemIcon,
+                      isActive
+                        ? styles.menuItemIconActive
+                        : styles.menuItemIconInactive
+                    )}
+                  />
+                  <span className={styles.menuItemText}>{item.label}</span>
+                </div>
               </Link>
             );
           })}
