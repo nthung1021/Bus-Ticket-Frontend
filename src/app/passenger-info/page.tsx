@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Users, MapPin, Clock, Bus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Users, MapPin, Clock, Bus, CreditCard, X, Check } from "lucide-react";
 import Link from "next/link";
 import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 
@@ -46,6 +49,7 @@ export default function PassengerInfoPage() {
   const [passengerValidations, setPassengerValidations] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   useEffect(() => {
     // Try to load existing data from localStorage first
@@ -137,6 +141,43 @@ export default function PassengerInfoPage() {
     return selectedSeats.reduce((total, seat) => total + seat.price, 0);
   };
 
+  const handleConfirmPayment = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      // Create booking data
+      const bookingData = {
+        tripId,
+        seats: selectedSeats,
+        passengers: passengersData,
+        totalPrice: calculateTotalPrice()
+      };
+      
+      // Store in sessionStorage for payment
+      sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+      
+      // Navigate to payment page
+      router.push(`/payment?tripId=${tripId}`);
+      
+    } catch (error) {
+      console.error("Error processing booking:", error);
+      alert("Error processing your booking. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getSeatTypeLabel = (type: string) => {
+    switch (type) {
+      case 'business':
+        return { label: 'Business', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+      case 'vip':
+        return { label: 'VIP', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+      default:
+        return { label: 'Normal', color: 'bg-green-100 text-green-800 border-green-200' };
+    }
+  };
+
   const handleBackToSeatSelection = () => {
     // Save current passenger data before going back
     const dataToSave = {
@@ -172,34 +213,8 @@ export default function PassengerInfoPage() {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    try {
-      // Here you would typically:
-      // 1. Validate the data
-      // 2. Create temporary booking/reservation
-      // 3. Navigate to payment page
-      
-      // For now, just navigate to a mock payment page
-      const bookingData = {
-        tripId,
-        seats: selectedSeats,
-        passengers: passengersData,
-        totalPrice: calculateTotalPrice()
-      };
-      
-      // Store in sessionStorage for next step
-      sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
-      
-      // Navigate to review page
-      router.push(`/review?tripId=${tripId}`);
-      
-    } catch (error) {
-      console.error("Error processing booking:", error);
-      alert("Error processing your booking. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Show review modal instead of navigating
+    setShowReviewModal(true);
   };
 
   if (loading) {
@@ -365,7 +380,7 @@ export default function PassengerInfoPage() {
                       Processing...
                     </>
                   ) : (
-                    "Continue to Review"
+                    "Review Booking"
                   )}
                 </Button>
 
@@ -394,6 +409,131 @@ export default function PassengerInfoPage() {
           </div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <CreditCard className="w-4 h-4" />
+              Booking Review
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            {/* Trip Summary */}
+            <div className="bg-muted/30 p-2.5 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Bus className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium text-xs">Trip</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground">Route:</span>
+                  <span className="font-medium ml-1">{tripInfo?.departure} → {tripInfo?.arrival}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Time:</span>
+                  <span className="font-medium ml-1">{tripInfo?.departureTime}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Selected Seats */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium text-xs">Seats ({selectedSeats.length})</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedSeats.map((seat) => {
+                  const seatType = getSeatTypeLabel(seat.type);
+                  return (
+                    <div key={seat.id} className="flex items-center gap-1.5 px-2 py-1 border rounded bg-muted/20">
+                      <div className="w-5 h-5 bg-primary/10 rounded text-xs font-medium flex items-center justify-center text-primary">
+                        {seat.code}
+                      </div>
+                      <div className="text-xs">
+                        <Badge variant="outline" className={`text-xs px-1 py-0 ${seatType.color}`}>
+                          {seatType.label}
+                        </Badge>
+                      </div>
+                      <span className="text-xs font-medium">{seat.price.toLocaleString('vi-VN')}₫</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Passengers Summary */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium text-xs">Passengers</span>
+              </div>
+              <div className="space-y-1">
+                {passengersData.map((passenger, index) => (
+                  <div key={index} className="flex items-center justify-between px-2 py-1.5 bg-muted/20 rounded text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{passenger.fullName}</span>
+                      <Badge variant="outline" className="text-xs px-1 py-0">Seat {passenger.seatCode}</Badge>
+                    </div>
+                    <span className="text-muted-foreground">{passenger.documentId}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator className="my-2" />
+
+            {/* Price Summary */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span>Seat charges:</span>
+                <span>{calculateTotalPrice().toLocaleString('vi-VN')} VNĐ</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>Service fee:</span>
+                <span>10,000 VNĐ</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>Processing fee:</span>
+                <span>5,000 VNĐ</span>
+              </div>
+              <Separator className="my-1.5" />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Total Amount:</span>
+                <span className="text-primary">{(calculateTotalPrice() + 15000).toLocaleString('vi-VN')} VNĐ</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowReviewModal(false)}
+                className="flex-1 h-9 text-xs"
+              >
+                Edit Information
+              </Button>
+              <Button 
+                onClick={handleConfirmPayment}
+                disabled={isSubmitting}
+                className="flex-1 h-9 text-xs"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm & Pay"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
