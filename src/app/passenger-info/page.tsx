@@ -48,19 +48,30 @@ export default function PassengerInfoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Try to load existing data from localStorage first
+    const savedPassengerData = localStorage.getItem(`passengerData_${tripId}`);
+    
     // Parse selected seats from URL params
     if (selectedSeatsParam) {
       try {
         const seats = JSON.parse(decodeURIComponent(selectedSeatsParam)) as SelectedSeat[];
         setSelectedSeats(seats);
-        // Initialize passenger data array
-        setPassengersData(seats.map(seat => ({
-          fullName: "",
-          documentId: "",
-          seatCode: seat.code
-        })));
-        // Initialize validation array
-        setPassengerValidations(new Array(seats.length).fill(false));
+        
+        // Load saved data or initialize new data
+        if (savedPassengerData) {
+          const savedData = JSON.parse(savedPassengerData);
+          setPassengersData(savedData.passengers);
+          setPassengerValidations(savedData.validations);
+        } else {
+          // Initialize passenger data array
+          setPassengersData(seats.map(seat => ({
+            fullName: "",
+            documentId: "",
+            seatCode: seat.code
+          })));
+          // Initialize validation array
+          setPassengerValidations(new Array(seats.length).fill(false));
+        }
       } catch (error) {
         console.error("Error parsing seats:", error);
         // Redirect back if seats data is invalid
@@ -90,23 +101,52 @@ export default function PassengerInfoPage() {
   }, [selectedSeatsParam, tripId, router]);
 
   const updatePassengerData = useCallback((index: number, data: Partial<PassengerData>) => {
-    setPassengersData(prev => 
-      prev.map((passenger, i) => 
+    setPassengersData(prev => {
+      const updatedData = prev.map((passenger, i) => 
         i === index ? { ...passenger, ...data } : passenger
-      )
-    );
-  }, []);
+      );
+      
+      // Save to localStorage
+      const dataToSave = {
+        passengers: updatedData,
+        validations: passengerValidations
+      };
+      localStorage.setItem(`passengerData_${tripId}`, JSON.stringify(dataToSave));
+      
+      return updatedData;
+    });
+  }, [tripId, passengerValidations]);
 
   const updatePassengerValidation = useCallback((index: number, isValid: boolean) => {
     setPassengerValidations(prev => {
       const newValidations = [...prev];
       newValidations[index] = isValid;
+      
+      // Save to localStorage
+      const dataToSave = {
+        passengers: passengersData,
+        validations: newValidations
+      };
+      localStorage.setItem(`passengerData_${tripId}`, JSON.stringify(dataToSave));
+      
       return newValidations;
     });
-  }, []);
+  }, [tripId, passengersData]);
 
   const calculateTotalPrice = () => {
     return selectedSeats.reduce((total, seat) => total + seat.price, 0);
+  };
+
+  const handleBackToSeatSelection = () => {
+    // Save current passenger data before going back
+    const dataToSave = {
+      passengers: passengersData,
+      validations: passengerValidations
+    };
+    localStorage.setItem(`passengerData_${tripId}`, JSON.stringify(dataToSave));
+    
+    // Navigate back to trip page (seat selection)
+    router.push(`/trips/${tripId}`);
   };
 
   const isFormValid = useCallback(() => {
@@ -151,8 +191,8 @@ export default function PassengerInfoPage() {
       // Store in sessionStorage for next step
       sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
       
-      // Navigate to payment page (you'll need to create this)
-      router.push(`/payment?tripId=${tripId}`);
+      // Navigate to review page
+      router.push(`/review?tripId=${tripId}`);
       
     } catch (error) {
       console.error("Error processing booking:", error);
@@ -197,13 +237,11 @@ export default function PassengerInfoPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            asChild
+            onClick={handleBackToSeatSelection}
             className="flex items-center gap-2"
           >
-            <Link href={`/trips/${tripId}`}>
-              <ArrowLeft className="w-4 h-4" />
-              Back to Trip
-            </Link>
+            <ArrowLeft className="w-4 h-4" />
+            Back to Seat Selection
           </Button>
           <div className="h-6 w-px bg-border"></div>
           <h1 className="text-h2 font-semibold">Passenger Information</h1>
@@ -327,7 +365,7 @@ export default function PassengerInfoPage() {
                       Processing...
                     </>
                   ) : (
-                    "Continue to Payment"
+                    "Continue to Review"
                   )}
                 </Button>
 

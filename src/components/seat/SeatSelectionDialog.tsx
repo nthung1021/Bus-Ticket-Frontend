@@ -70,6 +70,9 @@ export default function SeatSelectionDialog({
         setSeats(generateMockSeats());
         setLoading(false);
       }, 500);
+    } else {
+      // Reset states when dialog closes
+      setSelectedSeats([]);
     }
   }, [open, tripId]);
 
