@@ -128,7 +128,7 @@ export function SimpleCalendar({
                                         buttonVariants({ variant: "ghost" }),
                                         "h-9 w-9 p-0 font-normal",
                                         isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                                        isTodayDate && !isSelected && "bg-accent text-accent-foreground",
+                                        // isTodayDate && !isSelected && "bg-accent text-accent-foreground",
                                         !isCurrentMonth && !isSelected && "text-muted-foreground opacity-50",
                                         isSelected && "aria-selected:opacity-100"
                                     )}
