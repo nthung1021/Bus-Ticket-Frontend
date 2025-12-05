@@ -21,8 +21,6 @@ export function TimePicker({ date, setDate, label, className }: TimePickerProps)
         date ? String(date.getMinutes()).padStart(2, "0") : "00"
     );
 
-    console.log(hours)
-
     React.useEffect(() => {
         if (date) {
             setHours(String(date.getHours()).padStart(2, "0"));
