@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +43,7 @@ export default function PassengerInfoPage() {
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
+  const [passengerValidations, setPassengerValidations] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,6 +59,8 @@ export default function PassengerInfoPage() {
           documentId: "",
           seatCode: seat.code
         })));
+        // Initialize validation array
+        setPassengerValidations(new Array(seats.length).fill(false));
       } catch (error) {
         console.error("Error parsing seats:", error);
         // Redirect back if seats data is invalid
@@ -86,27 +89,46 @@ export default function PassengerInfoPage() {
     setLoading(false);
   }, [selectedSeatsParam, tripId, router]);
 
-  const updatePassengerData = (index: number, data: Partial<PassengerData>) => {
+  const updatePassengerData = useCallback((index: number, data: Partial<PassengerData>) => {
     setPassengersData(prev => 
       prev.map((passenger, i) => 
         i === index ? { ...passenger, ...data } : passenger
       )
     );
-  };
+  }, []);
+
+  const updatePassengerValidation = useCallback((index: number, isValid: boolean) => {
+    setPassengerValidations(prev => {
+      const newValidations = [...prev];
+      newValidations[index] = isValid;
+      return newValidations;
+    });
+  }, []);
 
   const calculateTotalPrice = () => {
     return selectedSeats.reduce((total, seat) => total + seat.price, 0);
   };
 
-  const isFormValid = () => {
-    return passengersData.every(passenger => 
-      passenger.fullName.trim() && passenger.documentId.trim()
-    );
-  };
+  const isFormValid = useCallback(() => {
+    // Check if all passengers have valid forms
+    return passengerValidations.every(isValid => isValid) && passengerValidations.length === selectedSeats.length;
+  }, [passengerValidations, selectedSeats.length]);
 
   const handleContinue = async () => {
     if (!isFormValid()) {
-      alert("Please fill in all passenger information");
+      // Find which passengers have invalid forms
+      const invalidPassengers: number[] = [];
+      passengerValidations.forEach((isValid, index) => {
+        if (!isValid) {
+          invalidPassengers.push(index + 1);
+        }
+      });
+      
+      if (invalidPassengers.length > 0) {
+        alert(`Please complete and fix errors for passenger(s): ${invalidPassengers.join(', ')}`);
+      } else {
+        alert("Please fill in all required passenger information");
+      }
       return;
     }
 
@@ -237,15 +259,22 @@ export default function PassengerInfoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {selectedSeats.map((seat, index) => (
-                  <PassengerFormItem
-                    key={seat.id}
-                    passengerNumber={index + 1}
-                    seat={seat}
-                    passengerData={passengersData[index]}
-                    onUpdate={(data) => updatePassengerData(index, data)}
-                  />
-                ))}
+                {selectedSeats.map((seat, index) => {
+                  // Create stable callback functions for each passenger
+                  const handleUpdateData = (data: Partial<PassengerData>) => updatePassengerData(index, data);
+                  const handleValidationChange = (isValid: boolean) => updatePassengerValidation(index, isValid);
+                  
+                  return (
+                    <PassengerFormItem
+                      key={seat.id}
+                      passengerNumber={index + 1}
+                      seat={seat}
+                      passengerData={passengersData[index]}
+                      onUpdate={handleUpdateData}
+                      onValidationChange={handleValidationChange}
+                    />
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
@@ -301,6 +330,23 @@ export default function PassengerInfoPage() {
                     "Continue to Payment"
                   )}
                 </Button>
+
+                {/* Validation Status */}
+                {selectedSeats.length > 0 && (
+                  <div className="text-xs text-center">
+                    {isFormValid() ? (
+                      <span className="text-green-600 flex items-center justify-center gap-1">
+                        <span className="text-green-500">✓</span>
+                        All passenger information is valid
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 flex items-center justify-center gap-1">
+                        <span className="text-amber-500">⚠</span>
+                        {passengerValidations.filter(v => !v).length} passenger(s) need attention
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <p className="text-xs text-muted-foreground text-center">
                   By continuing, you agree to our terms and conditions

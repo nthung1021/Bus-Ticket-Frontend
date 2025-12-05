@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, CreditCard, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, CreditCard, MapPin, UserCheck } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 interface SelectedSeat {
   id: string;
@@ -29,68 +31,168 @@ interface PassengerFormItemProps {
   seat: SelectedSeat;
   passengerData: PassengerData;
   onUpdate: (data: Partial<PassengerData>) => void;
+  onValidationChange?: (isValid: boolean) => void; // New prop for validation state
 }
 
 export default function PassengerFormItem({ 
   passengerNumber, 
   seat, 
   passengerData, 
-  onUpdate 
+  onUpdate,
+  onValidationChange
 }: PassengerFormItemProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [canAutoFill, setCanAutoFill] = useState(false);
+  const { data: currentUser } = useCurrentUser();
 
-  const validateField = (field: string, value: string) => {
-    const newErrors = { ...errors };
-
-    switch (field) {
-      case 'fullName':
-        if (!value.trim()) {
-          newErrors.fullName = 'Full name is required';
-        } else if (value.trim().length < 2) {
-          newErrors.fullName = 'Full name must be at least 2 characters';
-        } else if (!/^[a-zA-Z\s\u00C0-\u024F\u1E00-\u1EFF]+$/.test(value)) {
-          newErrors.fullName = 'Full name can only contain letters and spaces';
-        } else {
-          delete newErrors.fullName;
-        }
-        break;
-      
-      case 'documentId':
-        if (!value.trim()) {
-          newErrors.documentId = 'Document ID is required';
-        } else if (value.trim().length < 6) {
-          newErrors.documentId = 'Document ID must be at least 6 characters';
-        } else if (!/^[A-Z0-9]+$/.test(value.toUpperCase())) {
-          newErrors.documentId = 'Document ID can only contain letters and numbers';
-        } else {
-          delete newErrors.documentId;
-        }
-        break;
-        
-      case 'phoneNumber':
-        if (value && !/^[+]?[\d\s-()]+$/.test(value)) {
-          newErrors.phoneNumber = 'Invalid phone number format';
-        } else {
-          delete newErrors.phoneNumber;
-        }
-        break;
-        
-      case 'email':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          newErrors.email = 'Invalid email format';
-        } else {
-          delete newErrors.email;
-        }
-        break;
+  // Check if user is logged in and auto-fill is possible
+  useEffect(() => {
+    if (currentUser && currentUser.fullName && currentUser.email) {
+      setCanAutoFill(true);
+    } else {
+      setCanAutoFill(false);
     }
+  }, [currentUser]);
 
-    setErrors(newErrors);
-  };
+  const validateField = useCallback((field: string, value: string) => {
+    setErrors(prevErrors => {
+      const newErrors = { ...prevErrors };
 
-  const handleInputChange = (field: string, value: string) => {
+      switch (field) {
+        case 'fullName':
+          if (!value.trim()) {
+            newErrors.fullName = 'Full name is required';
+          } else if (value.trim().length < 2) {
+            newErrors.fullName = 'Full name must be at least 2 characters';
+          } else if (value.trim().length > 50) {
+            newErrors.fullName = 'Full name cannot exceed 50 characters';
+          } else if (!/^[a-zA-Z\s\u00C0-\u024F\u1E00-\u1EFF]+$/.test(value)) {
+            newErrors.fullName = 'Full name can only contain letters and spaces';
+          } else if (/\s{2,}/.test(value)) {
+            newErrors.fullName = 'Full name cannot contain multiple consecutive spaces';
+          } else {
+            delete newErrors.fullName;
+          }
+          break;
+        
+        case 'documentId':
+          const docType = passengerData.documentType || 'id';
+          if (!value.trim()) {
+            newErrors.documentId = 'Document ID is required';
+          } else {
+            // Specific validation patterns based on document type
+            if (docType === 'id') {
+              // Vietnamese CCCD: 12 digits
+              if (!/^\d{12}$/.test(value.replace(/\s/g, ''))) {
+                newErrors.documentId = 'CCCD must be exactly 12 digits';
+              } else {
+                delete newErrors.documentId;
+              }
+            } else if (docType === 'passport') {
+              // Passport: 8-9 alphanumeric characters
+              if (!/^[A-Z0-9]{8,9}$/.test(value.toUpperCase().replace(/\s/g, ''))) {
+                newErrors.documentId = 'Passport must be 8-9 alphanumeric characters';
+              } else {
+                delete newErrors.documentId;
+              }
+            } else if (docType === 'license') {
+              // Driver license: 12 digits
+              if (!/^\d{12}$/.test(value.replace(/\s/g, ''))) {
+                newErrors.documentId = 'Driver license must be 12 digits';
+              } else {
+                delete newErrors.documentId;
+              }
+            }
+          }
+          break;
+          
+        case 'phoneNumber':
+          if (value) {
+            // Vietnamese phone number patterns
+            const phoneRegex = /^(\+84|84|0)([3-9]\d{8})$/;
+            const cleanPhone = value.replace(/[\s-()]/g, '');
+            if (!phoneRegex.test(cleanPhone)) {
+              newErrors.phoneNumber = 'Invalid Vietnamese phone number format (e.g., 0912345678)';
+            } else {
+              delete newErrors.phoneNumber;
+            }
+          } else {
+            delete newErrors.phoneNumber;
+          }
+          break;
+          
+        case 'email':
+          if (value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+            if (!emailRegex.test(value)) {
+              newErrors.email = 'Please enter a valid email address';
+            } else if (value.length > 254) {
+              newErrors.email = 'Email address is too long';
+            } else {
+              delete newErrors.email;
+            }
+          } else {
+            delete newErrors.email;
+          }
+          break;
+      }
+
+      return newErrors;
+    });
+  }, [passengerData.documentType]);
+
+  const isValidForm = useCallback((): boolean => {
+    // Required fields must be filled and have no errors
+    const hasRequiredFields = Boolean(passengerData.fullName.trim() && passengerData.documentId.trim());
+    const errorCount = Object.keys(errors).length;
+    const hasNoErrors = errorCount === 0;
+    return hasRequiredFields && hasNoErrors;
+  }, [passengerData.fullName, passengerData.documentId, errors]);
+
+  // Memoize the validation check to prevent unnecessary re-renders
+  const checkAndNotifyValidation = useCallback(() => {
+    const formValid = isValidForm();
+    onValidationChange?.(formValid);
+  }, [isValidForm]);
+
+  // Notify parent component of validation state changes with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      checkAndNotifyValidation();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [checkAndNotifyValidation]);
+
+  const handleAutoFill = useCallback(() => {
+    if (!currentUser) return;
+    
+    const autoFillData: Partial<PassengerData> = {};
+    
+    if (currentUser.fullName) {
+      autoFillData.fullName = currentUser.fullName;
+    }
+    if (currentUser.email) {
+      autoFillData.email = currentUser.email;
+    }
+    
+    onUpdate(autoFillData);
+    
+    // Validate filled fields after a short delay
+    setTimeout(() => {
+      Object.entries(autoFillData).forEach(([field, value]) => {
+        if (value) {
+          validateField(field, value);
+        }
+      });
+    }, 50);
+  }, [currentUser, validateField]);
+
+  const handleInputChange = useCallback((field: string, value: string) => {
     onUpdate({ [field]: value });
-    validateField(field, value);
-  };
+    // Validate on change for immediate feedback with debounce
+    setTimeout(() => validateField(field, value), 100);
+  }, [validateField]);
 
   const getSeatTypeBadge = (type: string) => {
     switch (type) {
@@ -123,6 +225,18 @@ export default function PassengerFormItem({
             <span>Passenger {passengerNumber}</span>
           </div>
           <div className="flex items-center gap-3">
+            {canAutoFill && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAutoFill}
+                className="text-xs h-7"
+                title="Fill with your account information"
+              >
+                <UserCheck className="w-3 h-3 mr-1" />
+                Auto-fill
+              </Button>
+            )}
             {getSeatTypeBadge(seat.type)}
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="w-4 h-4" />
@@ -144,10 +258,20 @@ export default function PassengerFormItem({
               placeholder="Enter passenger's full name"
               value={passengerData.fullName}
               onChange={(e) => handleInputChange('fullName', e.target.value)}
-              className={errors.fullName ? 'border-red-500 focus:ring-red-500' : ''}
+              onBlur={(e) => validateField('fullName', e.target.value)}
+              className={errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              aria-invalid={Boolean(errors.fullName)}
+              aria-describedby={errors.fullName ? `fullName-error-${passengerNumber}` : undefined}
             />
             {errors.fullName && (
-              <p className="text-red-500 text-xs">{errors.fullName}</p>
+              <p 
+                id={`fullName-error-${passengerNumber}`}
+                className="text-red-500 text-xs font-medium flex items-center gap-1"
+                role="alert"
+              >
+                <span className="text-red-500">⚠</span>
+                {errors.fullName}
+              </p>
             )}
           </div>
 
@@ -158,7 +282,13 @@ export default function PassengerFormItem({
             </Label>
             <Select
               value={passengerData.documentType || 'id'}
-              onValueChange={(value) => onUpdate({ documentType: value as 'id' | 'passport' | 'license' })}
+              onValueChange={(value) => {
+                onUpdate({ documentType: value as 'id' | 'passport' | 'license' });
+                // Re-validate document ID when type changes
+                if (passengerData.documentId) {
+                  setTimeout(() => validateField('documentId', passengerData.documentId), 100);
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select document type" />
@@ -182,13 +312,30 @@ export default function PassengerFormItem({
             <Input
               id={`documentId-${passengerNumber}`}
               type="text"
-              placeholder="Enter document number"
+              placeholder={`Enter ${passengerData.documentType === 'id' ? 'CCCD number (12 digits)' : 
+                              passengerData.documentType === 'passport' ? 'passport number' : 
+                              'driver license number'}`}
               value={passengerData.documentId}
-              onChange={(e) => handleInputChange('documentId', e.target.value.toUpperCase())}
-              className={errors.documentId ? 'border-red-500 focus:ring-red-500' : ''}
+              onChange={(e) => {
+                const docType = passengerData.documentType || 'id';
+                const value = docType === 'passport' ? e.target.value.toUpperCase() : e.target.value;
+                handleInputChange('documentId', value);
+              }}
+              onBlur={(e) => validateField('documentId', e.target.value)}
+              className={errors.documentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              maxLength={passengerData.documentType === 'passport' ? 9 : 12}
+              aria-invalid={Boolean(errors.documentId)}
+              aria-describedby={errors.documentId ? `documentId-error-${passengerNumber}` : undefined}
             />
             {errors.documentId && (
-              <p className="text-red-500 text-xs">{errors.documentId}</p>
+              <p 
+                id={`documentId-error-${passengerNumber}`}
+                className="text-red-500 text-xs font-medium flex items-center gap-1"
+                role="alert"
+              >
+                <span className="text-red-500">⚠</span>
+                {errors.documentId}
+              </p>
             )}
             <p className="text-xs text-muted-foreground">
               Enter the exact number as it appears on your document
@@ -203,13 +350,23 @@ export default function PassengerFormItem({
             <Input
               id={`phoneNumber-${passengerNumber}`}
               type="tel"
-              placeholder="+84 123 456 789"
+              placeholder="0912345678 or +84912345678"
               value={passengerData.phoneNumber || ''}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-              className={errors.phoneNumber ? 'border-red-500 focus:ring-red-500' : ''}
+              onBlur={(e) => validateField('phoneNumber', e.target.value)}
+              className={errors.phoneNumber ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              aria-invalid={Boolean(errors.phoneNumber)}
+              aria-describedby={errors.phoneNumber ? `phoneNumber-error-${passengerNumber}` : undefined}
             />
             {errors.phoneNumber && (
-              <p className="text-red-500 text-xs">{errors.phoneNumber}</p>
+              <p 
+                id={`phoneNumber-error-${passengerNumber}`}
+                className="text-red-500 text-xs font-medium flex items-center gap-1"
+                role="alert"
+              >
+                <span className="text-red-500">⚠</span>
+                {errors.phoneNumber}
+              </p>
             )}
           </div>
         </div>
@@ -224,11 +381,21 @@ export default function PassengerFormItem({
             type="email"
             placeholder="passenger@example.com"
             value={passengerData.email || ''}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            className={errors.email ? 'border-red-500 focus:ring-red-500' : ''}
+            onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())}
+            onBlur={(e) => validateField('email', e.target.value)}
+            className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? `email-error-${passengerNumber}` : undefined}
           />
           {errors.email && (
-            <p className="text-red-500 text-xs">{errors.email}</p>
+            <p 
+              id={`email-error-${passengerNumber}`}
+              className="text-red-500 text-xs font-medium flex items-center gap-1"
+              role="alert"
+            >
+              <span className="text-red-500">⚠</span>
+              {errors.email}
+            </p>
           )}
           <p className="text-xs text-muted-foreground">
             Optional: Receive booking confirmation and updates via email
@@ -243,6 +410,21 @@ export default function PassengerFormItem({
           </span>
         </div>
 
+        {/* Form Status Indicator */}
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3">
+            <h4 className="text-sm font-medium text-red-800 mb-2 flex items-center gap-1">
+              <span className="text-red-500">⚠</span>
+              Please fix the following issues:
+            </h4>
+            <ul className="text-xs text-red-700 space-y-1">
+              {Object.entries(errors).map(([field, error]) => (
+                <li key={field}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Important Notes */}
         <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
           <h4 className="text-sm font-medium text-amber-800 mb-1">Important Notes:</h4>
@@ -250,6 +432,10 @@ export default function PassengerFormItem({
             <li>• Please ensure all information matches your identification document</li>
             <li>• You will need to present the document used during booking at departure</li>
             <li>• Contact information will be used for booking updates and notifications</li>
+            <li>• Fields marked with <span className="text-red-500 font-medium">*</span> are required</li>
+            {canAutoFill && (
+              <li>• Click "Auto-fill" to use your account information</li>
+            )}
           </ul>
         </div>
       </CardContent>
