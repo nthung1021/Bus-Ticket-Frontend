@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
+import SeatSelectionDialog from "@/components/seat/SeatSelectionDialog";
 
 interface TripParams {
   id: string;
@@ -35,9 +36,17 @@ const mockTrips: Record<string, Trip> = {};
 
 export default function TripDetailPage({ params }: { params: Promise<TripParams> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [showSeatSelection, setShowSeatSelection] = useState(false);
+
+  const handleSeatSelection = (selectedSeats: any[]) => {
+    // Navigate to passenger info page with selected seats
+    const seatsParam = encodeURIComponent(JSON.stringify(selectedSeats));
+    router.push(`/passenger-info?tripId=${resolvedParams.id}&seats=${seatsParam}`);
+  };
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -320,7 +329,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-auto">
-              <Button className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl">
+              <Button 
+                onClick={() => setShowSeatSelection(true)}
+                className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl"
+              >
                 <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
                 </svg>
@@ -451,6 +463,15 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           </div>
         </section>
       </div>
+
+      {/* Seat Selection Dialog */}
+      <SeatSelectionDialog
+        open={showSeatSelection}
+        onOpenChange={setShowSeatSelection}
+        tripId={resolvedParams.id}
+        maxSeats={selectedQuantity}
+        onConfirm={handleSeatSelection}
+      />
     </div>
   );
 }

@@ -1,0 +1,315 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Users, MapPin, Clock, Bus } from "lucide-react";
+import Link from "next/link";
+import PassengerFormItem from "@/components/passenger/PassengerFormItem";
+
+interface SelectedSeat {
+  id: string;
+  code: string;
+  type: 'normal' | 'vip' | 'business';
+  price: number;
+}
+
+interface TripInfo {
+  id: string;
+  name: string;
+  departure: string;
+  arrival: string;
+  departureTime: string;
+  arrivalTime: string;
+  duration: string;
+  busType: string;
+}
+
+interface PassengerData {
+  fullName: string;
+  documentId: string;
+  seatCode: string;
+}
+
+export default function PassengerInfoPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Get URL parameters
+  const tripId = searchParams.get("tripId");
+  const selectedSeatsParam = searchParams.get("seats");
+  
+  const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
+  const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
+  const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Parse selected seats from URL params
+    if (selectedSeatsParam) {
+      try {
+        const seats = JSON.parse(decodeURIComponent(selectedSeatsParam)) as SelectedSeat[];
+        setSelectedSeats(seats);
+        // Initialize passenger data array
+        setPassengersData(seats.map(seat => ({
+          fullName: "",
+          documentId: "",
+          seatCode: seat.code
+        })));
+      } catch (error) {
+        console.error("Error parsing seats:", error);
+        // Redirect back if seats data is invalid
+        router.push(`/trips/${tripId}`);
+        return;
+      }
+    } else {
+      // No seats selected, redirect back
+      router.push(`/trips/${tripId}`);
+      return;
+    }
+
+    // Fetch trip information (mock data for now)
+    // In real implementation, fetch from API
+    setTripInfo({
+      id: tripId || "",
+      name: "Hanoi - Ho Chi Minh City",
+      departure: "Hanoi",
+      arrival: "Ho Chi Minh City", 
+      departureTime: "08:00 AM",
+      arrivalTime: "06:00 PM",
+      duration: "10h 0m",
+      busType: "VIP Sleeper"
+    });
+    
+    setLoading(false);
+  }, [selectedSeatsParam, tripId, router]);
+
+  const updatePassengerData = (index: number, data: Partial<PassengerData>) => {
+    setPassengersData(prev => 
+      prev.map((passenger, i) => 
+        i === index ? { ...passenger, ...data } : passenger
+      )
+    );
+  };
+
+  const calculateTotalPrice = () => {
+    return selectedSeats.reduce((total, seat) => total + seat.price, 0);
+  };
+
+  const isFormValid = () => {
+    return passengersData.every(passenger => 
+      passenger.fullName.trim() && passenger.documentId.trim()
+    );
+  };
+
+  const handleContinue = async () => {
+    if (!isFormValid()) {
+      alert("Please fill in all passenger information");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Here you would typically:
+      // 1. Validate the data
+      // 2. Create temporary booking/reservation
+      // 3. Navigate to payment page
+      
+      // For now, just navigate to a mock payment page
+      const bookingData = {
+        tripId,
+        seats: selectedSeats,
+        passengers: passengersData,
+        totalPrice: calculateTotalPrice()
+      };
+      
+      // Store in sessionStorage for next step
+      sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+      
+      // Navigate to payment page (you'll need to create this)
+      router.push(`/payment?tripId=${tripId}`);
+      
+    } catch (error) {
+      console.error("Error processing booking:", error);
+      alert("Error processing your booking. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading passenger information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tripInfo || selectedSeats.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-auto p-6 text-center">
+          <h2 className="text-h3 mb-4">No Trip Information Found</h2>
+          <p className="text-muted-foreground mb-6">
+            Unable to load trip or seat information. Please try again.
+          </p>
+          <Button asChild>
+            <Link href="/">Return Home</Link>
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-6 px-4 lg:px-8 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            asChild
+            className="flex items-center gap-2"
+          >
+            <Link href={`/trips/${tripId}`}>
+              <ArrowLeft className="w-4 h-4" />
+              Back to Trip
+            </Link>
+          </Button>
+          <div className="h-6 w-px bg-border"></div>
+          <h1 className="text-h2 font-semibold">Passenger Information</h1>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Trip Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bus className="w-5 h-5" />
+                  Trip Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <MapPin className="w-4 h-4" />
+                      Route
+                    </div>
+                    <p className="font-medium">{tripInfo.departure} → {tripInfo.arrival}</p>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <Clock className="w-4 h-4" />
+                      Departure
+                    </div>
+                    <p className="font-medium">{tripInfo.departureTime}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Duration</div>
+                    <p className="font-medium">{tripInfo.duration}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Bus Type</div>
+                    <p className="font-medium">{tripInfo.busType}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Passenger Forms */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Passenger Details ({selectedSeats.length} passenger{selectedSeats.length > 1 ? 's' : ''})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {selectedSeats.map((seat, index) => (
+                  <PassengerFormItem
+                    key={seat.id}
+                    passengerNumber={index + 1}
+                    seat={seat}
+                    passengerData={passengersData[index]}
+                    onUpdate={(data) => updatePassengerData(index, data)}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Booking Summary */}
+          <div className="space-y-6">
+            <Card className="sticky top-6">
+              <CardHeader>
+                <CardTitle>Booking Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Selected Seats */}
+                <div>
+                  <h4 className="font-medium mb-3">Selected Seats</h4>
+                  <div className="space-y-2">
+                    {selectedSeats.map((seat) => (
+                      <div key={seat.id} className="flex justify-between items-center text-sm">
+                        <span>
+                          Seat {seat.code} 
+                          <span className="text-muted-foreground ml-1">
+                            ({seat.type === 'normal' ? 'Normal' : seat.type === 'vip' ? 'VIP' : 'Business'})
+                          </span>
+                        </span>
+                        <span className="font-medium">
+                          {seat.price.toLocaleString('vi-VN')} VNĐ
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center text-lg font-semibold">
+                    <span>Total Amount</span>
+                    <span className="text-primary">
+                      {calculateTotalPrice().toLocaleString('vi-VN')} VNĐ
+                    </span>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleContinue}
+                  disabled={!isFormValid() || isSubmitting}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    "Continue to Payment"
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  By continuing, you agree to our terms and conditions
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
