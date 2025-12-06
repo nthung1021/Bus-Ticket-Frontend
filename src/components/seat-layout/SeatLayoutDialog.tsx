@@ -111,7 +111,7 @@ export default function SeatLayoutDialog({
         layoutType: template.type,
         seatPricing: pricingConfig,
       };
-      console.log(createDto)
+      // console.log(createDto)
       const newLayout = await seatLayoutService.createFromTemplate(createDto);
       toast.success('Seat layout created successfully');
       onBusSeatLayoutUpdate?.(busId, newLayout);
