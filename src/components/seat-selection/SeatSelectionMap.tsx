@@ -106,7 +106,7 @@ function SeatSelectionMap({
             seatsByRow[Number(row)].sort((a, b) => a.position.position - b.position.position);
         });
     }
-
+    // console.log(seatsByRow);
     /**
      * Determines the current status of a seat based on various conditions
      * @param seat - The seat to check
