@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SeatInfo, SeatLayoutConfig, SeatPricingConfig } from '@/services/seat-layout.service';
-import { Armchair, X, Check } from 'lucide-react';
+import { Armchair, X, Check, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSeatWebSocket } from '@/hooks/useSeatWebSocket';
+import toast from 'react-hot-toast';
 
 interface SeatSelectionMapProps {
     layoutConfig: SeatLayoutConfig;
@@ -15,9 +17,11 @@ interface SeatSelectionMapProps {
     onSelectionChange?: (selectedSeats: SeatInfo[]) => void;
     maxSeats?: number;
     className?: string;
+    tripId: string; // Required for WebSocket connection
+    enableRealtime?: boolean; // Enable/disable real-time features
 }
 
-type SeatStatus = 'available' | 'selected' | 'booked' | 'unavailable';
+type SeatStatus = 'available' | 'selected' | 'booked' | 'unavailable' | 'locked';
 
 export default function SeatSelectionMap({
     layoutConfig,
@@ -26,9 +30,24 @@ export default function SeatSelectionMap({
     onSelectionChange,
     maxSeats = 10,
     className,
+    tripId,
+    enableRealtime = true,
 }: SeatSelectionMapProps) {
     const [selectedSeats, setSelectedSeats] = useState<SeatInfo[]>([]);
     const [hoveredSeat, setHoveredSeat] = useState<string | null>(null);
+
+    // WebSocket integration
+    const {
+        isConnected,
+        lockedSeats,
+        lockSeat,
+        unlockSeat,
+        isSeatLockedByOthers,
+        isSeatLockedByMe,
+    } = useSeatWebSocket({
+        tripId,
+        enabled: enableRealtime,
+    });
 
     // Group seats by row for rendering
     const seatsByRow: Record<number, SeatInfo[]> = {};
@@ -53,27 +72,45 @@ export default function SeatSelectionMap({
         if (!seat.isAvailable) return 'unavailable';
         if (bookedSeats.includes(seat.id)) return 'booked';
         if (selectedSeats.some(s => s.id === seat.id)) return 'selected';
+        if (enableRealtime && isSeatLockedByOthers(seat.id)) return 'locked';
         return 'available';
     };
 
-    const handleSeatClick = (seat: SeatInfo) => {
+    const handleSeatClick = async (seat: SeatInfo) => {
         const status = getSeatStatus(seat);
 
-        // Can't select booked or unavailable seats
-        if (status === 'booked' || status === 'unavailable') {
+        // Can't select booked, unavailable, or locked seats
+        if (status === 'booked' || status === 'unavailable' || status === 'locked') {
+            if (status === 'locked') {
+                toast.error('This seat is currently being selected by another user');
+            }
             return;
         }
 
         let newSelectedSeats: SeatInfo[];
 
         if (status === 'selected') {
-            // Deselect the seat
+            // Deselect the seat and unlock it
+            if (enableRealtime) {
+                await unlockSeat(seat.id);
+            }
             newSelectedSeats = selectedSeats.filter(s => s.id !== seat.id);
         } else {
             // Select the seat (if under max limit)
             if (selectedSeats.length >= maxSeats) {
+                toast.error(`Maximum ${maxSeats} seats can be selected`);
                 return; // Max seats reached
             }
+
+            // Try to lock the seat if realtime is enabled
+            if (enableRealtime) {
+                const locked = await lockSeat(seat.id);
+                if (!locked) {
+                    toast.error('Failed to lock seat. It may have been selected by another user.');
+                    return;
+                }
+            }
+
             newSelectedSeats = [...selectedSeats, seat];
         }
 
@@ -97,6 +134,7 @@ export default function SeatSelectionMap({
             selected: "bg-gradient-to-br from-primary/90 to-primary border-2 border-primary text-primary-foreground scale-105 shadow-lg ring-2 ring-primary/30",
             booked: "bg-muted/50 border-2 border-muted text-muted-foreground cursor-not-allowed opacity-60",
             unavailable: "bg-muted/30 border-2 border-muted/50 text-muted-foreground/50 cursor-not-allowed opacity-40",
+            locked: "bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 text-orange-700 cursor-not-allowed opacity-70 dark:from-orange-900/30 dark:to-orange-800/30 dark:border-orange-600 dark:text-orange-300",
         };
 
         return cn(baseClasses, statusClasses[status], isHovered && status === 'available' && "ring-2 ring-primary/50");
@@ -108,6 +146,9 @@ export default function SeatSelectionMap({
         }
         if (status === 'booked') {
             return <X className="w-3 h-3 absolute top-0.5 right-0.5 opacity-50" />;
+        }
+        if (status === 'locked') {
+            return <Lock className="w-3 h-3 absolute top-0.5 right-0.5" />;
         }
         return null;
     };
@@ -128,6 +169,19 @@ export default function SeatSelectionMap({
 
     return (
         <div className={cn("space-y-6", className)}>
+            {/* Connection Status */}
+            {enableRealtime && (
+                <div className="flex items-center justify-center gap-2 text-sm">
+                    <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                    )} />
+                    <span className="text-muted-foreground">
+                        {isConnected ? 'Real-time updates active' : 'Connecting...'}
+                    </span>
+                </div>
+            )}
+
             {/* Legend */}
             <Card className="bg-gradient-to-br from-card to-card/80 border border-border rounded-2xl p-6">
                 <div className="flex flex-wrap gap-4 justify-center">
@@ -151,6 +205,12 @@ export default function SeatSelectionMap({
                         <div className="w-8 h-8 rounded-lg bg-muted/50 border-2 border-muted opacity-60"></div>
                         <span className="text-sm font-medium">Booked</span>
                     </div>
+                    {enableRealtime && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 opacity-70 dark:from-orange-900/30 dark:to-orange-800/30 dark:border-orange-600"></div>
+                            <span className="text-sm font-medium">Locked by Others</span>
+                        </div>
+                    )}
                 </div>
             </Card>
 

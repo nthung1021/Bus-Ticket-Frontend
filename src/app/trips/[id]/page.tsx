@@ -522,6 +522,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 bookedSeats={[]} // TODO: Fetch booked seats from API
                 onSelectionChange={handleSeatSelectionChange}
                 maxSeats={selectedQuantity}
+                tripId={trip.id}
               />
             )}
 
