@@ -7,6 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
   ArrowLeft, 
   Calendar, 
   MapPin, 
@@ -17,7 +25,9 @@ import {
   Phone,
   Mail,
   IdCard,
-  ArmchairIcon
+  ArmchairIcon,
+  X,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -31,6 +41,8 @@ export default function BookingDetailsPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const bookingService = new UserBookingService();
 
@@ -54,6 +66,30 @@ export default function BookingDetailsPage() {
       fetchBooking();
     }
   }, [bookingId]);
+
+  const handleCancelBooking = () => {
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancelBooking = async () => {
+    if (!booking) return;
+
+    setIsCancelling(true);
+    setShowCancelDialog(false);
+    
+    try {
+      await bookingService.cancelBooking(booking.id);
+      // Refresh booking data to show updated status
+      const updatedBooking = await bookingService.getBookingById(booking.id);
+      setBooking(updatedBooking);
+      alert('✅ Đã hủy vé thành công! Chúng tôi sẽ xử lý hoàn tiền trong vòng 3-5 ngày làm việc.');
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      alert(`❌ Lỗi khi hủy vé: ${error instanceof Error ? error.message : 'Vui lòng thử lại sau'}`);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -265,8 +301,14 @@ export default function BookingDetailsPage() {
                 )}
 
                 {UserBookingService.canCancelBooking(booking) && (
-                  <Button variant="destructive" className="w-full">
-                    Cancel Booking
+                  <Button 
+                    variant="destructive" 
+                    className="w-full flex items-center gap-1"
+                    onClick={handleCancelBooking}
+                    disabled={isCancelling}
+                  >
+                    <X className="h-4 w-4" />
+                    {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
                   </Button>
                 )}
               </CardContent>
@@ -327,6 +369,78 @@ export default function BookingDetailsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Cancel Confirmation Dialog */}
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Xác nhận hủy vé
+              </DialogTitle>
+              <DialogDescription>
+                Bạn có chắc chắn muốn hủy vé này không?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {booking && (
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Chuyến đi:</span>
+                    <span className="font-medium">{booking.trip.route.origin} → {booking.trip.route.destination}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Ngày khởi hành:</span>
+                    <span className="font-medium">{format(new Date(booking.trip.departureTime), 'dd/MM/yyyy')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Số tiền:</span>
+                    <span className="font-medium text-primary">{booking.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Số ghế:</span>
+                    <span className="font-medium">{booking.seats.length} ghế</span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <strong>Lưu ý:</strong> Sau khi hủy vé, tiền sẽ được hoàn lại trong vòng 3-5 ngày làm việc. 
+                  Hành động này không thể hoàn tác.
+                </p>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelDialog(false)}
+                disabled={isCancelling}
+              >
+                Giữ vé
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelBooking}
+                disabled={isCancelling}
+                className="flex items-center gap-1"
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                    Đang hủy...
+                  </>
+                ) : (
+                  <>
+                    <X className="h-3 w-3" />
+                    Xác nhận hủy
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

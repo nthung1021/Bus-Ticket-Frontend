@@ -80,6 +80,8 @@ export function MyBookings({
     await fetchBookings(statusFilter === 'all' ? undefined : statusFilter as BookingStatus);
   };
 
+
+
   useEffect(() => {
     // If auth is still loading, wait
     if (authLoading) return;
