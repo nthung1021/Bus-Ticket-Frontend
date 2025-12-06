@@ -67,31 +67,43 @@ function PassengerInfoPageContent() {
         // Load saved data or initialize new data
         if (savedPassengerData) {
           const savedData = JSON.parse(savedPassengerData);
-          // Migrate old data format to include missing fields
-          const migratedPassengers = savedData.passengers.map((passenger: any) => ({
-            ...passenger,
-            documentType: passenger.documentType || 'id',
-            phoneNumber: passenger.phoneNumber || '',
-            email: passenger.email || ''
-          }));
-          setPassengersData(migratedPassengers);
-          setPassengerValidations(savedData.validations);
+          
+          // Check if saved data matches current seat selection
+          const savedSeatCodes = savedData.passengers?.map((p: any) => p.seatCode).sort();
+          const currentSeatCodes = seats.map(s => s.code).sort();
+          const seatsMatch = JSON.stringify(savedSeatCodes) === JSON.stringify(currentSeatCodes);
+          
+          console.log('🔍 Checking localStorage compatibility:');
+          console.log('- Saved seat codes:', savedSeatCodes);
+          console.log('- Current seat codes:', currentSeatCodes);
+          console.log('- Seats match:', seatsMatch);
+          
+          if (seatsMatch && savedData.passengers?.length === seats.length) {
+            // Migrate old data format to include missing fields
+            const migratedPassengers = savedData.passengers.map((passenger: any) => ({
+              ...passenger,
+              documentType: passenger.documentType || 'id',
+              phoneNumber: passenger.phoneNumber || '',
+              email: passenger.email || ''
+            }));
+            setPassengersData(migratedPassengers);
+            setPassengerValidations(savedData.validations || new Array(seats.length).fill(false));
+            console.log('✅ Using saved passenger data');
+          } else {
+            // Seats don't match - clear old data and start fresh
+            console.log('🔄 Seat mismatch - clearing old data');
+            localStorage.removeItem(`passengerData_${tripId}`);
+            initializeNewPassengerData(seats);
+          }
         } else {
-          // Initialize passenger data array
-          setPassengersData(seats.map(seat => ({
-            fullName: "",
-            documentId: "",
-            seatCode: seat.code,
-            documentType: 'id' as const, // Default to ID card
-            phoneNumber: "",
-            email: ""
-          })));
-          // Initialize validation array
-          setPassengerValidations(new Array(seats.length).fill(false));
+          // No saved data - initialize new
+          console.log('🆕 No saved data - initializing fresh');
+          initializeNewPassengerData(seats);
         }
       } catch (error) {
         console.error("Error parsing seats:", error);
-        // Redirect back if seats data is invalid
+        // Clear corrupted data and redirect back
+        localStorage.removeItem(`passengerData_${tripId}`);
         router.push(`/trips/${tripId}`);
         return;
       }
@@ -117,12 +129,31 @@ function PassengerInfoPageContent() {
     setLoading(false);
   }, [selectedSeatsParam, tripId, router]);
 
+  // Helper function to initialize new passenger data
+  const initializeNewPassengerData = (seats: SelectedSeat[]) => {
+    const initialData = seats.map(seat => ({
+      fullName: "",
+      documentId: "",
+      seatCode: seat.code,
+      documentType: 'id' as const,
+      phoneNumber: "",
+      email: ""
+    }));
+    setPassengersData(initialData);
+    setPassengerValidations(new Array(seats.length).fill(false));
+  };
+
   // Debug logging
   useEffect(() => {
-    console.log('Debug - selectedSeats length:', selectedSeats.length);
-    console.log('Debug - passengersData length:', passengersData.length);
-    console.log('Debug - passengersData:', passengersData);
-  }, [selectedSeats, passengersData]);
+    console.log('🔍 PASSENGER INFO DEBUG:');
+    console.log('- selectedSeats length:', selectedSeats.length);
+    console.log('- selectedSeats data:', selectedSeats);
+    console.log('- passengersData length:', passengersData.length);
+    console.log('- passengersData:', passengersData);
+    console.log('- passengerValidations:', passengerValidations);
+    console.log('- tripId:', tripId);
+    console.log('- selectedSeatsParam:', selectedSeatsParam);
+  }, [selectedSeats, passengersData, passengerValidations, tripId, selectedSeatsParam]);
 
   // Ensure passenger data is synced with selected seats
   useEffect(() => {
@@ -354,31 +385,60 @@ function PassengerInfoPageContent() {
               <CardContent className="space-y-6">
                 {selectedSeats.length > 0 && passengersData.length > 0 ? (
                   selectedSeats.map((seat, index) => {
-                    // Create stable callback functions for each passenger
-                    const handleUpdateData = (data: Partial<PassengerData>) => updatePassengerData(index, data);
-                    const handleValidationChange = (isValid: boolean) => updatePassengerValidation(index, isValid);
-                    
-                    // Ensure we have passenger data for this index
-                    const passengerData = passengersData[index] || {
-                      fullName: "",
-                      documentId: "",
-                      seatCode: seat.code,
-                      documentType: 'id' as const,
-                      phoneNumber: "",
-                      email: ""
-                    };
-                    
-                    return (
-                      <PassengerFormItem
-                        key={seat.id}
-                        passengerNumber={index + 1}
-                        seat={seat}
-                        passengerData={passengerData}
-                        onUpdate={handleUpdateData}
-                        onValidationChange={handleValidationChange}
-                      />
-                    );
+                    try {
+                      // Create stable callback functions for each passenger
+                      const handleUpdateData = (data: Partial<PassengerData>) => updatePassengerData(index, data);
+                      const handleValidationChange = (isValid: boolean) => updatePassengerValidation(index, isValid);
+                      
+                      // Ensure we have passenger data for this index
+                      const passengerData = passengersData[index] || {
+                        fullName: "",
+                        documentId: "",
+                        seatCode: seat.code,
+                        documentType: 'id' as const,
+                        phoneNumber: "",
+                        email: ""
+                      };
+                      
+                      console.log(`🎫 Rendering passenger ${index + 1}:`, {
+                        seat,
+                        passengerData,
+                        hasUpdateCallback: typeof handleUpdateData === 'function',
+                        hasValidationCallback: typeof handleValidationChange === 'function'
+                      });
+                      
+                      return (
+                        <PassengerFormItem
+                          key={seat.id}
+                          passengerNumber={index + 1}
+                          seat={seat}
+                          passengerData={passengerData}
+                          onUpdate={handleUpdateData}
+                          onValidationChange={handleValidationChange}
+                        />
+                      );
+                    } catch (error) {
+                      console.error(`❌ Error rendering passenger form ${index + 1}:`, error);
+                      return (
+                        <div key={seat.id} className="p-4 border border-red-200 rounded-lg bg-red-50">
+                          <p className="text-red-600">Error loading passenger form {index + 1}</p>
+                          <p className="text-sm text-red-500">Seat: {seat.code}</p>
+                          <p className="text-xs text-red-400">{error instanceof Error ? error.message : 'Unknown error'}</p>
+                        </div>
+                      );
+                    }
                   })
+                ) : selectedSeats.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-red-600">No seats selected</p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => router.push(`/trips/${tripId}`)}
+                      className="mt-2"
+                    >
+                      Go Back to Trip
+                    </Button>
+                  </div>
                 ) : (
                   <div className="text-center py-6">
                     <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>

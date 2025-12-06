@@ -452,8 +452,11 @@ function PaymentPageContent() {
           showToast.dismiss(bookingToast);
           showToast.success('Booking created successfully!');
           
-          // Clear booking data from sessionStorage
+          // Clear all booking-related data from storage
           sessionStorage.removeItem('bookingData');
+          // Clear passenger data for this trip
+          localStorage.removeItem(`passengerData_${bookingData.tripId}`);
+          console.log('🧹 Cleared localStorage and sessionStorage after successful booking');
           
           setPaymentSuccess(true);
           // Redirect to success page with actual booking ID
