@@ -6,6 +6,7 @@ import {
   SeatStatusEvent,
   SeatLock,
 } from "@/services/seat-websocket.service";
+import { seatStatusService } from "@/services/seat-status.service";
 
 /**
  * Options for the useSeatWebSocket hook.
@@ -206,6 +207,32 @@ export function useSeatWebSocket({
       socket.off("disconnect", handleDisconnect);
     };
   }, [enabled]); // Re-run effect if 'enabled' status changes
+
+  /**
+   * Effect hook to load initial locked seats from database.
+   * This runs when the component is enabled and has a tripId.
+   */
+  useEffect(() => {
+    if (!enabled || !tripId) return;
+
+    const loadLockedSeatsFromDatabase = async () => {
+      try {
+        const lockedSeatsData = await seatStatusService.getLockedSeats(tripId);
+        const lockedSeatIds = new Set(
+          lockedSeatsData.map((seat) => seat.seatId),
+        );
+        setLockedSeats(lockedSeatIds);
+        console.log(
+          `Loaded ${lockedSeatIds.size} locked seats from database for trip ${tripId}`,
+        );
+      } catch (error) {
+        console.error("Failed to load locked seats from database:", error);
+        // Continue with empty locked seats if database query fails
+      }
+    };
+
+    loadLockedSeatsFromDatabase();
+  }, [enabled, tripId]);
 
   /**
    * Effect hook to join a specific trip and set up trip-specific event listeners.
