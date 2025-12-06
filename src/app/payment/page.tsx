@@ -417,7 +417,7 @@ function PaymentPageContent() {
           seatCode: p.seatCode,
           documentType: p.documentType || 'id',
           phoneNumber: p.phoneNumber || '',
-          email: p.email || ''
+          email: p.email || undefined
         })),
         // Order seats to match passenger seat codes exactly
         seats: bookingData.passengers.map(passenger => {
