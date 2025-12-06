@@ -45,6 +45,16 @@ export default function PassengerFormItem({
   const [canAutoFill, setCanAutoFill] = useState(false);
   const { data: currentUser } = useCurrentUser();
 
+  // Safety check for passengerData - provide defaults if undefined
+  const safePassengerData = passengerData || {
+    fullName: "",
+    documentId: "",
+    seatCode: seat.code,
+    documentType: 'id' as const,
+    phoneNumber: "",
+    email: ""
+  };
+
   // Check if user is logged in and auto-fill is possible
   useEffect(() => {
     if (currentUser && currentUser.fullName && currentUser.email) {
@@ -76,7 +86,7 @@ export default function PassengerFormItem({
           break;
         
         case 'documentId':
-          const docType = passengerData.documentType || 'id';
+          const docType = safePassengerData.documentType || 'id';
           if (!value.trim()) {
             newErrors.documentId = 'Document ID is required';
           } else {
@@ -139,15 +149,15 @@ export default function PassengerFormItem({
 
       return newErrors;
     });
-  }, [passengerData.documentType]);
+  }, [safePassengerData.documentType]); // Use safePassengerData instead of passengerData
 
   const isValidForm = useCallback((): boolean => {
     // Required fields must be filled and have no errors
-    const hasRequiredFields = Boolean(passengerData.fullName.trim() && passengerData.documentId.trim());
+    const hasRequiredFields = Boolean(safePassengerData.fullName.trim() && safePassengerData.documentId.trim());
     const errorCount = Object.keys(errors).length;
     const hasNoErrors = errorCount === 0;
     return hasRequiredFields && hasNoErrors;
-  }, [passengerData.fullName, passengerData.documentId, errors]);
+  }, [safePassengerData.fullName, safePassengerData.documentId, errors]);
 
   // Memoize the validation check to prevent unnecessary re-renders
   const checkAndNotifyValidation = useCallback(() => {
@@ -256,7 +266,7 @@ export default function PassengerFormItem({
               id={`fullName-${passengerNumber}`}
               type="text"
               placeholder="Enter passenger's full name"
-              value={passengerData.fullName}
+              value={safePassengerData.fullName}
               onChange={(e) => handleInputChange('fullName', e.target.value)}
               onBlur={(e) => validateField('fullName', e.target.value)}
               className={errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
@@ -281,12 +291,12 @@ export default function PassengerFormItem({
               Document Type
             </Label>
             <Select
-              value={passengerData.documentType || 'id'}
+              value={safePassengerData.documentType || 'id'}
               onValueChange={(value) => {
                 onUpdate({ documentType: value as 'id' | 'passport' | 'license' });
                 // Re-validate document ID when type changes
-                if (passengerData.documentId) {
-                  setTimeout(() => validateField('documentId', passengerData.documentId), 100);
+                if (safePassengerData.documentId) {
+                  setTimeout(() => validateField('documentId', safePassengerData.documentId), 100);
                 }
               }}
             >
@@ -312,18 +322,18 @@ export default function PassengerFormItem({
             <Input
               id={`documentId-${passengerNumber}`}
               type="text"
-              placeholder={`Enter ${passengerData.documentType === 'id' ? 'CCCD number (12 digits)' : 
-                              passengerData.documentType === 'passport' ? 'passport number' : 
+              placeholder={`Enter ${(safePassengerData.documentType || 'id') === 'id' ? 'CCCD number (12 digits)' : 
+                              (safePassengerData.documentType || 'id') === 'passport' ? 'passport number' : 
                               'driver license number'}`}
-              value={passengerData.documentId}
+              value={safePassengerData.documentId}
               onChange={(e) => {
-                const docType = passengerData.documentType || 'id';
+                const docType = safePassengerData.documentType || 'id';
                 const value = docType === 'passport' ? e.target.value.toUpperCase() : e.target.value;
                 handleInputChange('documentId', value);
               }}
               onBlur={(e) => validateField('documentId', e.target.value)}
               className={errors.documentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-              maxLength={passengerData.documentType === 'passport' ? 9 : 12}
+              maxLength={(safePassengerData.documentType || 'id') === 'passport' ? 9 : 12}
               aria-invalid={Boolean(errors.documentId)}
               aria-describedby={errors.documentId ? `documentId-error-${passengerNumber}` : undefined}
             />
@@ -351,7 +361,7 @@ export default function PassengerFormItem({
               id={`phoneNumber-${passengerNumber}`}
               type="tel"
               placeholder="0912345678 or +84912345678"
-              value={passengerData.phoneNumber || ''}
+              value={safePassengerData.phoneNumber || ''}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
               onBlur={(e) => validateField('phoneNumber', e.target.value)}
               className={errors.phoneNumber ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
@@ -380,7 +390,7 @@ export default function PassengerFormItem({
             id={`email-${passengerNumber}`}
             type="email"
             placeholder="passenger@example.com"
-            value={passengerData.email || ''}
+            value={safePassengerData.email || ''}
             onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())}
             onBlur={(e) => validateField('email', e.target.value)}
             className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}

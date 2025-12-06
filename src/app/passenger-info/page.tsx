@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,9 +33,12 @@ interface PassengerData {
   fullName: string;
   documentId: string;
   seatCode: string;
+  documentType?: 'id' | 'passport' | 'license';
+  phoneNumber?: string;
+  email?: string;
 }
 
-export default function PassengerInfoPage() {
+function PassengerInfoPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -64,14 +67,24 @@ export default function PassengerInfoPage() {
         // Load saved data or initialize new data
         if (savedPassengerData) {
           const savedData = JSON.parse(savedPassengerData);
-          setPassengersData(savedData.passengers);
+          // Migrate old data format to include missing fields
+          const migratedPassengers = savedData.passengers.map((passenger: any) => ({
+            ...passenger,
+            documentType: passenger.documentType || 'id',
+            phoneNumber: passenger.phoneNumber || '',
+            email: passenger.email || ''
+          }));
+          setPassengersData(migratedPassengers);
           setPassengerValidations(savedData.validations);
         } else {
           // Initialize passenger data array
           setPassengersData(seats.map(seat => ({
             fullName: "",
             documentId: "",
-            seatCode: seat.code
+            seatCode: seat.code,
+            documentType: 'id' as const, // Default to ID card
+            phoneNumber: "",
+            email: ""
           })));
           // Initialize validation array
           setPassengerValidations(new Array(seats.length).fill(false));
@@ -103,6 +116,33 @@ export default function PassengerInfoPage() {
     
     setLoading(false);
   }, [selectedSeatsParam, tripId, router]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Debug - selectedSeats length:', selectedSeats.length);
+    console.log('Debug - passengersData length:', passengersData.length);
+    console.log('Debug - passengersData:', passengersData);
+  }, [selectedSeats, passengersData]);
+
+  // Ensure passenger data is synced with selected seats
+  useEffect(() => {
+    if (selectedSeats.length > 0 && passengersData.length !== selectedSeats.length) {
+      console.log('Syncing passenger data with selected seats');
+      // If we have seats but no passenger data, initialize it
+      if (passengersData.length === 0) {
+        const initialData = selectedSeats.map(seat => ({
+          fullName: "",
+          documentId: "",
+          seatCode: seat.code,
+          documentType: 'id' as const,
+          phoneNumber: "",
+          email: ""
+        }));
+        setPassengersData(initialData);
+        setPassengerValidations(new Array(selectedSeats.length).fill(false));
+      }
+    }
+  }, [selectedSeats, passengersData.length]);
 
   const updatePassengerData = useCallback((index: number, data: Partial<PassengerData>) => {
     setPassengersData(prev => {
@@ -312,22 +352,39 @@ export default function PassengerInfoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {selectedSeats.map((seat, index) => {
-                  // Create stable callback functions for each passenger
-                  const handleUpdateData = (data: Partial<PassengerData>) => updatePassengerData(index, data);
-                  const handleValidationChange = (isValid: boolean) => updatePassengerValidation(index, isValid);
-                  
-                  return (
-                    <PassengerFormItem
-                      key={seat.id}
-                      passengerNumber={index + 1}
-                      seat={seat}
-                      passengerData={passengersData[index]}
-                      onUpdate={handleUpdateData}
-                      onValidationChange={handleValidationChange}
-                    />
-                  );
-                })}
+                {selectedSeats.length > 0 && passengersData.length > 0 ? (
+                  selectedSeats.map((seat, index) => {
+                    // Create stable callback functions for each passenger
+                    const handleUpdateData = (data: Partial<PassengerData>) => updatePassengerData(index, data);
+                    const handleValidationChange = (isValid: boolean) => updatePassengerValidation(index, isValid);
+                    
+                    // Ensure we have passenger data for this index
+                    const passengerData = passengersData[index] || {
+                      fullName: "",
+                      documentId: "",
+                      seatCode: seat.code,
+                      documentType: 'id' as const,
+                      phoneNumber: "",
+                      email: ""
+                    };
+                    
+                    return (
+                      <PassengerFormItem
+                        key={seat.id}
+                        passengerNumber={index + 1}
+                        seat={seat}
+                        passengerData={passengerData}
+                        onUpdate={handleUpdateData}
+                        onValidationChange={handleValidationChange}
+                      />
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading passenger forms...</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -535,5 +592,13 @@ export default function PassengerInfoPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function PassengerInfoPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+      <PassengerInfoPageContent />
+    </Suspense>
   );
 }
