@@ -102,9 +102,17 @@ class UserBookingService {
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to cancel booking');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error cancelling booking:', error);
-      throw error;
+      
+      // Extract backend error message
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to cancel booking');
+      }
     }
   }
 
@@ -147,7 +155,24 @@ class UserBookingService {
   }
 
   static canCancelBooking(booking: Booking): boolean {
-    return booking.status === 'pending' || booking.status === 'paid';
+    // Allow cancelling both pending and paid bookings
+    if (booking.status !== 'pending' && booking.status !== 'paid') {
+      return false;
+    }
+
+    // Check if booking can be cancelled (at least 6 hours before departure)
+    if (booking.trip?.departureTime) {
+      const departureTime = new Date(booking.trip.departureTime);
+      const currentTime = new Date();
+      const timeDifference = departureTime.getTime() - currentTime.getTime();
+      const hoursUntilDeparture = timeDifference / (1000 * 60 * 60); // Convert to hours
+
+      // Must be at least 6 hours before departure
+      return hoursUntilDeparture >= 6;
+    }
+
+    // If no departure time available, don't allow cancellation
+    return false;
   }
 
   static canPayBooking(booking: Booking): boolean {

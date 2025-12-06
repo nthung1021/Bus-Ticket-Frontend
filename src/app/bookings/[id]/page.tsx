@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { 
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -82,10 +81,10 @@ export default function BookingDetailsPage() {
       // Refresh booking data to show updated status
       const updatedBooking = await bookingService.getBookingById(booking.id);
       setBooking(updatedBooking);
-      alert('✅ Đã hủy vé thành công! Chúng tôi sẽ xử lý hoàn tiền trong vòng 3-5 ngày làm việc.');
+      alert('Đã hủy vé thành công! Chúng tôi sẽ xử lý hoàn tiền trong vòng 3-5 ngày làm việc.');
     } catch (error) {
       console.error('Error cancelling booking:', error);
-      alert(`❌ Lỗi khi hủy vé: ${error instanceof Error ? error.message : 'Vui lòng thử lại sau'}`);
+      alert(`Lỗi khi hủy vé: ${error instanceof Error ? error.message : 'Vui lòng thử lại sau'}`);
     } finally {
       setIsCancelling(false);
     }
@@ -307,9 +306,17 @@ export default function BookingDetailsPage() {
                     onClick={handleCancelBooking}
                     disabled={isCancelling}
                   >
-                    <X className="h-4 w-4" />
                     {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
                   </Button>
+                )}
+
+                {/* Show cancellation notice if booking is pending/paid but cannot be cancelled */}
+                {(booking.status === 'pending' || booking.status === 'paid') && !UserBookingService.canCancelBooking(booking) && (
+                  <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <strong>Lưu ý:</strong> Không thể hủy vé trong vòng 6 tiếng trước giờ khởi hành.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -378,12 +385,13 @@ export default function BookingDetailsPage() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 Xác nhận hủy vé
               </DialogTitle>
-              <DialogDescription>
-                Bạn có chắc chắn muốn hủy vé này không?
-              </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4">
+              <p className="text-muted-foreground text-sm">
+                Bạn có chắc chắn muốn hủy vé này không?
+              </p>
+              
               {booking && (
                 <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -408,7 +416,7 @@ export default function BookingDetailsPage() {
               <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
                   <strong>Lưu ý:</strong> Sau khi hủy vé, tiền sẽ được hoàn lại trong vòng 3-5 ngày làm việc. 
-                  Hành động này không thể hoàn tác.
+                  Hành động này không thể hoàn tác. Vé chỉ có thể hủy trước 6 tiếng so với giờ khởi hành.
                 </p>
               </div>
             </div>
