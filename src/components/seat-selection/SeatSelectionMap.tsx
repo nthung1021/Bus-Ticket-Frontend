@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { SeatInfo, SeatLayoutConfig } from '@/services/seat-layout.service';
+import { SeatInfo, SeatLayoutConfig, SeatPricingConfig } from '@/services/seat-layout.service';
 import { Armchair, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SeatSelectionMapProps {
     layoutConfig: SeatLayoutConfig;
+    seatPricing?: SeatPricingConfig; // Pricing configuration for fallback
     bookedSeats?: string[]; // Array of seat IDs that are already booked
     onSelectionChange?: (selectedSeats: SeatInfo[]) => void;
     maxSeats?: number;
@@ -20,6 +21,7 @@ type SeatStatus = 'available' | 'selected' | 'booked' | 'unavailable';
 
 export default function SeatSelectionMap({
     layoutConfig,
+    seatPricing,
     bookedSeats = [],
     onSelectionChange,
     maxSeats = 10,
@@ -108,8 +110,13 @@ export default function SeatSelectionMap({
         return null;
     };
 
+    const getSeatPrice = (seat: SeatInfo): number => {
+        // Use seat.price if available, otherwise fallback to seatPricing config
+        return seat.price || (seatPricing?.seatTypePrices[seat.type] ?? 0);
+    };
+
     const getTotalPrice = () => {
-        return selectedSeats.reduce((total, seat) => total + (seat.price || 0), 0);
+        return selectedSeats.reduce((total, seat) => total + getSeatPrice(seat), 0);
     };
 
     const clearSelection = () => {
@@ -187,7 +194,7 @@ export default function SeatSelectionMap({
                                                         onClick={() => handleSeatClick(seat)}
                                                         onMouseEnter={() => setHoveredSeat(seat.id)}
                                                         onMouseLeave={() => setHoveredSeat(null)}
-                                                        title={`${seat.code} - ${seat.type.toUpperCase()} - ${status.toUpperCase()}${seat.price ? ` - ${seat.price.toLocaleString('vi-VN')} VNĐ` : ''}`}
+                                                        title={`${seat.code} - ${seat.type.toUpperCase()} - ${status.toUpperCase()} - ${getSeatPrice(seat).toLocaleString('vi-VN')} VNĐ`}
                                                     >
                                                         <Armchair className="w-5 h-5" />
                                                         {getSeatIcon(status)}
@@ -197,11 +204,9 @@ export default function SeatSelectionMap({
                                                             <div className="absolute z-10 bottom-full mb-2 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded-lg shadow-lg border border-border whitespace-nowrap text-xs font-medium">
                                                                 <div className="font-bold">{seat.code}</div>
                                                                 <div className="text-muted-foreground capitalize">{seat.type}</div>
-                                                                {seat.price && (
-                                                                    <div className="text-primary font-semibold">
-                                                                        {seat.price.toLocaleString('vi-VN')} VNĐ
-                                                                    </div>
-                                                                )}
+                                                                <div className="text-primary font-semibold">
+                                                                    {getSeatPrice(seat).toLocaleString('vi-VN')} VNĐ
+                                                                </div>
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover"></div>
                                                             </div>
                                                         )}

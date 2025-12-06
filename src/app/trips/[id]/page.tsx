@@ -164,7 +164,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
 
   const handleSeatSelectionChange = (seats: SeatInfo[]) => {
     setSelectedSeats(seats);
-    setSelectedQuantity(seats.length);
+    // setSelectedQuantity(seats.length);
   };
 
   const handleBookNow = () => {
@@ -518,9 +518,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             {seatLayout && (
               <SeatSelectionMap
                 layoutConfig={seatLayout.layoutConfig}
+                seatPricing={seatLayout.seatPricing}
                 bookedSeats={[]} // TODO: Fetch booked seats from API
                 onSelectionChange={handleSeatSelectionChange}
-                maxSeats={10}
+                maxSeats={selectedQuantity}
               />
             )}
 
