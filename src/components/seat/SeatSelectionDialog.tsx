@@ -62,22 +62,27 @@ export default function SeatSelectionDialog({
       if (!seatsData.success) {
         throw new Error(seatsData.error || 'Failed to fetch seats');
       }
+
+      // If seat data is empty, just create mock seats (for demo only, need to throw error when happens)
+      if (seatsData.seats.length === 0)     
+        setSeats(generateMockSeats());
       
-      console.log('🪑 Raw seats data:', seatsData);
-      
-      // Transform backend seat data to frontend format
-      const transformedSeats: SeatData[] = seatsData.seats.map((seat: any) => ({
-        id: seat.id,
-        code: seat.seatCode,
-        type: seat.seatType as 'normal' | 'vip' | 'business',
-        price: getSeatPrice(seat.seatType),
-        isAvailable: seat.isActive, // Use isActive as availability
-        isSelected: false
-      }));
-      
-      console.log('🪑 Transformed seats:', transformedSeats);
-      setSeats(transformedSeats);
-      
+      else {
+        console.log('🪑 Raw seats data:', seatsData);
+        
+        // Transform backend seat data to frontend format
+        const transformedSeats: SeatData[] = seatsData.seats.map((seat: any) => ({
+          id: seat.id,
+          code: seat.seatCode,
+          type: seat.seatType as 'normal' | 'vip' | 'business',
+          price: getSeatPrice(seat.seatType),
+          isAvailable: seat.isActive, // Use isActive as availability
+          isSelected: false
+        }));
+        
+        console.log('🪑 Transformed seats:', transformedSeats);
+        setSeats(transformedSeats);
+      }  
     } catch (error: any) {
       console.error('❌ Error fetching seats:', error);
       setError(error.message || 'Failed to load seats');
@@ -253,7 +258,7 @@ export default function SeatSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bus className="w-5 h-5" />

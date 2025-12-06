@@ -37,6 +37,9 @@ interface BookingData {
   seats: SelectedSeat[];
   passengers: PassengerData[];
   totalPrice: number;
+  isGuestCheckout?: boolean;
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 interface SelectedSeat {
@@ -93,19 +96,7 @@ function PaymentPageContent() {
   // Load booking data and trip details
   useEffect(() => {
     const loadBookingData = async () => {
-      // Check if user is authenticated first
-      if (authLoading) return;
-      
-      console.log('Authentication check:', { user, authLoading });
-      
-      if (!user) {
-        console.error('User not authenticated');
-        setError('Please log in to complete your booking');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('User authenticated:', { userId: user.id, email: user.email });
+      // No need to check if user is authenticated, since we allows both User and Guest to book
 
       try {
         setLoading(true);
@@ -434,7 +425,10 @@ function PaymentPageContent() {
           };
         }),
         totalPrice: bookingData.totalPrice,
-        paymentMethod: selectedPaymentMethod
+        paymentMethod: selectedPaymentMethod,
+        isGuestCheckout: bookingData.isGuestCheckout,
+        contactEmail: bookingData.isGuestCheckout ? bookingData.contactEmail : undefined,
+        contactPhone: bookingData.isGuestCheckout ? bookingData.contactPhone : undefined,
       };
 
       console.log('Creating booking with request:', bookingRequest);

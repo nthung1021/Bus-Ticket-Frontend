@@ -10,6 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Users, MapPin, Clock, Bus, CreditCard, X, Check } from "lucide-react";
 import Link from "next/link";
 import PassengerFormItem from "@/components/passenger/PassengerFormItem";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 interface SelectedSeat {
   id: string;
@@ -41,11 +44,13 @@ interface PassengerData {
 function PassengerInfoPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+  const { data: currentUser } = useCurrentUser();
+  const isGuest = !currentUser;
+
   // Get URL parameters
   const tripId = searchParams.get("tripId");
   const selectedSeatsParam = searchParams.get("seats");
-  
+
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
@@ -53,31 +58,34 @@ function PassengerInfoPageContent() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
 
   useEffect(() => {
     // Try to load existing data from localStorage first
     const savedPassengerData = localStorage.getItem(`passengerData_${tripId}`);
-    
+
     // Parse selected seats from URL params
     if (selectedSeatsParam) {
       try {
         const seats = JSON.parse(decodeURIComponent(selectedSeatsParam)) as SelectedSeat[];
         setSelectedSeats(seats);
-        
+
         // Load saved data or initialize new data
         if (savedPassengerData) {
           const savedData = JSON.parse(savedPassengerData);
-          
+
           // Check if saved data matches current seat selection
           const savedSeatCodes = savedData.passengers?.map((p: any) => p.seatCode).sort();
           const currentSeatCodes = seats.map(s => s.code).sort();
           const seatsMatch = JSON.stringify(savedSeatCodes) === JSON.stringify(currentSeatCodes);
-          
+
           console.log('🔍 Checking localStorage compatibility:');
           console.log('- Saved seat codes:', savedSeatCodes);
           console.log('- Current seat codes:', currentSeatCodes);
           console.log('- Seats match:', seatsMatch);
-          
+
           if (seatsMatch && savedData.passengers?.length === seats.length) {
             // Migrate old data format to include missing fields
             const migratedPassengers = savedData.passengers.map((passenger: any) => ({
@@ -125,7 +133,7 @@ function PassengerInfoPageContent() {
       duration: "10h 0m",
       busType: "VIP Sleeper"
     });
-    
+
     setLoading(false);
   }, [selectedSeatsParam, tripId, router]);
 
@@ -180,14 +188,14 @@ function PassengerInfoPageContent() {
       const updatedData = prev.map((passenger, i) => 
         i === index ? { ...passenger, ...data } : passenger
       );
-      
+
       // Save to localStorage
       const dataToSave = {
         passengers: updatedData,
         validations: passengerValidations
       };
       localStorage.setItem(`passengerData_${tripId}`, JSON.stringify(dataToSave));
-      
+
       return updatedData;
     });
   }, [tripId, passengerValidations]);
@@ -196,14 +204,14 @@ function PassengerInfoPageContent() {
     setPassengerValidations(prev => {
       const newValidations = [...prev];
       newValidations[index] = isValid;
-      
+
       // Save to localStorage
       const dataToSave = {
         passengers: passengersData,
         validations: newValidations
       };
       localStorage.setItem(`passengerData_${tripId}`, JSON.stringify(dataToSave));
-      
+
       return newValidations;
     });
   }, [tripId, passengersData]);
@@ -212,24 +220,55 @@ function PassengerInfoPageContent() {
     return selectedSeats.reduce((total, seat) => total + seat.price, 0);
   };
 
+  const validateContactInfo = () => {
+    const errors: { email?: string; phone?: string } = {};
+
+    if (isGuest) {
+      if (!contactEmail.trim()) {
+        errors.email = "Contact email is required for guest checkout";
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+        if (!emailRegex.test(contactEmail)) {
+          errors.email = "Please enter a valid email address";
+        }
+      }
+
+      if (!contactPhone.trim()) {
+        errors.phone = "Contact phone is required for guest checkout";
+      } else {
+        const phoneRegex = /^(\+84|84|0)([3-9]\d{8})$/;
+        const cleanPhone = contactPhone.replace(/[\s-()]/g, "");
+        if (!phoneRegex.test(cleanPhone)) {
+          errors.phone = "Invalid Vietnamese phone number (e.g., 0912345678)";
+        }
+      }
+    }
+
+    setContactErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleConfirmPayment = async () => {
     setIsSubmitting(true);
-    
+
     try {
       // Create booking data
       const bookingData = {
         tripId,
         seats: selectedSeats,
         passengers: passengersData,
-        totalPrice: calculateTotalPrice()
+        totalPrice: calculateTotalPrice(),
+        isGuestCheckout: isGuest,
+        contactEmail: isGuest ? contactEmail : undefined,
+        contactPhone: isGuest ? contactPhone : undefined,
       };
-      
+
       // Store in sessionStorage for payment
       sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
-      
+
       // Navigate to payment page
       router.push(`/payment?tripId=${tripId}`);
-      
+
     } catch (error) {
       console.error("Error processing booking:", error);
       alert("Error processing your booking. Please try again.");
@@ -256,7 +295,7 @@ function PassengerInfoPageContent() {
       validations: passengerValidations
     };
     localStorage.setItem(`passengerData_${tripId}`, JSON.stringify(dataToSave));
-    
+
     // Navigate back to trip page (seat selection)
     router.push(`/trips/${tripId}`);
   };
@@ -275,12 +314,17 @@ function PassengerInfoPageContent() {
           invalidPassengers.push(index + 1);
         }
       });
-      
+
       if (invalidPassengers.length > 0) {
         alert(`Please complete and fix errors for passenger(s): ${invalidPassengers.join(', ')}`);
       } else {
         alert("Please fill in all required passenger information");
       }
+      return;
+    }
+
+    if (isGuest && !validateContactInfo()) {
+      alert("Please complete valid contact information for guest checkout.");
       return;
     }
 
@@ -373,6 +417,79 @@ function PassengerInfoPageContent() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Contact Form (for Guest only) */}
+            {isGuest && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Please provide your contact information so we can send your booking confirmation and updates.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-email" className="text-sm font-medium">
+                        Contact Email <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        placeholder="your.email@example.com"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        className={contactErrors.email ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}
+                        aria-invalid={Boolean(contactErrors.email)}
+                        aria-describedby={contactErrors.email ? "contact-email-error" : undefined}
+                      />
+                      {contactErrors.email && (
+                        <p
+                          id="contact-email-error"
+                          className="text-destructive text-xs font-medium flex items-center gap-1"
+                          role="alert"
+                        >
+                          <span className="text-destructive">⚠</span>
+                          {contactErrors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-phone" className="text-sm font-medium">
+                        Contact Phone <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="contact-phone"
+                        type="tel"
+                        placeholder="0912345678 or +84912345678"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        className={contactErrors.phone ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}
+                        aria-invalid={Boolean(contactErrors.phone)}
+                        aria-describedby={contactErrors.phone ? "contact-phone-error" : undefined}
+                      />
+                      {contactErrors.phone && (
+                        <p
+                          id="contact-phone-error"
+                          className="text-destructive text-xs font-medium flex items-center gap-1"
+                          role="alert"
+                        >
+                          <span className="text-destructive">⚠</span>
+                          {contactErrors.phone}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your contact details will only be used for booking-related notifications.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Passenger Forms */}
             <Card>
