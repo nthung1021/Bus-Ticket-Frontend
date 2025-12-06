@@ -232,7 +232,7 @@ export default function SeatLayoutDialog({
         },
         seatPricing: pricingConfig  // Add this line
       });
-      console.log("updated layout", updatedLayout)
+      // console.log('updated layout', updatedLayout)
       setLayoutType(type);
       toast.success('Layout type updated successfully');
       onBusSeatLayoutUpdate?.(busId, updatedLayout);

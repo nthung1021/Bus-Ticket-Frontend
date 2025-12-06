@@ -81,7 +81,7 @@ export default function SeatEditor({
     
     const newSeats: SeatInfo[] = [];
     for (let i = 0; i < seatsInRow; i++) {
-      const seatId = `${newRow}-${String.fromCharCode(65 + i)}`;
+      const seatId = crypto.randomUUID(); // Generate proper UUID
       newSeats.push({
         id: seatId,
         code: `${newRow}${String.fromCharCode(65 + i)}`,
@@ -116,13 +116,13 @@ export default function SeatEditor({
   };
 
   const removeRow = (rowNumber: number) => {
-    console.log("removeRow called with rowNumber:", rowNumber);
+    // console.log("removeRow called with rowNumber:", rowNumber);
     if (!layoutConfig?.seats) return;
     markAsCustom(); // Mark as CUSTOM when modifying structure
     
     // Remove seats from the deleted row
     const seatsAfterDeletion = layoutConfig.seats.filter(seat => seat.position.row !== rowNumber);
-    console.log("seatsAfterDeletion:", seatsAfterDeletion);
+    // console.log("seatsAfterDeletion:", seatsAfterDeletion);
     
     // Renumber remaining rows to be consecutive
     const rows = [...new Set(seatsAfterDeletion.map(seat => seat.position.row))].sort((a, b) => a - b);
@@ -136,12 +136,11 @@ export default function SeatEditor({
     // Update seats with new row numbers and positions
     const updatedSeats = seatsAfterDeletion.map((seat, index) => {
       const newRow = rowMapping[seat.position.row];
-      const columnLetter = seat.id.split('-')[1]; // Keep original column letter
-      const newId = `${newRow}-${columnLetter}`;
       
       return {
         ...seat,
-        id: newId,
+        // Keep original seat ID to avoid database conflicts
+        id: seat.id,
         code: `${newRow}${seat.code.substring(1)}`,
         position: {
           ...seat.position,
@@ -151,23 +150,8 @@ export default function SeatEditor({
       };
     });
     
-    // Check for duplicate IDs
-    const duplicateIds = updatedSeats.filter((seat, index, self) => 
-      self.findIndex(s => s.id === seat.id) !== index
-    );
-    
-    if (duplicateIds.length > 0) {
-      console.error('Duplicate seat IDs found:', duplicateIds.map(s => s.id));
-      // If duplicates found, create unique IDs using position
-      const uniqueSeats = updatedSeats.map((seat, index) => ({
-        ...seat,
-        id: `${seat.position.row}-${seat.position.position}`,
-        code: `${seat.position.row}${String.fromCharCode(64 + seat.position.position)}`,
-      }));
-      console.log('Using unique seats instead:', uniqueSeats);
-      // Use unique seats for the rest of the function
-      updatedSeats.splice(0, updatedSeats.length, ...uniqueSeats);
-    }
+    // Note: No need to check for duplicate IDs since we keep original IDs
+    // The database will handle seat identification by seat code
     
     const maxRow = updatedSeats.length > 0 ? Math.max(...updatedSeats.map(seat => seat.position.row)) : 0;
     
@@ -193,11 +177,11 @@ export default function SeatEditor({
     rows.forEach(row => {
       const seatsInRow = seatsByRow[row] || [];
       const newColumn = String.fromCharCode(65 + seatsInRow.length);
-      const seatId = `${row}-${newColumn}`;
+      const seatId = crypto.randomUUID(); // Generate proper UUID
       
       const newSeat: SeatInfo = {
         id: seatId,
-        code: seatId,
+        code: `${row}${newColumn}`,
         type: 'normal',
         position: {
           x: seatsInRow.length * 50,
@@ -244,7 +228,8 @@ export default function SeatEditor({
               position: seat.position.position - 1,
               x: seat.position.x - 50,
             },
-            id: `${seat.position.row}-${String.fromCharCode(64 + seat.position.position - 1)}`,
+            // Keep original seat ID to avoid database conflicts
+            id: seat.id,
             code: `${seat.position.row}${String.fromCharCode(64 + seat.position.position - 1)}`,
           };
         }
