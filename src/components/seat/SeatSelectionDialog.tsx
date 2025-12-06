@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bus, Users, Check } from "lucide-react";
+import { Bus, Users, Check, Loader2 } from "lucide-react";
+import api from "@/lib/api";
 
 interface SeatData {
   id: string;
@@ -24,33 +25,6 @@ interface SeatSelectionDialogProps {
   onConfirm: (selectedSeats: SeatData[]) => void;
 }
 
-// Mock seat data - In real implementation, fetch from API
-const generateMockSeats = (): SeatData[] => {
-  const seats: SeatData[] = [];
-  const seatTypes = ['normal', 'vip', 'business'] as const;
-  const prices = { normal: 150000, vip: 250000, business: 350000 };
-  
-  // Generate 4 rows with 4 seats each (standard bus layout)
-  for (let row = 1; row <= 10; row++) {
-    for (let position = 1; position <= 4; position++) {
-      const seatCode = `${row}${String.fromCharCode(64 + position)}`;
-      const type = row <= 2 ? 'business' : row <= 5 ? 'vip' : 'normal';
-      const isAvailable = Math.random() > 0.3; // 70% availability
-      
-      seats.push({
-        id: `${row}-${position}`,
-        code: seatCode,
-        type,
-        price: prices[type],
-        isAvailable,
-        isSelected: false
-      });
-    }
-  }
-  
-  return seats;
-};
-
 export default function SeatSelectionDialog({ 
   open, 
   onOpenChange, 
@@ -61,18 +35,111 @@ export default function SeatSelectionDialog({
   const [seats, setSeats] = useState<SeatData[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<SeatData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  const fetchSeats = async (tripId: string) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      console.log('🪑 Fetching seats for trip:', tripId);
+      
+      // Get trip details to get busId
+      const tripResponse = await api.get(`/trips/${tripId}`);
+      const trip = tripResponse.data.data;
+      const busId = trip.bus?.busId;
+      
+      if (!busId) {
+        throw new Error('Bus ID not found for this trip');
+      }
+      
+      console.log('🚌 Bus ID:', busId);
+      
+      // Get seats for this bus
+      const seatsResponse = await api.get(`/database/seats/bus/${busId}`);
+      const seatsData = seatsResponse.data;
+      
+      if (!seatsData.success) {
+        throw new Error(seatsData.error || 'Failed to fetch seats');
+      }
+      
+      console.log('🪑 Raw seats data:', seatsData);
+      
+      // Transform backend seat data to frontend format
+      const transformedSeats: SeatData[] = seatsData.seats.map((seat: any) => ({
+        id: seat.id,
+        code: seat.seatCode,
+        type: seat.seatType as 'normal' | 'vip' | 'business',
+        price: getSeatPrice(seat.seatType),
+        isAvailable: seat.isActive, // Use isActive as availability
+        isSelected: false
+      }));
+      
+      console.log('🪑 Transformed seats:', transformedSeats);
+      setSeats(transformedSeats);
+      
+    } catch (error: any) {
+      console.error('❌ Error fetching seats:', error);
+      setError(error.message || 'Failed to load seats');
+      
+      // Fallback to mock data for development
+      console.log('🔄 Using fallback mock seats...');
+      setSeats(generateMockSeats());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSeatPrice = (seatType: string): number => {
+    switch (seatType) {
+      case 'business': return 350000;
+      case 'vip': return 250000;
+      case 'normal': 
+      default: return 150000;
+    }
+  };
+
+  // Keep mock as fallback for development
+  const generateMockSeats = (): SeatData[] => {
+    const seats: SeatData[] = [];
+    
+    // Generate seats matching database structure
+    // Row 1: Business class (1A, 1B, 1C, 1D)
+    for (let col of ['A', 'B', 'C', 'D']) {
+      seats.push({
+        id: `1-${col}`,
+        code: `1${col}`,
+        type: 'business',
+        price: 350000,
+        isAvailable: true,
+        isSelected: false
+      });
+    }
+    
+    // Rows 2-10: Normal class
+    for (let row = 2; row <= 10; row++) {
+      for (let col of ['A', 'B', 'C', 'D']) {
+        seats.push({
+          id: `${row}-${col}`,
+          code: `${row}${col}`,
+          type: 'normal',
+          price: 150000,
+          isAvailable: Math.random() > 0.2, // 80% availability
+          isSelected: false
+        });
+      }
+    }
+    
+    return seats;
+  };
 
   useEffect(() => {
-    if (open) {
-      // Simulate API call to fetch seat layout
-      setLoading(true);
-      setTimeout(() => {
-        setSeats(generateMockSeats());
-        setLoading(false);
-      }, 500);
+    if (open && tripId) {
+      fetchSeats(tripId);
     } else {
       // Reset states when dialog closes
       setSelectedSeats([]);
+      setError('');
     }
   }, [open, tripId]);
 
@@ -144,8 +211,39 @@ export default function SeatSelectionDialog({
           </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
               <p className="text-muted-foreground">Loading seat map...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (error) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Seat Selection Error</DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-12">
+            <div className="text-red-500 mb-4">⚠️</div>
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => fetchSeats(tripId)}
+                disabled={loading}
+              >
+                Try Again
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </DialogContent>
