@@ -60,6 +60,7 @@ export function MyBookings({
       const data = await bookingService.getUserBookings(status);
       setBookings(data);
       setFilteredBookings(data);
+      setCurrentPage(1); // Reset to first page when data changes
     } catch (error) {
       console.error('Error fetching bookings:', error);
       setError(error instanceof Error ? error.message : 'Failed to load bookings');
@@ -104,37 +105,35 @@ export function MyBookings({
   }, [user, authLoading, authError, router]);
 
   useEffect(() => {
-    if (statusFilter === 'all') {
-      setFilteredBookings(bookings);
-    } else {
-      setFilteredBookings(bookings.filter(booking => booking.status === statusFilter));
+    // Re-fetch bookings when filter changes to use API-level filtering
+    if (user) {
+      fetchBookings(statusFilter === 'all' ? undefined : statusFilter as BookingStatus);
     }
-    setCurrentPage(1); // Reset to first page when filter changes
-  }, [statusFilter, bookings]);
+  }, [statusFilter, user]);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      case 'EXPIRED':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return 'bg-accent text-accent-foreground border-accent/30';
+      case 'pending':
+        return 'bg-secondary text-secondary-foreground border-border';
+      case 'cancelled':
+        return 'bg-destructive/60 text-destructive-foreground border-destructive/30';
+      case 'expired':
+        return 'bg-muted text-muted-foreground border-border';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getStatusLabel = (status: string) => {
     const statusLabels: Record<string, string> = {
-      PAID: 'Paid',
-      PENDING: 'Pending',
-      CANCELLED: 'Cancelled',
-      EXPIRED: 'Expired'
+      paid: 'Paid',
+      pending: 'Pending',
+      cancelled: 'Cancelled',
+      expired: 'Expired'
     };
-    return statusLabels[status] || status;
+    return statusLabels[status.toLowerCase()] || status;
   };
 
   const formatCurrency = (amount: number) => {
@@ -194,10 +193,10 @@ export function MyBookings({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
