@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
+import SeatSelectionMap from "@/components/seat-selection/SeatSelectionMap";
+import { seatLayoutService, SeatLayout, SeatInfo } from "@/services/seat-layout.service";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface TripParams {
   id: string;
@@ -38,6 +48,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [seatLayout, setSeatLayout] = useState<SeatLayout | null>(null);
+  const [loadingSeatLayout, setLoadingSeatLayout] = useState(false);
+  const [selectedSeats, setSelectedSeats] = useState<SeatInfo[]>([]);
+  const [seatDialogOpen, setSeatDialogOpen] = useState(false);
+  const [busId, setBusId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -111,6 +126,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         };
 
         setTrip(mappedTrip);
+        // Store bus ID for seat layout fetching
+        if (trip.bus?.busId) {
+          console.log(trip.bus?.busId)
+          setBusId(trip.bus.busId);
+        }
       } catch (error) {
         console.error("Failed to load trip details", error);
         setTrip(null);
@@ -121,6 +141,41 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
 
     fetchTrip();
   }, [resolvedParams.id]);
+
+
+  const fetchSeatLayout = async () => {
+    if (!busId) {
+      toast.error("Bus information not available");
+      return;
+    }
+
+    try {
+      setLoadingSeatLayout(true);
+      const layout = await seatLayoutService.getByBusId(busId);
+      setSeatLayout(layout);
+      setSeatDialogOpen(true);
+    } catch (error) {
+      console.error("Failed to load seat layout", error);
+      toast.error("Seat layout not available for this bus");
+    } finally {
+      setLoadingSeatLayout(false);
+    }
+  };
+
+  const handleSeatSelectionChange = (seats: SeatInfo[]) => {
+    setSelectedSeats(seats);
+    setSelectedQuantity(seats.length);
+  };
+
+  const handleBookNow = () => {
+    if (seatLayout) {
+      setSeatDialogOpen(true);
+    } else if (busId) {
+      fetchSeatLayout();
+    } else {
+      toast.error("Seat selection not available. Please try again later.");
+    }
+  };
 
   if (loading) {
     return (
@@ -320,7 +375,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-auto">
-              <Button className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl">
+              <Button onClick={handleBookNow} className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl">
                 <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
                 </svg>
@@ -450,6 +505,46 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             ))}
           </div>
         </section>
+
+        {/* Seat Selection Dialog */}
+        <Dialog open={seatDialogOpen} onOpenChange={setSeatDialogOpen}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-h4 font-bold">
+                Select Your Seats
+              </DialogTitle>
+            </DialogHeader>
+
+            {seatLayout && (
+              <SeatSelectionMap
+                layoutConfig={seatLayout.layoutConfig}
+                bookedSeats={[]} // TODO: Fetch booked seats from API
+                onSelectionChange={handleSeatSelectionChange}
+                maxSeats={10}
+              />
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => setSeatDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // TODO: Implement booking logic with selected seats
+                  toast.success(`Booking ${selectedSeats.length} seat(s)`);
+                  setSeatDialogOpen(false);
+                }}
+                disabled={selectedSeats.length === 0}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Continue to Booking ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
