@@ -207,22 +207,22 @@ export default function PassengerFormItem({
   const getSeatTypeBadge = (type: string) => {
     switch (type) {
       case 'vip':
-        return <Badge variant="secondary" className="bg-purple-100 text-purple-800">VIP</Badge>;
+        return <Badge variant="secondary" className="bg-accent/10 text-accent-foreground border-accent/20">VIP</Badge>;
       case 'business':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Business</Badge>;
+        return <Badge variant="secondary" className="bg-primary/10 text-primary-foreground border-primary/20">Business</Badge>;
       default:
-        return <Badge variant="outline">Normal</Badge>;
+        return <Badge variant="outline" className="border-border text-muted-foreground">Normal</Badge>;
     }
   };
 
   const getSeatTypeColor = (type: string) => {
     switch (type) {
       case 'vip':
-        return 'border-purple-200 bg-purple-50';
+        return 'border-accent/20 bg-accent/5';
       case 'business':
-        return 'border-blue-200 bg-blue-50';
+        return 'border-primary/20 bg-primary/5';
       default:
-        return 'border-gray-200 bg-gray-50';
+        return 'border-border bg-muted/50';
     }
   };
 
@@ -260,7 +260,7 @@ export default function PassengerFormItem({
           {/* Full Name */}
           <div className="space-y-2">
             <Label htmlFor={`fullName-${passengerNumber}`} className="text-sm font-medium">
-              Full Name <span className="text-red-500">*</span>
+              Full Name <span className="text-destructive">*</span>
             </Label>
             <Input
               id={`fullName-${passengerNumber}`}
@@ -269,17 +269,17 @@ export default function PassengerFormItem({
               value={safePassengerData.fullName}
               onChange={(e) => handleInputChange('fullName', e.target.value)}
               onBlur={(e) => validateField('fullName', e.target.value)}
-              className={errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              className={errors.fullName ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
               aria-invalid={Boolean(errors.fullName)}
               aria-describedby={errors.fullName ? `fullName-error-${passengerNumber}` : undefined}
             />
             {errors.fullName && (
               <p 
-                id={`fullName-error-${passengerNumber}`}
-                className="text-red-500 text-xs font-medium flex items-center gap-1"
+                id={`email-error-${passengerNumber}`}
+                className="text-destructive text-xs font-medium flex items-center gap-1"
                 role="alert"
               >
-                <span className="text-red-500">⚠</span>
+                <span className="text-destructive">⚠</span>
                 {errors.fullName}
               </p>
             )}
@@ -316,7 +316,7 @@ export default function PassengerFormItem({
             <Label htmlFor={`documentId-${passengerNumber}`} className="text-sm font-medium">
               <div className="flex items-center gap-1">
                 <CreditCard className="w-4 h-4" />
-                Document ID <span className="text-red-500">*</span>
+                Document ID <span className="text-destructive">*</span>
               </div>
             </Label>
             <Input
@@ -332,7 +332,7 @@ export default function PassengerFormItem({
                 handleInputChange('documentId', value);
               }}
               onBlur={(e) => validateField('documentId', e.target.value)}
-              className={errors.documentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              className={errors.documentId ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
               maxLength={(safePassengerData.documentType || 'id') === 'passport' ? 9 : 12}
               aria-invalid={Boolean(errors.documentId)}
               aria-describedby={errors.documentId ? `documentId-error-${passengerNumber}` : undefined}
@@ -340,10 +340,10 @@ export default function PassengerFormItem({
             {errors.documentId && (
               <p 
                 id={`documentId-error-${passengerNumber}`}
-                className="text-red-500 text-xs font-medium flex items-center gap-1"
+                className="text-destructive text-xs font-medium flex items-center gap-1"
                 role="alert"
               >
-                <span className="text-red-500">⚠</span>
+                <span className="text-destructive">⚠</span>
                 {errors.documentId}
               </p>
             )}
@@ -364,17 +364,17 @@ export default function PassengerFormItem({
               value={safePassengerData.phoneNumber || ''}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
               onBlur={(e) => validateField('phoneNumber', e.target.value)}
-              className={errors.phoneNumber ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              className={errors.phoneNumber ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
               aria-invalid={Boolean(errors.phoneNumber)}
               aria-describedby={errors.phoneNumber ? `phoneNumber-error-${passengerNumber}` : undefined}
             />
             {errors.phoneNumber && (
               <p 
                 id={`phoneNumber-error-${passengerNumber}`}
-                className="text-red-500 text-xs font-medium flex items-center gap-1"
+                className="text-destructive text-xs font-medium flex items-center gap-1"
                 role="alert"
               >
-                <span className="text-red-500">⚠</span>
+                <span className="text-destructive">⚠</span>
                 {errors.phoneNumber}
               </p>
             )}
@@ -393,7 +393,7 @@ export default function PassengerFormItem({
             value={safePassengerData.email || ''}
             onChange={(e) => handleInputChange('email', e.target.value.toLowerCase())}
             onBlur={(e) => validateField('email', e.target.value)}
-            className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+            className={errors.email ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? `email-error-${passengerNumber}` : undefined}
           />
@@ -422,12 +422,12 @@ export default function PassengerFormItem({
 
         {/* Form Status Indicator */}
         {Object.keys(errors).length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3">
-            <h4 className="text-sm font-medium text-red-800 mb-2 flex items-center gap-1">
-              <span className="text-red-500">⚠</span>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+            <h4 className="text-sm font-medium text-destructive-foreground mb-2 flex items-center gap-1">
+              <span className="text-destructive">⚠</span>
               Please fix the following issues:
             </h4>
-            <ul className="text-xs text-red-700 space-y-1">
+            <ul className="text-xs text-destructive-foreground/80 space-y-1">
               {Object.entries(errors).map(([field, error]) => (
                 <li key={field}>• {error}</li>
               ))}
@@ -436,13 +436,13 @@ export default function PassengerFormItem({
         )}
 
         {/* Important Notes */}
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-          <h4 className="text-sm font-medium text-amber-800 mb-1">Important Notes:</h4>
-          <ul className="text-xs text-amber-700 space-y-1">
+        <div className="bg-accent/10 border border-accent/20 rounded-md p-3">
+          <h4 className="text-sm font-medium text-accent-foreground mb-1">Important Notes:</h4>
+          <ul className="text-xs text-accent-foreground/80 space-y-1">
             <li>• Please ensure all information matches your identification document</li>
             <li>• You will need to present the document used during booking at departure</li>
             <li>• Contact information will be used for booking updates and notifications</li>
-            <li>• Fields marked with <span className="text-red-500 font-medium">*</span> are required</li>
+            <li>• Fields marked with <span className="text-destructive font-medium">*</span> are required</li>
             {canAutoFill && (
               <li>• Click "Auto-fill" to use your account information</li>
             )}
