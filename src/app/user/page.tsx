@@ -4,6 +4,7 @@ import { UserSidebar } from "@/components/dashboard/UserSidebar/UserSidebar";
 import { MobileNavDropdown } from "@/components/dashboard/MobileNavDropdown/MobileNavDropdown";
 import { UserHeader } from "@/components/dashboard/UserHeader/UserHeader";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
+import { MyBookings } from "@/components/dashboard/MyBookings/MyBookings";
 import { Clock, Ticket, DollarSign, MapPin, Bus, Calendar, LayoutDashboard, CreditCard, User, Bell, HelpCircle } from "lucide-react";
 
 const userDashboardData = {
@@ -211,81 +212,12 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {/* Recent Bookings Table */}
-              <div className="bg-card/80 dark:bg-black/90 rounded-md p-4 md:p-6 shadow-sm border border-border backdrop-blur-sm">
-                <h2 className="text-h2 text-card-foreground mb-6">
-                  Recent Bookings
-                </h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">
-                          Booking ID
-                        </th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold hidden sm:table-cell">
-                          Route
-                        </th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">
-                          Price
-                        </th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold">
-                          Status
-                        </th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-semibold"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {userDashboardData.recentBookings.map(
-                        (booking, index) => (
-                          <tr
-                            key={booking.id}
-                            className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                              index % 2 === 0 ? "bg-card/60" : "bg-muted/60"
-                            }`}
-                          >
-                            <td className="py-4 px-4 text-foreground font-mono text-xs">
-                              {booking.id}
-                            </td>
-                            <td className="py-4 px-4 text-foreground">
-                              {booking.date}
-                            </td>
-                            <td className="py-4 px-4 text-foreground hidden sm:table-cell">
-                              {booking.route}
-                            </td>
-                            <td className="py-4 px-4 text-foreground font-medium">
-                              {booking.price}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  booking.status === "Confirmed"
-                                    ? "bg-accent/10 text-accent dark:bg-accent/30 dark:text-accent"
-                                    : booking.status === "Completed"
-                                      ? "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary"
-                                      : booking.status === "Cancelled"
-                                        ? "bg-destructive/10 text-destructive"
-                                        : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {booking.status}
-                              </span>
-                            </td>
-                            <td className="py-4 px-2 md:px-4">
-                              <button className="text-primary hover:underline">
-                                View
-                              </button>
-                            </td>
-                          </tr>
-                        ),
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              {/* My Bookings Section */}
+              <MyBookings 
+                isSection={true} 
+                maxItems={3} 
+                showFilters={false} 
+              />
             </div>
 
             {/* Right Sidebar - Quick Actions and Information */}
@@ -300,7 +232,10 @@ export default function UserDashboard() {
                     <button className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
                       Book New Ticket
                     </button>
-                    <button className="w-full bg-card border border-border text-foreground py-3 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
+                    <button 
+                      onClick={() => window.location.href = '/user/bookings'}
+                      className="w-full bg-card border border-border text-foreground py-3 px-4 rounded-lg font-medium hover:bg-muted transition-colors"
+                    >
                       View All Bookings
                     </button>
                     <button className="w-full bg-card border border-border text-foreground py-3 px-4 rounded-lg font-medium hover:bg-muted transition-colors">
