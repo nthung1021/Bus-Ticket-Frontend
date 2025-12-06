@@ -32,6 +32,7 @@ export default function SeatSelectionMap({
 
     // Group seats by row for rendering
     const seatsByRow: Record<number, SeatInfo[]> = {};
+    // console.log(layoutConfig)
     if (layoutConfig?.seats) {
         layoutConfig.seats.forEach(seat => {
             const row = seat.position.row;
@@ -46,6 +47,7 @@ export default function SeatSelectionMap({
             seatsByRow[Number(row)].sort((a, b) => a.position.position - b.position.position);
         });
     }
+    // console.log(seatsByRow)
 
     const getSeatStatus = (seat: SeatInfo): SeatStatus => {
         if (!seat.isAvailable) return 'unavailable';

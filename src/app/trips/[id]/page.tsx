@@ -367,7 +367,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {(trip.price * selectedQuantity).toLocaleString('vi-VN')} VNĐ
+                    {(trip.price + selectedSeats.reduce((total, seat) => total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)).toLocaleString('vi-VN')} VNĐ
                   </p>
                 </div>
               </div>
