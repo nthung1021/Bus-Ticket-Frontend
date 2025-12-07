@@ -1,11 +1,22 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
+//import SeatSelectionDialog from "@/components/seat/SeatSelectionDialog";
+import SeatSelectionMap from "@/components/seat-selection/SeatSelectionMap";
+import { seatLayoutService, SeatLayout, SeatInfo } from "@/services/seat-layout.service";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface TripParams {
   id: string;
@@ -35,9 +46,48 @@ const mockTrips: Record<string, Trip> = {};
 
 export default function TripDetailPage({ params }: { params: Promise<TripParams> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [showSeatSelection, setShowSeatSelection] = useState(false);
+
+  const [seatLayout, setSeatLayout] = useState<SeatLayout | null>(null);
+  const [loadingSeatLayout, setLoadingSeatLayout] = useState(false);
+  const [selectedSeats, setSelectedSeats] = useState<SeatInfo[]>([]);
+  const [seatDialogOpen, setSeatDialogOpen] = useState(false);
+  const [busId, setBusId] = useState<string | null>(null);
+
+  const handleSeatSelection = (selectedSeats: SeatInfo[]) => {
+    // Map seats to include price so downstream pages don't break when formatting
+    const mappedSeats = selectedSeats.map((seat) => ({
+      id: seat.id,
+      code: seat.code,
+      type: seat.type,
+      // Prefer explicit seat price if present, otherwise fall back to seat type pricing from layout
+      price:
+        seat.price ??
+        (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0),
+    }));
+
+    const seatsParam = encodeURIComponent(JSON.stringify(mappedSeats));
+    router.push(`/passenger-info?tripId=${resolvedParams.id}&seats=${seatsParam}`);
+  };
+
+  const handleSeatSelectionChange = (seats: SeatInfo[]) => {
+    setSelectedSeats(seats);
+    // setSelectedQuantity(seats.length);
+  };
+
+  const handleBookNow = () => {
+    if (seatLayout) {
+      setSeatDialogOpen(true);
+    } else if (busId) {
+      fetchSeatLayout();
+    } else {
+      toast.error("Seat selection not available. Please try again later.");
+    }
+  };
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -111,6 +161,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         };
 
         setTrip(mappedTrip);
+        // Store bus ID for seat layout fetching
+        if (trip.bus?.busId) {
+          console.log(trip.bus?.busId)
+          setBusId(trip.bus.busId);
+        }
       } catch (error) {
         console.error("Failed to load trip details", error);
         setTrip(null);
@@ -122,6 +177,25 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     fetchTrip();
   }, [resolvedParams.id]);
 
+  const fetchSeatLayout = async () => {
+    if (!busId) {
+      toast.error("Bus information not available");
+      return;
+    }
+
+    try {
+      setLoadingSeatLayout(true);
+      const layout = await seatLayoutService.getByBusId(busId);
+      setSeatLayout(layout);
+      setSeatDialogOpen(true);
+    } catch (error) {
+      console.error("Failed to load seat layout", error);
+      toast.error("Seat layout not available for this bus");
+    } finally {
+      setLoadingSeatLayout(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -129,7 +203,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           {/* Loading skeleton */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="bg-card border border-border rounded-2xl p-6">
-              <div className="aspect-[4/3] bg-muted rounded-xl animate-pulse"></div>
+              <div className="aspect-4/3 bg-muted rounded-xl animate-pulse"></div>
             </div>
             <div className="space-y-6">
               <div className="h-12 bg-muted rounded-lg animate-pulse"></div>
@@ -193,7 +267,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <img
                   src={trip.image}
                   alt={trip.name}
-                  className="w-full aspect-[4/3] rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                  className="w-full aspect-4/3 rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -223,7 +297,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             </div>
 
             {/* Price */}
-            <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
+            <div className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
               <div className="flex items-center gap-4">
                 <span className="text-h4 text-primary font-bold">
                   {trip.price.toLocaleString('vi-VN')} VNĐ
@@ -242,7 +316,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             </div>
 
             {/* Route Details */}
-            <div className="bg-gradient-to-br from-primary/5 to-primary/2 border border-primary/20 rounded-xl p-4 mb-6 flex-1">
+            <div className="bg-linear-to-br from-primary/5 to-primary/2 border border-primary/20 rounded-xl p-4 mb-6 flex-1">
               <h3 className="text-h6 text-foreground font-semibold mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -312,7 +386,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {(trip.price * selectedQuantity).toLocaleString('vi-VN')} VNĐ
+                    {(trip.price + selectedSeats.reduce((total, seat) => total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)).toLocaleString('vi-VN')} VNĐ
                   </p>
                 </div>
               </div>
@@ -320,7 +394,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-auto">
-              <Button className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl">
+              <Button 
+                onClick={handleBookNow}
+                className="bg-primary text-primary-foreground rounded-xl px-4 py-3 hover:bg-primary/90 transition-all duration-200 cursor-pointer group shadow-lg hover:shadow-xl"
+              >
                 <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
                 </svg>
@@ -357,7 +434,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             <ul className="space-y-4">
               {trip.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-4 group cursor-pointer p-3 rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -375,7 +452,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {trip.amenities.map((amenity, index) => (
-                <div key={index} className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 text-center group hover:from-primary/5 hover:to-primary/10 hover:border-primary/20 transition-all duration-200 cursor-pointer">
+                <div key={index} className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 text-center group hover:from-primary/5 hover:to-primary/10 hover:border-primary/20 transition-all duration-200 cursor-pointer">
                   <div className="w-8 h-8 mx-auto mb-2 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -404,13 +481,13 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             {relatedTrips.map((relatedTrip) => (
               <Link key={relatedTrip.id} href={`/trips/${relatedTrip.id}`} className="group cursor-pointer">
                 <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] h-full">
-                  <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                  <div className="aspect-4/3 bg-muted relative overflow-hidden">
                     <img
                       src={relatedTrip.image}
                       alt={relatedTrip.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white">
                       <p className="text-caption font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
                         {relatedTrip.duration}
@@ -450,7 +527,61 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             ))}
           </div>
         </section>
+
+        {/* Seat Selection Dialog */}
+        <Dialog open={seatDialogOpen} onOpenChange={setSeatDialogOpen}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-h4 font-bold">
+                Select Your Seats
+              </DialogTitle>
+            </DialogHeader>
+
+            {seatLayout && (
+              <SeatSelectionMap
+                layoutConfig={seatLayout.layoutConfig}
+                seatPricing={seatLayout.seatPricing}
+                bookedSeats={[]} // TODO: Fetch booked seats from API
+                onSelectionChange={handleSeatSelectionChange}
+                maxSeats={selectedQuantity}
+                tripId={trip.id}
+              />
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => setSeatDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // TODO: Implement booking logic with selected seats
+                  toast.success(`Booking ${selectedSeats.length} seat(s)`);
+                  setSeatDialogOpen(false);
+                  handleSeatSelection(selectedSeats);
+                }}
+                disabled={selectedSeats.length === 0}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Continue to Booking ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Seat Selection Dialog */}
+      {/*
+      <SeatSelectionDialog
+        open={showSeatSelection}
+        onOpenChange={setShowSeatSelection}
+        tripId={resolvedParams.id}
+        maxSeats={selectedQuantity}
+        onConfirm={handleSeatSelection}
+      />
+      */}
     </div>
   );
 }

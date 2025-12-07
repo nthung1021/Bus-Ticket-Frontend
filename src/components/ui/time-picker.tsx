@@ -13,19 +13,21 @@ interface TimePickerProps {
     className?: string;
 }
 
+const getSafeTimeValue = (date: Date | undefined, type: 'hours' | 'minutes'): string => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        return '00';
+    }
+    const value = type === 'hours' ? date.getHours() : date.getMinutes();
+    return String(value).padStart(2, '0');
+};
+
 export function TimePicker({ date, setDate, label, className }: TimePickerProps) {
-    const [hours, setHours] = React.useState<string>(
-        date ? String(date.getHours).padStart(2, "0") : "00"
-    );
-    const [minutes, setMinutes] = React.useState<string>(
-        date ? String(date.getMinutes).padStart(2, "0") : "00"
-    );
+    const [hours, setHours] = React.useState<string>(getSafeTimeValue(date, 'hours'));
+    const [minutes, setMinutes] = React.useState<string>(getSafeTimeValue(date, 'minutes'));
 
     React.useEffect(() => {
-        if (date) {
-            setHours(String(date.getHours).padStart(2, "0"));
-            setMinutes(String(date.getMinutes).padStart(2, "0"));
-        }
+        setHours(getSafeTimeValue(date, 'hours'));
+        setMinutes(getSafeTimeValue(date, 'minutes'));
     }, [date]);
 
     const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
