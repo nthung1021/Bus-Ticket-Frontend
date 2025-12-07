@@ -2,11 +2,13 @@
 
 import { Suspense } from "react";
 import { useState, useEffect } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
 import { 
   CheckCircle, 
   Download, 
@@ -23,6 +25,7 @@ import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/useAuth";
 import UserBookingService, { type Booking } from "@/services/userBookingService";
 import PaymentService from "@/services/paymentService";
+import api from "@/lib/api";
 
 function PaymentSuccessPageContent() {
   const router = useRouter();
@@ -34,6 +37,7 @@ function PaymentSuccessPageContent() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emailTriggered, setEmailTriggered] = useState(false);
 
   const bookingService = new UserBookingService();
 
@@ -59,8 +63,22 @@ function PaymentSuccessPageContent() {
             bookedAt: new Date().toISOString(),
             trip: {
               id: 'mock-trip-123',
-              departureTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-              arrivalTime: new Date(Date.now() + 28 * 60 * 60 * 1000).toISOString(),
+              departureTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleString('en-CA', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              arrivalTime: new Date(Date.now() + 28 * 60 * 60 * 1000).toLocaleString('en-CA', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
               basePrice: 250000,
               status: 'active',
               route: {
@@ -124,6 +142,29 @@ function PaymentSuccessPageContent() {
     }
   }, [user, bookingId]);
 
+  // Automatically trigger e-ticket email sending for real bookings
+  useEffect(() => {
+    const sendEticketEmail = async () => {
+      if (!booking || !booking.id) return;
+
+      // Skip mock bookings
+      if (booking.id.startsWith("mock-booking-")) return;
+
+      // Avoid sending multiple times if state changes
+      if (emailTriggered) return;
+
+      try {
+        await api.post(`/bookings/${booking.id}/eticket/email`, {});
+        setEmailTriggered(true);
+        console.log("E-ticket email triggered for booking", booking.id);
+      } catch (err) {
+        console.error("Failed to send e-ticket email:", err);
+      }
+    };
+
+    sendEticketEmail();
+  }, [booking, emailTriggered]);
+
   // Auto-redirect if no booking ID
   useEffect(() => {
     if (!bookingId) {
@@ -131,12 +172,13 @@ function PaymentSuccessPageContent() {
     }
   }, [bookingId, router]);
 
-  // Generate mock ticket download
-  const handleDownloadTicket = () => {
+  // Download e-ticket
+  const handleDownloadTicket = async () => {
     if (!booking) return;
 
-    // Create a simple text-based ticket
-    const ticketContent = `
+    // For mock bookings, keep existing simple text-based ticket behavior
+    if (booking.id.startsWith("mock-booking-")) {
+      const ticketContent = `
 === BUS TICKET ===
 Booking ID: ${booking.id}
 Status: PAID
@@ -152,16 +194,36 @@ Present this ticket when boarding the bus.
 =================
 `;
 
-    // Create and download the file
-    const blob = new Blob([ticketContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ticket-${booking.id}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const blob = new Blob([ticketContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ticket-${booking.id}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    try {
+      const response = await api.get(`/bookings/${booking.id}/eticket`, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `eticket-${booking.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download e-ticket:', err);
+      alert('Failed to download e-ticket. Please try again or check your email.');
+    }
   };
 
   // Loading state
