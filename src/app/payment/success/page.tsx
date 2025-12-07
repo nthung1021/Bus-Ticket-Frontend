@@ -58,6 +58,7 @@ function PaymentSuccessPageContent() {
             id: bookingId,
             userId: user?.id ?? 'guest',
             tripId: 'mock-trip-123',
+            reference: 'MOCK-BK-20241201-12345',
             totalAmount: 250000,
             status: 'paid' as const,
             bookedAt: new Date().toISOString(),

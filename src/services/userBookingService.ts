@@ -4,8 +4,9 @@ interface Booking {
   id: string;
   userId: string;
   tripId: string;
+  reference: string;
   totalAmount: number;
-  status: 'pending' | 'paid' | 'cancelled' | 'expired';
+  status: "pending" | "paid" | "cancelled" | "expired";
   bookedAt: string;
   cancelledAt?: string;
   expiresAt?: string;
@@ -57,25 +58,24 @@ interface BookingApiResponse {
   data: Booking[];
 }
 
-export type BookingStatus = 'pending' | 'paid' | 'cancelled' | 'expired';
+export type BookingStatus = "pending" | "paid" | "cancelled" | "expired";
 
 class UserBookingService {
-
   async getUserBookings(status?: BookingStatus): Promise<Booking[]> {
     try {
-      const url = status 
+      const url = status
         ? `/users/me/bookings?status=${status}`
-        : '/users/me/bookings';
+        : "/users/me/bookings";
 
       const response = await api.get(url);
-      
+
       if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch bookings');
+        throw new Error(response.data.message || "Failed to fetch bookings");
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching user bookings:', error);
+      console.error("Error fetching user bookings:", error);
       throw error;
     }
   }
@@ -83,14 +83,16 @@ class UserBookingService {
   async getBookingById(bookingId: string): Promise<Booking> {
     try {
       const response = await api.get(`/bookings/${bookingId}`);
-      
+
       if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch booking details');
+        throw new Error(
+          response.data.message || "Failed to fetch booking details",
+        );
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching booking details:', error);
+      console.error("Error fetching booking details:", error);
       throw error;
     }
   }
@@ -98,20 +100,27 @@ class UserBookingService {
   async cancelBooking(bookingId: string): Promise<void> {
     try {
       const response = await api.put(`/bookings/${bookingId}/cancel`);
-      
+
       if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to cancel booking');
+        throw new Error(response.data.message || "Failed to cancel booking");
       }
-    } catch (error: any) {
-      console.error('Error cancelling booking:', error);
-      
+    } catch (error: unknown) {
+      console.error("Error cancelling booking:", error);
+
       // Extract backend error message
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.message) {
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as {
+          response?: { data?: { message?: string } };
+        };
+        if (axiosError.response?.data?.message) {
+          throw new Error(axiosError.response.data.message);
+        }
+      }
+
+      if (error instanceof Error && error.message) {
         throw new Error(error.message);
       } else {
-        throw new Error('Failed to cancel booking');
+        throw new Error("Failed to cancel booking");
       }
     }
   }
@@ -119,36 +128,36 @@ class UserBookingService {
   // Utility methods for UI
   static getStatusColor(status: BookingStatus): string {
     switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'expired':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case "paid":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "cancelled":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "expired":
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   }
 
   static getStatusLabel(status: BookingStatus): string {
     switch (status) {
-      case 'paid':
-        return 'Paid';
-      case 'pending':
-        return 'Pending Payment';
-      case 'cancelled':
-        return 'Cancelled';
-      case 'expired':
-        return 'Expired';
+      case "paid":
+        return "Paid";
+      case "pending":
+        return "Pending Payment";
+      case "cancelled":
+        return "Cancelled";
+      case "expired":
+        return "Expired";
       default:
         return status;
     }
   }
 
   static isBookingExpired(booking: Booking): boolean {
-    if (booking.status !== 'pending' || !booking.expiresAt) {
+    if (booking.status !== "pending" || !booking.expiresAt) {
       return false;
     }
     return new Date() > new Date(booking.expiresAt);
@@ -156,7 +165,7 @@ class UserBookingService {
 
   static canCancelBooking(booking: Booking): boolean {
     // Allow cancelling both pending and paid bookings
-    if (booking.status !== 'pending' && booking.status !== 'paid') {
+    if (booking.status !== "pending" && booking.status !== "paid") {
       return false;
     }
 
@@ -176,7 +185,7 @@ class UserBookingService {
   }
 
   static canPayBooking(booking: Booking): boolean {
-    return booking.status === 'pending' && !this.isBookingExpired(booking);
+    return booking.status === "pending" && !this.isBookingExpired(booking);
   }
 }
 
