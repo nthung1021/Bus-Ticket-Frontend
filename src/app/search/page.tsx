@@ -96,9 +96,11 @@ function SearchPageContent() {
 
   useEffect(() => {
     if (!origin || !destination || !date) {
+      console.log('🔍 Missing search parameters:', { origin, destination, date });
       return;
     }
 
+    console.log('🚌 Searching trips with params:', { origin, destination, date });
     setIsLoading(true);
     setError(null);
 
@@ -114,7 +116,8 @@ function SearchPageContent() {
     })
       .then((response) => {
         const data = response.data?.data ?? [];
-        console.log(data)
+        console.log('✅ Search API response:', response.data);
+        console.log('📊 Found trips:', data.length);
 
         const mapped: SearchResult[] = data.map((trip: any) => {
           const departureCity = trip.route?.origin ?? origin;

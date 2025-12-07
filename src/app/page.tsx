@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { routeService, Route } from "@/services/route.service";
 
 export default function Home() {
   const router = useRouter();
@@ -27,6 +28,8 @@ export default function Home() {
     to: false,
     date: false
   });
+  const [popularRoutes, setPopularRoutes] = useState<any[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(true);
 
   // Refs for animation elements
   const featuredRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,106 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [backgroundImages.length]);
 
+  // Fetch popular routes from database
+  useEffect(() => {
+    const fetchPopularRoutes = async () => {
+      try {
+        setRoutesLoading(true);
+        console.log('🔍 Fetching routes from API...');
+        const routes = await routeService.getAll();
+        console.log('✅ Routes fetched successfully:', routes);
+        console.log('📊 Number of routes:', routes.length);
+        
+        // Filter routes that have trips and match them with actual trip dates
+        const routesWithTrips = [
+          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Nha Trang'), date: '2025-12-05' },
+          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Da Lat'), date: '2025-12-06' },
+          { route: routes.find(r => r.origin === 'Ha Noi' && r.destination === 'Hai Phong'), date: '2025-12-07' },
+          { route: routes.find(r => r.origin === 'Da Nang' && r.destination === 'Hue'), date: '2025-12-08' }
+        ].filter(item => item.route); // Remove undefined routes
+        
+        // Transform routes to include pricing and images
+        const transformedRoutes = routesWithTrips.slice(0, 4).map((item, index) => {
+          const route = item.route!;
+          const basePrice = 150000 + (index * 50000); // Generate varied pricing in VND
+          const duration = Math.ceil(route.estimatedMinutes / 60); // Convert to hours
+          const images = [
+            "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop"
+          ];
+          
+          return {
+            id: route.id,
+            from: route.origin,
+            to: route.destination,
+            price: basePrice,
+            duration: `${duration}h`,
+            image: images[index % images.length],
+            distanceKm: typeof route.distanceKm === 'string' ? parseFloat(route.distanceKm) : route.distanceKm,
+            routeData: route,
+            searchDate: item.date
+          };
+        });
+        
+        console.log('🎯 Transformed routes for display:', transformedRoutes);
+        setPopularRoutes(transformedRoutes);
+      } catch (error) {
+        console.error('❌ Error fetching popular routes:', error);
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          response: (error as any)?.response?.data,
+          status: (error as any)?.response?.status
+        });
+        // Fallback to sample data if API fails - using routes that actually have trips
+        const fallbackRoutes = [
+          {
+            id: "fallback-1",
+            from: "Ho Chi Minh",
+            to: "Nha Trang",
+            price: 350000,
+            duration: "7h",
+            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            searchDate: "2025-12-05"
+          },
+          {
+            id: "fallback-2",
+            from: "Ho Chi Minh", 
+            to: "Da Lat",
+            price: 220000,
+            duration: "6h",
+            image: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop",
+            searchDate: "2025-12-06"
+          },
+          {
+            id: "fallback-3",
+            from: "Ha Noi",
+            to: "Hai Phong", 
+            price: 90000,
+            duration: "3h",
+            image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop",
+            searchDate: "2025-12-07"
+          },
+          {
+            id: "fallback-4",
+            from: "Da Nang",
+            to: "Hue",
+            price: 120000,
+            duration: "2h",
+            image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop",
+            searchDate: "2025-12-08"
+          }
+        ];
+        setPopularRoutes(fallbackRoutes);
+      } finally {
+        setRoutesLoading(false);
+      }
+    };
+
+    fetchPopularRoutes();
+  }, []);
+
   // Intersection Observer for scroll animations
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -94,7 +197,7 @@ export default function Home() {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [popularRoutes]); // Re-run when popularRoutes changes
 
   const isVisible = (id: string) => visibleElements.has(id);
 
@@ -202,41 +305,6 @@ export default function Home() {
       router.push(`/search?${query.toString()}`);
     }
   };
-
-  const featuredRoutes = [
-    {
-      id: "1",
-      from: "Hồ Chí Minh",
-      to: "Đà Lạt",
-      price: 350,
-      duration: "7h",
-      image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop"
-    },
-    {
-      id: "2",
-      from: "Hà Nội",
-      to: "Hạ Long",
-      price: 280,
-      duration: "4h",
-      image: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop"
-    },
-    {
-      id: "3",
-      from: "Đà Nẵng",
-      to: "Hội An",
-      price: 120,
-      duration: "1h",
-      image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop"
-    },
-    {
-      id: "4",
-      from: "Cần Thơ",
-      to: "Hồ Chí Minh",
-      price: 180,
-      duration: "4h",
-      image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop"
-    }
-  ];
 
   return (
     <div className="min-h-screen">
@@ -470,21 +538,29 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredRoutes.map((route, index) => (
+          {routesLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-2">Loading popular routes...</p>
+            </div>
+          ) : popularRoutes.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No popular routes available at the moment.</p>
+              <p className="text-sm text-muted-foreground mt-2">Please check back later or use the search function above.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {popularRoutes.map((route, index) => (
               <div
                 key={route.id}
                 ref={(el) => { routeRefs.current[index] = el; }}
                 id={`route-${route.id}`}
-                className={`transition-all duration-1000 ease-out ${isVisible(`route-${route.id}`)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-8'
-                  }`}
+                className={`transition-all duration-1000 ease-out opacity-100 translate-y-0`}
                 style={{
-                  transitionDelay: isVisible(`route-${route.id}`) ? `${index * 150}ms` : '0ms'
+                  transitionDelay: `${index * 150}ms`
                 }}
               >
-                <Link href={`/products/${route.id}`} className="block h-full">
+                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&date=${route.searchDate}&passengers=1`} className="block h-full">
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                       <img
@@ -504,19 +580,20 @@ export default function Home() {
                         </h3>
                         <div className="flex items-center justify-between">
                           <span className="text-h4 font-bold text-primary">
-                            {route.price.toLocaleString('vi-VN')}k VNĐ
+                            {route.price.toLocaleString('vi-VN')} VNĐ
                           </span>
-                          <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer" onClick={(e) => e.preventDefault()}>
-                            View Details
+                          <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
+                            Book Route
                           </Button>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </Link>
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
