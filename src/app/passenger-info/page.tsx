@@ -13,6 +13,7 @@ import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/hooks/useAuth";
+import api from "@/lib/api";
 
 interface SelectedSeat {
   id: string;
@@ -29,7 +30,7 @@ interface TripInfo {
   departureTime: string;
   arrivalTime: string;
   duration: string;
-  busType: string;
+  busModel: string;
 }
 
 interface PassengerData {
@@ -121,20 +122,26 @@ function PassengerInfoPageContent() {
       return;
     }
 
-    // Fetch trip information (mock data for now)
-    // In real implementation, fetch from API
-    setTripInfo({
-      id: tripId || "",
-      name: "Hanoi - Ho Chi Minh City",
-      departure: "Hanoi",
-      arrival: "Ho Chi Minh City", 
-      departureTime: "08:00 AM",
-      arrivalTime: "06:00 PM",
-      duration: "10h 0m",
-      busType: "VIP Sleeper"
-    });
+    // Fetch trip information from API
+    const loadTripInfo = async () => {
+      if (!tripId) {
+        setLoading(false);
+        return;
+      }
 
-    setLoading(false);
+      const tripData = await fetchTripInfo(tripId);
+      if (tripData) {
+        setTripInfo(tripData);
+        console.log('Trip info loaded:', tripData);
+      } else {
+        console.error('Failed to load trip information');
+        // Optionally redirect back if trip not found
+        router.push(`/trips/${tripId}`);
+      }
+      setLoading(false);
+    };
+
+    loadTripInfo();
   }, [selectedSeatsParam, tripId, router]);
 
   // Helper function to initialize new passenger data
@@ -149,6 +156,40 @@ function PassengerInfoPageContent() {
     }));
     setPassengersData(initialData);
     setPassengerValidations(new Array(seats.length).fill(false));
+  };
+
+  // Function to fetch trip information from API
+  const fetchTripInfo = async (tripId: string): Promise<TripInfo | null> => {
+    try {
+      const response = await api.get(`/trips/${tripId}`);
+      const apiResponse = response.data;
+      
+      // Debug log to see actual structure
+      console.log('Raw API response:', apiResponse);
+      
+      // Check if API call was successful
+      if (!apiResponse.success || !apiResponse.data) {
+        console.error('API returned unsuccessful response:', apiResponse);
+        return null;
+      }
+
+      const trip = apiResponse.data;
+      
+      // Transform API response to match TripInfo interface
+      return {
+        id: trip.tripId,
+        name: `${trip.route.origin} - ${trip.route.destination}`,
+        departure: trip.route.origin,
+        arrival: trip.route.destination,
+        departureTime: trip.schedule.departureTime,
+        arrivalTime: trip.schedule.arrivalTime,
+        duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
+        busModel: trip.bus.model
+      };
+    } catch (error) {
+      console.error('Error fetching trip information:', error);
+      return null;
+    }
   };
 
   // Debug logging
@@ -411,8 +452,8 @@ function PassengerInfoPageContent() {
                     <p className="font-medium">{tripInfo.duration}</p>
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground mb-1">Bus Type</div>
-                    <p className="font-medium">{tripInfo.busType}</p>
+                    <div className="text-sm text-muted-foreground mb-1">Bus Model</div>
+                    <p className="font-medium">{tripInfo.busModel}</p>
                   </div>
                 </div>
               </CardContent>
