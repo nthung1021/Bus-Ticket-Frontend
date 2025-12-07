@@ -28,7 +28,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-background/95 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-[60]">
+    <nav className="bg-background/95 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="text-h6 font-bold text-foreground">
@@ -48,7 +48,7 @@ export default function Navbar() {
               </a>
             </li>
             <li>
-              <a href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/tickets" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                 Tickets
               </a>
             </li>
