@@ -272,7 +272,10 @@ function PassengerInfoPageContent() {
   }, [tripId, passengersData]);
 
   const calculateTotalPrice = () => {
-    return selectedSeats.reduce((total, seat) => total + seat.price, 0);
+    return selectedSeats.reduce((total, seat) => {
+      const price = seat.price ?? 0;
+      return total + price;
+    }, 0);
   };
 
   const validateContactInfo = () => {
@@ -632,19 +635,22 @@ function PassengerInfoPageContent() {
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
                   <div className="space-y-2">
-                    {selectedSeats.map((seat) => (
-                      <div key={seat.id} className="flex justify-between items-center text-sm">
-                        <span>
-                          Seat {seat.code} 
-                          <span className="text-muted-foreground ml-1">
-                            ({seat.type === 'normal' ? 'Normal' : seat.type === 'vip' ? 'VIP' : 'Business'})
+                    {selectedSeats.map((seat) => {
+                      const price = seat.price ?? 0;
+                      return (
+                        <div key={seat.id} className="flex justify-between items-center text-sm">
+                          <span>
+                            Seat {seat.code} 
+                            <span className="text-muted-foreground ml-1">
+                              ({seat.type === 'normal' ? 'Normal' : seat.type === 'vip' ? 'VIP' : 'Business'})
+                            </span>
                           </span>
-                        </span>
-                        <span className="font-medium">
-                          {seat.price.toLocaleString('vi-VN')} VNĐ
-                        </span>
-                      </div>
-                    ))}
+                          <span className="font-medium">
+                            {price.toLocaleString('vi-VN')} VNĐ
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -747,7 +753,7 @@ function PassengerInfoPageContent() {
                           {seatType.label}
                         </Badge>
                       </div>
-                      <span className="text-xs font-medium">{seat.price.toLocaleString('vi-VN')}₫</span>
+                      <span className="text-xs font-medium">{(seat.price ?? 0).toLocaleString('vi-VN')}₫</span>
                     </div>
                   );
                 })}

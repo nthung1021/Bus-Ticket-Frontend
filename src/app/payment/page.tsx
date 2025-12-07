@@ -885,7 +885,7 @@ function PaymentPageContent() {
                         
                         const seatsResponse = await api.get(`/database/seats/bus/${busId}`);
                         const seatsData = seatsResponse.data;
-                        
+                          
                         console.log('Available seats response:', seatsData);
                         
                         if (seatsData.success) {
@@ -961,7 +961,7 @@ function PaymentPageContent() {
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Complete Booking {PaymentService.formatCurrency(bookingData.totalPrice)}
+                    Complete Booking {PaymentService.formatCurrency(bookingData.totalPrice + 15000)}
                   </>
                 )}
               </Button>
@@ -1025,15 +1025,18 @@ function PaymentPageContent() {
                 <div className="flex justify-between text-sm">
                   <span>Subtotal ({bookingData.passengers.length} passenger{bookingData.passengers.length !== 1 ? 's' : ''})</span>
                   <span>{PaymentService.formatCurrency(bookingData.totalPrice)}</span>
+                </div><div className="flex justify-between text-xs">
+                <span>Service fee:</span>
+                  <span>10,000 VNĐ</span>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Service fee</span>
-                  <span>Included</span>
+                <div className="flex justify-between text-xs">
+                  <span>Processing fee:</span>
+                  <span>5,000 VNĐ</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span className="text-primary">{PaymentService.formatCurrency(bookingData.totalPrice)}</span>
+                  <span className="text-primary">{PaymentService.formatCurrency(bookingData.totalPrice + 15000)}</span>
                 </div>
               </div>
 
