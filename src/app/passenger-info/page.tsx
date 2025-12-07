@@ -181,8 +181,22 @@ function PassengerInfoPageContent() {
         name: `${trip.route.origin} - ${trip.route.destination}`,
         departure: trip.route.origin,
         arrival: trip.route.destination,
-        departureTime: trip.schedule.departureTime,
-        arrivalTime: trip.schedule.arrivalTime,
+        departureTime: new Date(trip.schedule.departureTime).toLocaleString('en-CA', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }),
+        arrivalTime: new Date(trip.schedule.arrivalTime).toLocaleString('en-CA', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }),
         duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
         busModel: trip.bus.model
       };
