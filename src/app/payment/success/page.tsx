@@ -30,7 +30,7 @@ import api from "@/lib/api";
 function PaymentSuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: user, isLoading: authLoading } = useCurrentUser();
+  const { data: user } = useCurrentUser();
   
   const bookingId = searchParams.get('bookingId');
   
@@ -44,7 +44,7 @@ function PaymentSuccessPageContent() {
   // Fetch updated booking details
   useEffect(() => {
     const fetchBooking = async () => {
-      if (!bookingId || !user) return;
+      if (!bookingId) return;
       
       try {
         setLoading(true);
@@ -56,7 +56,7 @@ function PaymentSuccessPageContent() {
           // Create mock booking for success page
           const mockBooking = {
             id: bookingId,
-            userId: user.id,
+            userId: user?.id ?? 'guest',
             tripId: 'mock-trip-123',
             totalAmount: 250000,
             status: 'paid' as const,
@@ -137,10 +137,10 @@ function PaymentSuccessPageContent() {
       }
     };
 
-    if (user && bookingId) {
+    if (bookingId) {
       fetchBooking();
     }
-  }, [user, bookingId]);
+  }, [bookingId, user?.id]);
 
   // Automatically trigger e-ticket email sending for real bookings
   useEffect(() => {
@@ -215,7 +215,7 @@ Present this ticket when boarding the bus.
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `eticket-${booking.id}.pdf`;
+      a.download = `Bus-eTicket-${booking.reference}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -227,7 +227,7 @@ Present this ticket when boarding the bus.
   };
 
   // Loading state
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
