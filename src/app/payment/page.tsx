@@ -777,11 +777,11 @@ function PaymentPageContent() {
                           if (seatLayoutResponse.data.success) {
                             const seats = seatLayoutResponse.data.data.seats || [];
                             console.log('Available seats:', seats);
-                            console.log('Available seat codes:', seats.map(s => s.seatCode));
+                            console.log('Available seat codes:', seats.map((s: any) => s.seatCode));
                             
                             // Check which of our selected seats exist
                             bookingData.seats.forEach(selectedSeat => {
-                              const found = seats.find(s => s.seatCode === selectedSeat.code);
+                              const found = seats.find((s: any) => s.seatCode === selectedSeat.code);
                               console.log(`Seat ${selectedSeat.code}:`, found ? 'FOUND' : 'NOT FOUND', found);
                             });
                           }
@@ -830,7 +830,7 @@ function PaymentPageContent() {
                             // Try buses endpoint to see bus details
                             const busResponse = await api.get(`/buses/${busInfo.busId}`);
                             console.log('Bus details response:', busResponse.data);
-                          } catch (busError) {
+                          } catch (busError: any) {
                             console.log('Could not get bus details:', busError.response?.status);
                           }
                           
@@ -892,13 +892,13 @@ function PaymentPageContent() {
                           console.log(`Found ${seatsData.seatCount} seats in database:`);
                           console.table(seatsData.seats);
                           
-                          console.log(`Active seats (${seatsData.seats.filter(s => s.isActive).length}):`, 
-                                     seatsData.seats.filter(s => s.isActive).map(s => s.seatCode));
+                          console.log(`Active seats (${seatsData.seats.filter((s: any) => s.isActive).length}):`, 
+                                     seatsData.seats.filter((s: any) => s.isActive).map((s: any) => s.seatCode));
                           
                           // Check if our selected seats exist
                           const ourSeats = ['1A', '1B'];
                           ourSeats.forEach(seatCode => {
-                            const exists = seatsData.seats.find(s => s.seatCode === seatCode);
+                            const exists = seatsData.seats.find((s: any) => s.seatCode === seatCode);
                             console.log(`Seat ${seatCode}: ${exists ? '✅ EXISTS' : '❌ NOT FOUND'}`);
                             if (exists) {
                               console.log(`  - Active: ${exists.isActive ? 'Yes' : 'No'}`);
