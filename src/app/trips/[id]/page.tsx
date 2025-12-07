@@ -7,6 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
 import SeatSelectionDialog from "@/components/seat/SeatSelectionDialog";
+import SeatSelectionMap from "@/components/seat-selection/SeatSelectionMap";
+import { seatLayoutService, SeatLayout, SeatInfo } from "@/services/seat-layout.service";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface TripParams {
   id: string;
@@ -47,6 +57,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     const seatsParam = encodeURIComponent(JSON.stringify(selectedSeats));
     router.push(`/passenger-info?tripId=${resolvedParams.id}&seats=${seatsParam}`);
   };
+  const [seatLayout, setSeatLayout] = useState<SeatLayout | null>(null);
+  const [loadingSeatLayout, setLoadingSeatLayout] = useState(false);
+  const [selectedSeats, setSelectedSeats] = useState<SeatInfo[]>([]);
+  const [seatDialogOpen, setSeatDialogOpen] = useState(false);
+  const [busId, setBusId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -120,6 +135,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         };
 
         setTrip(mappedTrip);
+        // Store bus ID for seat layout fetching
+        if (trip.bus?.busId) {
+          console.log(trip.bus?.busId)
+          setBusId(trip.bus.busId);
+        }
       } catch (error) {
         console.error("Failed to load trip details", error);
         setTrip(null);
@@ -130,6 +150,41 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
 
     fetchTrip();
   }, [resolvedParams.id]);
+
+
+  const fetchSeatLayout = async () => {
+    if (!busId) {
+      toast.error("Bus information not available");
+      return;
+    }
+
+    try {
+      setLoadingSeatLayout(true);
+      const layout = await seatLayoutService.getByBusId(busId);
+      setSeatLayout(layout);
+      setSeatDialogOpen(true);
+    } catch (error) {
+      console.error("Failed to load seat layout", error);
+      toast.error("Seat layout not available for this bus");
+    } finally {
+      setLoadingSeatLayout(false);
+    }
+  };
+
+  const handleSeatSelectionChange = (seats: SeatInfo[]) => {
+    setSelectedSeats(seats);
+    // setSelectedQuantity(seats.length);
+  };
+
+  const handleBookNow = () => {
+    if (seatLayout) {
+      setSeatDialogOpen(true);
+    } else if (busId) {
+      fetchSeatLayout();
+    } else {
+      toast.error("Seat selection not available. Please try again later.");
+    }
+  };
 
   if (loading) {
     return (
@@ -321,7 +376,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {(trip.price * selectedQuantity).toLocaleString('vi-VN')} VNĐ
+                    {(trip.price + selectedSeats.reduce((total, seat) => total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)).toLocaleString('vi-VN')} VNĐ
                   </p>
                 </div>
               </div>
@@ -462,6 +517,48 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             ))}
           </div>
         </section>
+
+        {/* Seat Selection Dialog */}
+        <Dialog open={seatDialogOpen} onOpenChange={setSeatDialogOpen}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-h4 font-bold">
+                Select Your Seats
+              </DialogTitle>
+            </DialogHeader>
+
+            {seatLayout && (
+              <SeatSelectionMap
+                layoutConfig={seatLayout.layoutConfig}
+                seatPricing={seatLayout.seatPricing}
+                bookedSeats={[]} // TODO: Fetch booked seats from API
+                onSelectionChange={handleSeatSelectionChange}
+                maxSeats={selectedQuantity}
+                tripId={trip.id}
+              />
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => setSeatDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // TODO: Implement booking logic with selected seats
+                  toast.success(`Booking ${selectedSeats.length} seat(s)`);
+                  setSeatDialogOpen(false);
+                }}
+                disabled={selectedSeats.length === 0}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Continue to Booking ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Seat Selection Dialog */}

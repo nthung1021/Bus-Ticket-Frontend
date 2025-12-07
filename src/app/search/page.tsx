@@ -91,6 +91,7 @@ function SearchPageContent() {
   const origin = searchParams.get("origin") || "";
   const destination = searchParams.get("destination") || "";
   const date = searchParams.get("date") || "";
+  // console.log(date);
   const passengers = searchParams.get("passengers") || "";
 
   useEffect(() => {
@@ -103,11 +104,14 @@ function SearchPageContent() {
     setIsLoading(true);
     setError(null);
 
+    // Convert date to ISO 8601 format (YYYY-MM-DD)
+    const formattedDate = date ? new Date(`${date}T00:00:00`).toISOString() : '';
+    console.log(formattedDate)
     api.get("/trips/search", {
       params: {
         origin,
         destination,
-        date,
+        date: formattedDate,
       },
     })
       .then((response) => {
