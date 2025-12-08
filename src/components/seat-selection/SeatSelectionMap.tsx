@@ -24,6 +24,7 @@ import { Armchair, X, Check, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSeatWebSocket } from '@/hooks/useSeatWebSocket';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 /**
  * Props for SeatSelectionMap component
@@ -335,7 +336,7 @@ function SeatSelectionMap({
                                                         onClick={() => handleSeatClick(seat)}
                                                         onMouseEnter={() => setHoveredSeat(seat.id)}
                                                         onMouseLeave={() => setHoveredSeat(null)}
-                                                        title={`${seat.code} - ${seat.type.toUpperCase()} - ${status.toUpperCase()} - ${getSeatPrice(seat).toLocaleString('vi-VN')} VNĐ`}
+                                                        title={`${seat.code} - ${seat.type.toUpperCase()} - ${status.toUpperCase()} - ${formatCurrency(getSeatPrice(seat))}`}
                                                     >
                                                         <Armchair className="w-5 h-5" />
                                                         {getSeatIcon(status)}
@@ -346,7 +347,7 @@ function SeatSelectionMap({
                                                                 <div className="font-bold">{seat.code}</div>
                                                                 <div className="text-muted-foreground capitalize">{seat.type}</div>
                                                                 <div className="text-primary font-semibold">
-                                                                    {getSeatPrice(seat).toLocaleString('vi-VN')} VNĐ
+                                                                    {formatCurrency(getSeatPrice(seat))}
                                                                 </div>
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover"></div>
                                                             </div>
@@ -400,7 +401,7 @@ function SeatSelectionMap({
                         <div className="flex items-center justify-between pt-4 border-t border-primary/20">
                             <span className="text-body font-medium">Total Price:</span>
                             <span className="text-h5 font-bold text-primary">
-                                {getTotalPrice().toLocaleString('vi-VN')} VNĐ
+                                {formatCurrency(getTotalPrice())}
                             </span>
                         </div>
                     </div>

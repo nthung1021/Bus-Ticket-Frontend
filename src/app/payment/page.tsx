@@ -31,6 +31,10 @@ import api from "@/lib/api";
 import PaymentService, { type PaymentMethod } from "@/services/paymentService";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { showToast } from "@/lib/toast";
+import { formatCurrency } from "@/utils/formatCurrency";
+
+const serviceFee = 10000;
+const processingFee = 5000;
 
 interface BookingData {
   tripId: string;
@@ -424,7 +428,7 @@ function PaymentPageContent() {
             // Remove seatCode field - backend DTO doesn't allow it
           };
         }),
-        totalPrice: bookingData.totalPrice,
+        totalPrice: bookingData.totalPrice + serviceFee + processingFee,
         paymentMethod: selectedPaymentMethod,
         isGuestCheckout: bookingData.isGuestCheckout,
         contactEmail: bookingData.isGuestCheckout ? bookingData.contactEmail : undefined,
@@ -961,7 +965,7 @@ function PaymentPageContent() {
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Complete Booking {PaymentService.formatCurrency(bookingData.totalPrice + 15000)}
+                    Complete Booking {formatCurrency(bookingData.totalPrice + serviceFee + processingFee)}
                   </>
                 )}
               </Button>
@@ -1024,19 +1028,19 @@ function PaymentPageContent() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal ({bookingData.passengers.length} passenger{bookingData.passengers.length !== 1 ? 's' : ''})</span>
-                  <span>{PaymentService.formatCurrency(bookingData.totalPrice)}</span>
+                  <span>{formatCurrency(bookingData.totalPrice)}</span>
                 </div><div className="flex justify-between text-xs">
                 <span>Service fee:</span>
-                  <span>10,000 VNĐ</span>
+                  <span>{formatCurrency(serviceFee)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span>Processing fee:</span>
-                  <span>5,000 VNĐ</span>
+                  <span>{formatCurrency(processingFee)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span className="text-primary">{PaymentService.formatCurrency(bookingData.totalPrice + 15000)}</span>
+                  <span className="text-primary">{formatCurrency(bookingData.totalPrice + serviceFee + processingFee)}</span>
                 </div>
               </div>
 
