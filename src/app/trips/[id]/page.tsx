@@ -541,7 +541,6 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               <SeatSelectionMap
                 layoutConfig={seatLayout.layoutConfig}
                 seatPricing={seatLayout.seatPricing}
-                bookedSeats={[]} // TODO: Fetch booked seats from API
                 onSelectionChange={handleSeatSelectionChange}
                 maxSeats={selectedQuantity}
                 tripId={trip.id}
