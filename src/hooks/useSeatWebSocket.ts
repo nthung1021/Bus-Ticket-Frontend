@@ -184,6 +184,24 @@ export function useSeatWebSocket({
   );
 
   /**
+   * Callback function to handle `seatAvailable` events from the WebSocket server.
+   * Removes the available seat ID from the `bookedSeats` state if it belongs to the current trip.
+   * @param data The SeatStatusEvent containing trip and seat ID.
+   */
+  const handleSeatAvailable = useCallback(
+    (data: SeatStatusEvent) => {
+      if (data.tripId === tripId) {
+        setBookedSeats((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(data.seatId);
+          return newSet;
+        });
+      }
+    },
+    [tripId],
+  );
+
+  /**
    * Callback function to handle `currentLocks` events. This event provides
    * an initial list of all currently locked seats for the joined trip.
    * @param data An object containing the tripId and an array of SeatLock objects.
@@ -287,6 +305,7 @@ export function useSeatWebSocket({
         seatWebSocketService.onSeatLocked(handleSeatLocked);
         seatWebSocketService.onSeatUnlocked(handleSeatUnlocked);
         seatWebSocketService.onSeatBooked(handleSeatBooked);
+        seatWebSocketService.onSeatAvailable(handleSeatAvailable);
         seatWebSocketService.onCurrentLocks(handleCurrentLocks);
 
         console.log(`Joined trip ${tripId}`);
@@ -307,6 +326,7 @@ export function useSeatWebSocket({
         seatWebSocketService.offSeatLocked(handleSeatLocked);
         seatWebSocketService.offSeatUnlocked(handleSeatUnlocked);
         seatWebSocketService.offSeatBooked(handleSeatBooked);
+        seatWebSocketService.offSeatAvailable(handleSeatAvailable);
         seatWebSocketService.offCurrentLocks(handleCurrentLocks);
 
         console.log(`Left trip ${tripId}`);
@@ -319,6 +339,7 @@ export function useSeatWebSocket({
     handleSeatLocked,
     handleSeatUnlocked,
     handleSeatBooked,
+    handleSeatAvailable,
     handleCurrentLocks,
   ]); // Dependencies include all event handlers to ensure they are up-to-date
 
@@ -375,7 +396,7 @@ export function useSeatWebSocket({
 
   /**
    * Books a specific seat on the server.
-   * Updates the seat status to 'booked' and optionally associates it with a booking ID.
+   * Uses WebSocket to book a seat that must be locked by the current user.
    * @param seatId The ID of the seat to book.
    * @param bookingId Optional booking ID to associate with the booking.
    * @returns A Promise resolving to true if successful, false otherwise.
@@ -383,38 +404,12 @@ export function useSeatWebSocket({
   const bookSeat = useCallback(
     async (seatId: string, bookingId?: string): Promise<boolean> => {
       try {
-        // First find the seat status for this seat
-        const seatStatuses = await seatStatusService.findByTripId(tripId);
-        // console.log(seatStatuses);
-        const seatStatus = seatStatuses.find((ss) => ss.seat.id === seatId);
-
-        if (!seatStatus) {
-          console.error(`Seat status not found for seat ${seatId}`);
-          return false;
-        }
-
-        // Update the seat status to booked
-        await seatStatusService.update(seatStatus.id, {
-          state: SeatState.BOOKED,
-          bookingId: bookingId,
-        });
-
-        // Update local state
-        setBookedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(seatId);
-          return newSet;
-        });
-
-        // Remove from locked seats if it was locked
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(seatId);
-          return newSet;
-        });
-        myLocksRef.current.delete(seatId);
-
-        return true;
+        const response = await seatWebSocketService.bookSeat(
+          tripId,
+          seatId,
+          bookingId,
+        );
+        return response.success;
       } catch (error) {
         console.error("Failed to book seat:", error);
         return false;
@@ -425,36 +420,15 @@ export function useSeatWebSocket({
 
   /**
    * Unbooks a specific seat on the server.
-   * Updates the seat status to 'available'.
+   * Uses WebSocket to cancel a booked seat, making it available again.
    * @param seatId The ID of the seat to unbook.
    * @returns A Promise resolving to true if successful, false otherwise.
    */
   const unbookSeat = useCallback(
     async (seatId: string): Promise<boolean> => {
       try {
-        // First find the seat status for this seat
-        const seatStatuses = await seatStatusService.findByTripId(tripId);
-        const seatStatus = seatStatuses.find((ss) => ss.seat.id === seatId);
-
-        if (!seatStatus) {
-          console.error(`Seat status not found for seat ${seatId}`);
-          return false;
-        }
-
-        // Update the seat status to available
-        await seatStatusService.update(seatStatus.id, {
-          state: SeatState.AVAILABLE,
-          bookingId: undefined,
-        });
-
-        // Update local state
-        setBookedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(seatId);
-          return newSet;
-        });
-
-        return true;
+        const response = await seatWebSocketService.cancelSeat(tripId, seatId);
+        return response.success;
       } catch (error) {
         console.error("Failed to unbook seat:", error);
         return false;

@@ -44,6 +44,25 @@ export interface RefreshLockResponse {
   message?: string;
 }
 
+export interface BookSeatResponse {
+  success: boolean;
+  seatId?: string;
+  userId?: string;
+  message?: string;
+}
+
+export interface BookSeatsResponse {
+  success: boolean;
+  bookedSeats?: string[];
+  failedSeats?: Array<{ seatId: string; reason: string }>;
+}
+
+export interface CancelSeatResponse {
+  success: boolean;
+  seatId?: string;
+  message?: string;
+}
+
 class SeatWebSocketService {
   private socket: Socket | null = null;
   private currentTripId: string | null = null;
@@ -177,6 +196,78 @@ class SeatWebSocketService {
         "refreshLock",
         { tripId, seatId },
         (response: RefreshLockResponse) => {
+          resolve(response);
+        },
+      );
+    });
+  }
+
+  bookSeat(
+    tripId: string,
+    seatId: string,
+    userId?: string,
+  ): Promise<{
+    success: boolean;
+    seatId?: string;
+    userId?: string;
+    message?: string;
+  }> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error("Socket not connected"));
+        return;
+      }
+
+      this.socket.emit(
+        "bookSeat",
+        { tripId, seatId, userId },
+        (response: BookSeatResponse) => {
+          resolve(response);
+        },
+      );
+    });
+  }
+
+  bookSeats(
+    tripId: string,
+    seatIds: string[],
+    userId?: string,
+  ): Promise<{
+    success: boolean;
+    bookedSeats?: string[];
+    failedSeats?: Array<{ seatId: string; reason: string }>;
+  }> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error("Socket not connected"));
+        return;
+      }
+
+      this.socket.emit(
+        "bookSeats",
+        { tripId, seatIds, userId },
+        (response: BookSeatsResponse) => {
+          resolve(response);
+        },
+      );
+    });
+  }
+
+  cancelSeat(
+    tripId: string,
+    seatId: string,
+    userId?: string,
+  ): Promise<{ success: boolean; seatId?: string; message?: string }> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error("Socket not connected"));
+        return;
+      }
+
+      this.socket.emit(
+        "cancelSeat",
+        { tripId, seatId, userId },
+        (response: CancelSeatResponse) => {
           resolve(response);
         },
       );
