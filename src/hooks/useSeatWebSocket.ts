@@ -77,6 +77,12 @@ interface UseSeatWebSocketReturn {
    * @returns A Promise that resolves to true if the seat was successfully unbooked, false otherwise.
    */
   unbookSeat: (seatId: string) => Promise<boolean>;
+  /**
+   * Unlocks all seats locked by the current user.
+   * This is useful when the component unmounts or the dialog closes.
+   * @returns A Promise that resolves when all seats are unlocked.
+   */
+  unlockAllMySeats: () => Promise<void>;
 }
 
 /**
@@ -472,6 +478,37 @@ export function useSeatWebSocket({
     return myLocksRef.current.has(seatId);
   }, []); // No dependencies as `myLocksRef.current` is stable
 
+  /**
+   * Unlocks all seats locked by the current user.
+   * This is useful when the component unmounts or dialog closes.
+   * @returns A Promise that resolves when all seats are unlocked.
+   */
+  const unlockAllMySeats = useCallback(async (): Promise<void> => {
+    const myLockedSeats = Array.from(myLocksRef.current);
+
+    if (myLockedSeats.length === 0) return;
+
+    console.log(`Unlocking ${myLockedSeats.length} seats for cleanup`);
+
+    // Unlock all seats in parallel
+    await Promise.allSettled(myLockedSeats.map((seatId) => unlockSeat(seatId)));
+
+    // Clear the ref
+    myLocksRef.current.clear();
+  }, [unlockSeat]);
+
+  /**
+   * Effect hook to cleanup locks when the component unmounts.
+   * This ensures all locks are released when the user leaves the page or closes dialog.
+   */
+  useEffect(() => {
+    // Return cleanup function that runs when component unmounts
+    return () => {
+      // console.log("Calling unlockAllMySeats")
+      unlockAllMySeats();
+    };
+  }, [unlockAllMySeats]);
+
   return {
     isConnected,
     lockedSeats,
@@ -483,5 +520,6 @@ export function useSeatWebSocket({
     unbookSeat,
     isSeatLockedByOthers,
     isSeatLockedByMe,
+    unlockAllMySeats,
   };
 }

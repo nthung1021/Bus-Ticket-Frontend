@@ -529,7 +529,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         </section>
 
         {/* Seat Selection Dialog */}
-        <Dialog open={seatDialogOpen} onOpenChange={setSeatDialogOpen}>
+        <Dialog open={seatDialogOpen} onOpenChange={(open) => {
+          setSeatDialogOpen(open);
+          // When dialog closes, unlock all seats will be handled by SeatSelectionMap's cleanup
+        }}>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-h4 font-bold">
