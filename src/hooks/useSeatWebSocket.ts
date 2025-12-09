@@ -7,6 +7,7 @@ import {
   SeatLock,
 } from "@/services/seat-websocket.service";
 import { seatStatusService, SeatState } from "@/services/seat-status.service";
+import { useSeatContext } from "@/contexts/seat-context";
 
 /**
  * Options for the useSeatWebSocket hook.
@@ -98,14 +99,21 @@ export function useSeatWebSocket({
    * State to track the WebSocket connection status.
    */
   const [isConnected, setIsConnected] = useState(false);
+
   /**
-   * State to store all seat IDs currently locked by any user for the current trip.
+   * Use seat context for managing seat states
    */
-  const [lockedSeats, setLockedSeats] = useState<Set<string>>(new Set());
-  /**
-   * State to store all seat IDs currently booked for the current trip.
-   */
-  const [bookedSeats, setBookedSeats] = useState<Set<string>>(new Set());
+  const {
+    lockedSeats,
+    bookedSeats,
+    setLockedSeats,
+    setBookedSeats,
+    addLockedSeat,
+    removeLockedSeat,
+    addBookedSeat,
+    removeBookedSeat,
+  } = useSeatContext();
+
   /**
    * A ref to store seat IDs that the current user has successfully locked.
    * Using a ref prevents unnecessary re-renders when only `myLocksRef` changes.
@@ -127,14 +135,10 @@ export function useSeatWebSocket({
   const handleSeatLocked = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(data.seatId);
-          return newSet;
-        });
+        addLockedSeat(data.seatId);
       }
     },
-    [tripId],
+    [tripId, addLockedSeat],
   );
 
   /**
@@ -146,15 +150,11 @@ export function useSeatWebSocket({
   const handleSeatUnlocked = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.seatId);
-          return newSet;
-        });
+        removeLockedSeat(data.seatId);
         myLocksRef.current.delete(data.seatId);
       }
     },
-    [tripId],
+    [tripId, removeLockedSeat],
   );
 
   /**
@@ -167,20 +167,12 @@ export function useSeatWebSocket({
   const handleSeatBooked = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.seatId);
-          return newSet;
-        });
+        removeLockedSeat(data.seatId);
         myLocksRef.current.delete(data.seatId);
-        setBookedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(data.seatId);
-          return newSet;
-        });
+        addBookedSeat(data.seatId);
       }
     },
-    [tripId],
+    [tripId, removeLockedSeat, addBookedSeat],
   );
 
   /**
@@ -191,14 +183,10 @@ export function useSeatWebSocket({
   const handleSeatAvailable = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setBookedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.seatId);
-          return newSet;
-        });
+        removeBookedSeat(data.seatId);
       }
     },
-    [tripId],
+    [tripId, removeBookedSeat],
   );
 
   /**
@@ -213,7 +201,7 @@ export function useSeatWebSocket({
         setLockedSeats(seatIds);
       }
     },
-    [tripId],
+    [tripId, setLockedSeats],
   );
 
   /**
@@ -286,7 +274,7 @@ export function useSeatWebSocket({
     };
 
     loadSeatsFromDatabase();
-  }, [enabled, tripId]);
+  }, [enabled, tripId, setLockedSeats, setBookedSeats]);
 
   /**
    * Effect hook to join a specific trip and set up trip-specific event listeners.
