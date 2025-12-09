@@ -6,7 +6,7 @@ import {
   SeatStatusEvent,
   SeatLock,
 } from "@/services/seat-websocket.service";
-import { seatStatusService, SeatState } from "@/services/seat-status.service";
+import { seatStatusService } from "@/services/seat-status.service";
 import { useSeatContext } from "@/contexts/seat-context";
 
 /**
@@ -348,6 +348,7 @@ export function useSeatWebSocket({
         );
         if (response.success) {
           myLocksRef.current.add(seatId); // Track seats locked by this client
+          addLockedSeat(seatId);
           return true;
         }
         return false;
@@ -356,7 +357,7 @@ export function useSeatWebSocket({
         return false;
       }
     },
-    [tripId],
+    [tripId, addLockedSeat],
   );
 
   /**
@@ -371,6 +372,7 @@ export function useSeatWebSocket({
         const response = await seatWebSocketService.unlockSeat(tripId, seatId);
         if (response.success) {
           myLocksRef.current.delete(seatId); // Remove from client's locked seats
+          removeLockedSeat(seatId);
           return true;
         }
         return false;
@@ -379,7 +381,7 @@ export function useSeatWebSocket({
         return false;
       }
     },
-    [tripId],
+    [tripId, removeLockedSeat],
   );
 
   /**
@@ -397,13 +399,14 @@ export function useSeatWebSocket({
           seatId,
           bookingId,
         );
+        addBookedSeat(seatId);
         return response.success;
       } catch (error) {
         console.error("Failed to book seat:", error);
         return false;
       }
     },
-    [tripId],
+    [tripId, addBookedSeat],
   );
 
   /**
@@ -416,13 +419,14 @@ export function useSeatWebSocket({
     async (seatId: string): Promise<boolean> => {
       try {
         const response = await seatWebSocketService.cancelSeat(tripId, seatId);
+        removeBookedSeat(seatId);
         return response.success;
       } catch (error) {
         console.error("Failed to unbook seat:", error);
         return false;
       }
     },
-    [tripId],
+    [tripId, removeBookedSeat],
   );
 
   /**

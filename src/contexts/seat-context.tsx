@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
 
 /**
  * Interface for the seat context state and methods
@@ -45,44 +45,45 @@ export function SeatProvider({ children }: SeatProviderProps) {
   const [lockedSeats, setLockedSeats] = useState<Set<string>>(new Set());
   const [bookedSeats, setBookedSeats] = useState<Set<string>>(new Set());
 
-  const addLockedSeat = (seatId: string) => {
+  const addLockedSeat = useCallback((seatId: string) => {
     setLockedSeats((prev) => {
       const newSet = new Set(prev);
       newSet.add(seatId);
       return newSet;
     });
-  };
+  }, []);
 
-  const removeLockedSeat = (seatId: string) => {
+  const removeLockedSeat = useCallback((seatId: string) => {
+    console.log("Removing locked seat");
     setLockedSeats((prev) => {
       const newSet = new Set(prev);
       newSet.delete(seatId);
       return newSet;
     });
-  };
+  }, []);
 
-  const addBookedSeat = (seatId: string) => {
+  const addBookedSeat = useCallback((seatId: string) => {
     setBookedSeats((prev) => {
       const newSet = new Set(prev);
       newSet.add(seatId);
       return newSet;
     });
-  };
+  }, []);
 
-  const removeBookedSeat = (seatId: string) => {
+  const removeBookedSeat = useCallback((seatId: string) => {
     setBookedSeats((prev) => {
       const newSet = new Set(prev);
       newSet.delete(seatId);
       return newSet;
     });
-  };
+  }, []);
 
-  const clearAllSeats = () => {
+  const clearAllSeats = useCallback(() => {
     setLockedSeats(new Set());
     setBookedSeats(new Set());
-  };
+  }, []);
 
-  const value: SeatContextType = {
+  const value: SeatContextType = useMemo(() => ({
     lockedSeats,
     bookedSeats,
     setLockedSeats,
@@ -92,7 +93,15 @@ export function SeatProvider({ children }: SeatProviderProps) {
     addBookedSeat,
     removeBookedSeat,
     clearAllSeats,
-  };
+  }), [
+    lockedSeats,
+    bookedSeats,
+    addLockedSeat,
+    removeLockedSeat,
+    addBookedSeat,
+    removeBookedSeat,
+    clearAllSeats,
+  ]);
 
   return <SeatContext.Provider value={value}>{children}</SeatContext.Provider>;
 }
