@@ -391,6 +391,30 @@ export function useSeatWebSocket({
   );
 
   /**
+   * Checks if a given seat is currently locked by any user *other than* the current client.
+   * @param seatId The ID of the seat to check.
+   * @returns True if the seat is locked by others, false otherwise.
+   */
+  const isSeatLockedByOthers = useCallback(
+    (seatId: string): boolean => {
+      // A seat is locked by others if it's in the global `lockedSeats` set
+      // but not in the `myLocksRef` set (i.e., not locked by this client).
+      return lockedSeats.has(seatId) && !myLocksRef.current.has(seatId);
+    },
+    [lockedSeats], // Depends on `lockedSeats` state
+  );
+
+  /**
+   * Checks if a given seat is currently locked by the current client.
+   * @param seatId The ID of the seat to check.
+   * @returns True if the seat is locked by the current client, false otherwise.
+   */
+  const isSeatLockedByMe = useCallback((seatId: string): boolean => {
+    // A seat is locked by me if it's present in the `myLocksRef` set.
+    return myLocksRef.current.has(seatId);
+  }, []); // No dependencies as `myLocksRef.current` is stable
+
+  /**
    * Books a specific seat on the server.
    * Uses WebSocket to book a seat that must be locked by the current user.
    * @param seatId The ID of the seat to book.
@@ -400,19 +424,38 @@ export function useSeatWebSocket({
   const bookSeat = useCallback(
     async (seatId: string, bookingId?: string): Promise<boolean> => {
       try {
+        console.log("bookSeat called with:", seatId);
+
+        // First, check if seat is locked by current user
+        if (!isSeatLockedByMe(seatId)) {
+          console.log(
+            "Seat is not locked by current user, attempting to lock first...",
+          );
+          const lockSuccess = await lockSeat(seatId);
+          if (!lockSuccess) {
+            console.error("Failed to lock seat before booking");
+            return false;
+          }
+          console.log("Seat locked successfully, proceeding with booking...");
+        }
+
         const response = await seatWebSocketService.bookSeat(
           tripId,
           seatId,
           bookingId,
         );
-        addBookedSeat(seatId);
+        console.log("bookSeat response:", response);
+        if (response.success) {
+          console.log("Calling addBookedSeat for:", seatId);
+          addBookedSeat(seatId);
+        }
         return response.success;
       } catch (error) {
         console.error("Failed to book seat:", error);
         return false;
       }
     },
-    [tripId, addBookedSeat],
+    [tripId, addBookedSeat, isSeatLockedByMe, lockSeat],
   );
 
   /**
@@ -453,30 +496,6 @@ export function useSeatWebSocket({
     },
     [tripId],
   );
-
-  /**
-   * Checks if a given seat is currently locked by any user *other than* the current client.
-   * @param seatId The ID of the seat to check.
-   * @returns True if the seat is locked by others, false otherwise.
-   */
-  const isSeatLockedByOthers = useCallback(
-    (seatId: string): boolean => {
-      // A seat is locked by others if it's in the global `lockedSeats` set
-      // but not in the `myLocksRef` set (i.e., not locked by this client).
-      return lockedSeats.has(seatId) && !myLocksRef.current.has(seatId);
-    },
-    [lockedSeats], // Depends on `lockedSeats` state
-  );
-
-  /**
-   * Checks if a given seat is currently locked by the current client.
-   * @param seatId The ID of the seat to check.
-   * @returns True if the seat is locked by the current client, false otherwise.
-   */
-  const isSeatLockedByMe = useCallback((seatId: string): boolean => {
-    // A seat is locked by me if it's present in the `myLocksRef` set.
-    return myLocksRef.current.has(seatId);
-  }, []); // No dependencies as `myLocksRef.current` is stable
 
   /**
    * Unlocks all seats locked by the current user.

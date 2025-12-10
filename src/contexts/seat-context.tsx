@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from "react";
 
 /**
  * Interface for the seat context state and methods
@@ -63,9 +63,11 @@ export function SeatProvider({ children }: SeatProviderProps) {
   }, []);
 
   const addBookedSeat = useCallback((seatId: string) => {
+    console.log("adding booked seat:", seatId);
     setBookedSeats((prev) => {
       const newSet = new Set(prev);
       newSet.add(seatId);
+      console.log("New booked seats in callback:", Array.from(newSet));
       return newSet;
     });
   }, []);
