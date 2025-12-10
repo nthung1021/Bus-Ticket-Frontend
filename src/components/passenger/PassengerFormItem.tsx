@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { User, CreditCard, MapPin, UserCheck } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface SelectedSeat {
   id: string;
@@ -416,7 +417,7 @@ export default function PassengerFormItem({
         <div className="flex justify-between items-center pt-2 border-t border-border">
           <span className="text-sm text-muted-foreground">Seat Price:</span>
           <span className="font-semibold text-primary">
-            {seat.price.toLocaleString('vi-VN')} VNĐ
+            {formatCurrency(seat.price)}
           </span>
         </div>
 

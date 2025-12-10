@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { routeService, Route } from "@/services/route.service";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 export default function Home() {
   const router = useRouter();
@@ -580,7 +581,7 @@ export default function Home() {
                         </h3>
                         <div className="flex items-center justify-between">
                           <span className="text-h4 font-bold text-primary">
-                            {route.price.toLocaleString('vi-VN')} VNĐ
+                            {formatCurrency(route.price)}
                           </span>
                           <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
                             Book Route

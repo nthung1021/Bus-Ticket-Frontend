@@ -16,6 +16,10 @@ import Link from "next/link";
 import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatCurrency } from "@/utils/formatCurrency";
+
+const serviceFee = 10000;
+const processingFee = 5000;
 
 interface SelectedSeat {
   id: string;
@@ -33,6 +37,7 @@ interface TripInfo {
   arrivalTime: string;
   duration: string;
   busModel: string;
+  price: number;
 }
 
 interface PassengerData {
@@ -272,6 +277,7 @@ function PassengerInfoPageContent() {
           hour12: false
         }),
         duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
+        price: trip.pricing.basePrice,
         busModel: trip.bus.model
       };
     } catch (error) {
@@ -346,10 +352,12 @@ function PassengerInfoPageContent() {
   }, [tripId, passengersData]);
 
   const calculateTotalPrice = () => {
-    return selectedSeats.reduce((total, seat) => {
+    const tripPrice = tripInfo ? tripInfo.price : 0;
+    const seatsPrice = selectedSeats.reduce((total, seat) => {
       const price = seat.price ?? 0;
       return total + price;
     }, 0);
+    return tripPrice + seatsPrice;
   };
 
   const validateContactInfo = () => {
@@ -705,7 +713,14 @@ function PassengerInfoPageContent() {
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Selected Seats */}
+                {/* Base price */}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Base Price</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(tripInfo.price)}
+                  </span>
+                </div>
+                {/* Selected Seats */}  
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
                   <div className="space-y-2">
@@ -720,19 +735,32 @@ function PassengerInfoPageContent() {
                             </span>
                           </span>
                           <span className="font-medium">
-                            {price.toLocaleString('vi-VN')} VNĐ
+                            {formatCurrency(price)}
                           </span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
+                {/* Additional Fee */}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Service Fee</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(serviceFee)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Processing Fee</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(processingFee)}
+                  </span>
+                </div>
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total Amount</span>
                     <span className="text-primary">
-                      {calculateTotalPrice().toLocaleString('vi-VN')} VNĐ
+                      {formatCurrency(calculateTotalPrice() + serviceFee + processingFee)}  
                     </span>
                   </div>
                 </div>
@@ -859,20 +887,20 @@ function PassengerInfoPageContent() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span>Seat charges:</span>
-                <span>{calculateTotalPrice().toLocaleString('vi-VN')} VNĐ</span>
+                <span>{formatCurrency(calculateTotalPrice())}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Service fee:</span>
-                <span>10,000 VNĐ</span>
+                <span>{formatCurrency(serviceFee)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Processing fee:</span>
-                <span>5,000 VNĐ</span>
+                <span>{formatCurrency(processingFee)}</span>
               </div>
               <Separator className="my-1.5" />
               <div className="flex justify-between font-semibold text-sm">
                 <span>Total Amount:</span>
-                <span className="text-primary">{(calculateTotalPrice() + 15000).toLocaleString('vi-VN')} VNĐ</span>
+                <span className="text-primary">{formatCurrency(calculateTotalPrice() + serviceFee + processingFee)}</span>
               </div>
             </div>
 
