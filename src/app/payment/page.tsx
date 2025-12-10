@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useSeatWebSocket } from "@/hooks/useSeatWebSocket";
+
 import { 
   ArrowLeft, 
   Clock, 
@@ -32,6 +34,7 @@ import PaymentService, { type PaymentMethod } from "@/services/paymentService";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { showToast } from "@/lib/toast";
 import { formatCurrency } from "@/utils/formatCurrency";
+import seatStatusService, { SeatState } from "@/services/seat-status.service";
 
 const serviceFee = 10000;
 const processingFee = 5000;
@@ -81,9 +84,9 @@ function PaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading: authLoading } = useCurrentUser();
-  
+
   const tripId = searchParams.get('tripId');
-  
+  const { bookSeat, lockSeat, unlockSeat } = useSeatWebSocket({ tripId: tripId || '', enabled: !!tripId });
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
   const [tripDetails, setTripDetails] = useState<TripDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -346,6 +349,37 @@ function PaymentPageContent() {
     loadBookingData();
   }, [authLoading, user]);
 
+  // Lock seats when payment page loads and unlock on cleanup
+  useEffect(() => {
+    if (!bookingData?.seats || !tripId) return;
+
+    const lockSeats = async () => {
+      try {
+        const lockPromises = bookingData.seats.map(seat => lockSeat(seat.id));
+        await Promise.allSettled(lockPromises);
+        console.log('Seats locked for payment');
+      } catch (error) {
+        console.error('Error locking seats:', error);
+      }
+    };
+
+    lockSeats();
+
+    return () => {
+      const unlockSeats = async () => {
+        try {
+          const unlockPromises = bookingData.seats.map(seat => unlockSeat(seat.id));
+          await Promise.allSettled(unlockPromises);
+          console.log('Seats unlocked on payment page cleanup');
+        } catch (error) {
+          console.error('Error unlocking seats:', error);
+        }
+      };
+
+      unlockSeats();
+    };
+  }, [bookingData?.seats, tripId, lockSeat, unlockSeat]);  
+
   // Timer countdown
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -450,6 +484,27 @@ function PaymentPageContent() {
           showToast.dismiss(bookingToast);
           showToast.success('Booking created successfully!');
           
+          // Update seat statuses to 'booked' for all booked seats
+          try {
+            const bookingId = response.data.data.id;
+            const updatePromises = bookingData.seats.map(seat => 
+              bookSeat(seat.id, bookingId)
+            );
+            
+            const results = await Promise.all(updatePromises);
+            const failedUpdates = results.filter(success => !success).length;
+            
+            if (failedUpdates > 0) {
+              console.warn(`Failed to update status for ${failedUpdates} seats`);
+              showToast.warning('Booking created, but there was an issue updating some seat statuses');
+            } else {
+              console.log('✅ Successfully updated all seat statuses to BOOKED');
+            }
+          } catch (seatUpdateError) {
+            console.error('Failed to update seat statuses:', seatUpdateError);
+            showToast.warning('Booking created, but there was an issue updating seat statuses');
+          }
+
           // Clear all booking-related data from storage
           sessionStorage.removeItem('bookingData');
           // Clear passenger data for this trip

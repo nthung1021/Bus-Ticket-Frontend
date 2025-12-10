@@ -7,6 +7,7 @@ import {
   SeatLock,
 } from "@/services/seat-websocket.service";
 import { seatStatusService } from "@/services/seat-status.service";
+import { useSeatContext } from "@/contexts/seat-context";
 
 /**
  * Options for the useSeatWebSocket hook.
@@ -29,6 +30,8 @@ interface UseSeatWebSocketReturn {
   isConnected: boolean;
   /** A Set of seat IDs that are currently locked by any user for the given trip. */
   lockedSeats: Set<string>;
+  /** A Set of seat IDs that are currently booked for the given trip. */
+  bookedSeats: Set<string>;
   /**
    * Attempts to lock a specific seat.
    * @param seatId The ID of the seat to lock.
@@ -61,6 +64,25 @@ interface UseSeatWebSocketReturn {
    * @returns True if the seat is locked by the current user, false otherwise.
    */
   isSeatLockedByMe: (seatId: string) => boolean;
+  /**
+   * Attempts to book a specific seat.
+   * @param seatId The ID of the seat to book.
+   * @param bookingId Optional booking ID to associate with the booking.
+   * @returns A Promise that resolves to true if the seat was successfully booked, false otherwise.
+   */
+  bookSeat: (seatId: string, bookingId?: string) => Promise<boolean>;
+  /**
+   * Attempts to unbook a specific seat.
+   * @param seatId The ID of the seat to unbook.
+   * @returns A Promise that resolves to true if the seat was successfully unbooked, false otherwise.
+   */
+  unbookSeat: (seatId: string) => Promise<boolean>;
+  /**
+   * Unlocks all seats locked by the current user.
+   * This is useful when the component unmounts or the dialog closes.
+   * @returns A Promise that resolves when all seats are unlocked.
+   */
+  unlockAllMySeats: () => Promise<void>;
 }
 
 /**
@@ -83,10 +105,21 @@ export function useSeatWebSocket({
    * State to track the WebSocket connection status.
    */
   const [isConnected, setIsConnected] = useState(false);
+
   /**
-   * State to store all seat IDs currently locked by any user for the current trip.
+   * Use seat context for managing seat states
    */
-  const [lockedSeats, setLockedSeats] = useState<Set<string>>(new Set());
+  const {
+    lockedSeats,
+    bookedSeats,
+    setLockedSeats,
+    setBookedSeats,
+    addLockedSeat,
+    removeLockedSeat,
+    addBookedSeat,
+    removeBookedSeat,
+  } = useSeatContext();
+
   /**
    * A ref to store seat IDs that the current user has successfully locked.
    * Using a ref prevents unnecessary re-renders when only `myLocksRef` changes.
@@ -108,14 +141,10 @@ export function useSeatWebSocket({
   const handleSeatLocked = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(data.seatId);
-          return newSet;
-        });
+        addLockedSeat(data.seatId);
       }
     },
-    [tripId],
+    [tripId, addLockedSeat],
   );
 
   /**
@@ -127,35 +156,43 @@ export function useSeatWebSocket({
   const handleSeatUnlocked = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.seatId);
-          return newSet;
-        });
+        removeLockedSeat(data.seatId);
         myLocksRef.current.delete(data.seatId);
       }
     },
-    [tripId],
+    [tripId, removeLockedSeat],
   );
 
   /**
    * Callback function to handle `seatBooked` events from the WebSocket server.
    * Removes the booked seat ID from the `lockedSeats` state and `myLocksRef`
    * if it belongs to the current trip. Booked seats are no longer considered merely 'locked'.
+   * Also adds the booked seat ID to the `bookedSeats` state.
    * @param data The SeatStatusEvent containing trip and seat ID.
    */
   const handleSeatBooked = useCallback(
     (data: SeatStatusEvent) => {
       if (data.tripId === tripId) {
-        setLockedSeats((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.seatId);
-          return newSet;
-        });
+        removeLockedSeat(data.seatId);
         myLocksRef.current.delete(data.seatId);
+        addBookedSeat(data.seatId);
       }
     },
-    [tripId],
+    [tripId, removeLockedSeat, addBookedSeat],
+  );
+
+  /**
+   * Callback function to handle `seatAvailable` events from the WebSocket server.
+   * Removes the available seat ID from the `bookedSeats` state if it belongs to the current trip.
+   * @param data The SeatStatusEvent containing trip and seat ID.
+   */
+  const handleSeatAvailable = useCallback(
+    (data: SeatStatusEvent) => {
+      if (data.tripId === tripId) {
+        removeBookedSeat(data.seatId);
+      }
+    },
+    [tripId, removeBookedSeat],
   );
 
   /**
@@ -170,7 +207,7 @@ export function useSeatWebSocket({
         setLockedSeats(seatIds);
       }
     },
-    [tripId],
+    [tripId, setLockedSeats],
   );
 
   /**
@@ -209,14 +246,15 @@ export function useSeatWebSocket({
   }, [enabled]); // Re-run effect if 'enabled' status changes
 
   /**
-   * Effect hook to load initial locked seats from database.
+   * Effect hook to load initial locked seats and booked seats from database.
    * This runs when the component is enabled and has a tripId.
    */
   useEffect(() => {
     if (!enabled || !tripId) return;
 
-    const loadLockedSeatsFromDatabase = async () => {
+    const loadSeatsFromDatabase = async () => {
       try {
+        // Load locked seats
         const lockedSeatsData = await seatStatusService.getLockedSeats(tripId);
         const lockedSeatIds = new Set(
           lockedSeatsData.map((seat) => seat.seatId),
@@ -225,14 +263,24 @@ export function useSeatWebSocket({
         console.log(
           `Loaded ${lockedSeatIds.size} locked seats from database for trip ${tripId}`,
         );
+
+        // Load booked seats
+        const bookedSeatsData = await seatStatusService.getBookedSeats(tripId);
+        const bookedSeatIds = new Set(
+          bookedSeatsData.map((seat) => seat.seatId),
+        );
+        setBookedSeats(bookedSeatIds);
+        console.log(
+          `Loaded ${bookedSeatIds.size} booked seats from database for trip ${tripId}`,
+        );
       } catch (error) {
-        console.error("Failed to load locked seats from database:", error);
-        // Continue with empty locked seats if database query fails
+        console.error("Failed to load seats from database:", error);
+        // Continue with empty seats if database query fails
       }
     };
 
-    loadLockedSeatsFromDatabase();
-  }, [enabled, tripId]);
+    loadSeatsFromDatabase();
+  }, [enabled, tripId, setLockedSeats, setBookedSeats]);
 
   /**
    * Effect hook to join a specific trip and set up trip-specific event listeners.
@@ -251,6 +299,7 @@ export function useSeatWebSocket({
         seatWebSocketService.onSeatLocked(handleSeatLocked);
         seatWebSocketService.onSeatUnlocked(handleSeatUnlocked);
         seatWebSocketService.onSeatBooked(handleSeatBooked);
+        seatWebSocketService.onSeatAvailable(handleSeatAvailable);
         seatWebSocketService.onCurrentLocks(handleCurrentLocks);
 
         console.log(`Joined trip ${tripId}`);
@@ -271,6 +320,7 @@ export function useSeatWebSocket({
         seatWebSocketService.offSeatLocked(handleSeatLocked);
         seatWebSocketService.offSeatUnlocked(handleSeatUnlocked);
         seatWebSocketService.offSeatBooked(handleSeatBooked);
+        seatWebSocketService.offSeatAvailable(handleSeatAvailable);
         seatWebSocketService.offCurrentLocks(handleCurrentLocks);
 
         console.log(`Left trip ${tripId}`);
@@ -283,6 +333,7 @@ export function useSeatWebSocket({
     handleSeatLocked,
     handleSeatUnlocked,
     handleSeatBooked,
+    handleSeatAvailable,
     handleCurrentLocks,
   ]); // Dependencies include all event handlers to ensure they are up-to-date
 
@@ -303,6 +354,7 @@ export function useSeatWebSocket({
         );
         if (response.success) {
           myLocksRef.current.add(seatId); // Track seats locked by this client
+          addLockedSeat(seatId);
           return true;
         }
         return false;
@@ -311,7 +363,7 @@ export function useSeatWebSocket({
         return false;
       }
     },
-    [tripId],
+    [tripId, addLockedSeat],
   );
 
   /**
@@ -326,6 +378,7 @@ export function useSeatWebSocket({
         const response = await seatWebSocketService.unlockSeat(tripId, seatId);
         if (response.success) {
           myLocksRef.current.delete(seatId); // Remove from client's locked seats
+          removeLockedSeat(seatId);
           return true;
         }
         return false;
@@ -334,26 +387,7 @@ export function useSeatWebSocket({
         return false;
       }
     },
-    [tripId],
-  );
-
-  /**
-   * Refreshes the lock for a specific seat on the server.
-   * This extends the lock's expiration time.
-   * @param seatId The ID of the seat to refresh the lock for.
-   * @returns A Promise resolving to true if successful, false otherwise.
-   */
-  const refreshLock = useCallback(
-    async (seatId: string): Promise<boolean> => {
-      try {
-        const response = await seatWebSocketService.refreshLock(tripId, seatId);
-        return response.success;
-      } catch (error) {
-        console.error("Failed to refresh lock:", error);
-        return false;
-      }
-    },
-    [tripId],
+    [tripId, removeLockedSeat],
   );
 
   /**
@@ -380,13 +414,131 @@ export function useSeatWebSocket({
     return myLocksRef.current.has(seatId);
   }, []); // No dependencies as `myLocksRef.current` is stable
 
+  /**
+   * Books a specific seat on the server.
+   * Uses WebSocket to book a seat that must be locked by the current user.
+   * @param seatId The ID of the seat to book.
+   * @param bookingId Optional booking ID to associate with the booking.
+   * @returns A Promise resolving to true if successful, false otherwise.
+   */
+  const bookSeat = useCallback(
+    async (seatId: string, bookingId?: string): Promise<boolean> => {
+      try {
+        console.log("bookSeat called with:", seatId);
+
+        // First, check if seat is locked by current user
+        if (!isSeatLockedByMe(seatId)) {
+          console.log(
+            "Seat is not locked by current user, attempting to lock first...",
+          );
+          const lockSuccess = await lockSeat(seatId);
+          if (!lockSuccess) {
+            console.error("Failed to lock seat before booking");
+            return false;
+          }
+          console.log("Seat locked successfully, proceeding with booking...");
+        }
+
+        const response = await seatWebSocketService.bookSeat(
+          tripId,
+          seatId,
+          bookingId,
+        );
+        console.log("bookSeat response:", response);
+        if (response.success) {
+          console.log("Calling addBookedSeat for:", seatId);
+          addBookedSeat(seatId);
+        }
+        return response.success;
+      } catch (error) {
+        console.error("Failed to book seat:", error);
+        return false;
+      }
+    },
+    [tripId, addBookedSeat, isSeatLockedByMe, lockSeat],
+  );
+
+  /**
+   * Unbooks a specific seat on the server.
+   * Uses WebSocket to cancel a booked seat, making it available again.
+   * @param seatId The ID of the seat to unbook.
+   * @returns A Promise resolving to true if successful, false otherwise.
+   */
+  const unbookSeat = useCallback(
+    async (seatId: string): Promise<boolean> => {
+      try {
+        const response = await seatWebSocketService.cancelSeat(tripId, seatId);
+        removeBookedSeat(seatId);
+        return response.success;
+      } catch (error) {
+        console.error("Failed to unbook seat:", error);
+        return false;
+      }
+    },
+    [tripId, removeBookedSeat],
+  );
+
+  /**
+   * Refreshes the lock for a specific seat on the server.
+   * This extends the lock's expiration time.
+   * @param seatId The ID of the seat to refresh the lock for.
+   * @returns A Promise resolving to true if successful, false otherwise.
+   */
+  const refreshLock = useCallback(
+    async (seatId: string): Promise<boolean> => {
+      try {
+        const response = await seatWebSocketService.refreshLock(tripId, seatId);
+        return response.success;
+      } catch (error) {
+        console.error("Failed to refresh lock:", error);
+        return false;
+      }
+    },
+    [tripId],
+  );
+
+  /**
+   * Unlocks all seats locked by the current user.
+   * This is useful when the component unmounts or dialog closes.
+   * @returns A Promise that resolves when all seats are unlocked.
+   */
+  const unlockAllMySeats = useCallback(async (): Promise<void> => {
+    const myLockedSeats = Array.from(myLocksRef.current);
+
+    if (myLockedSeats.length === 0) return;
+
+    console.log(`Unlocking ${myLockedSeats.length} seats for cleanup`);
+
+    // Unlock all seats in parallel
+    await Promise.allSettled(myLockedSeats.map((seatId) => unlockSeat(seatId)));
+
+    // Clear the ref
+    myLocksRef.current.clear();
+  }, [unlockSeat]);
+
+  /**
+   * Effect hook to cleanup locks when the component unmounts.
+   * This ensures all locks are released when the user leaves the page or closes dialog.
+   */
+  useEffect(() => {
+    // Return cleanup function that runs when component unmounts
+    return () => {
+      // console.log("Calling unlockAllMySeats")
+      unlockAllMySeats();
+    };
+  }, [unlockAllMySeats]);
+
   return {
     isConnected,
     lockedSeats,
+    bookedSeats,
     lockSeat,
     unlockSeat,
     refreshLock,
+    bookSeat,
+    unbookSeat,
     isSeatLockedByOthers,
     isSeatLockedByMe,
+    unlockAllMySeats,
   };
 }

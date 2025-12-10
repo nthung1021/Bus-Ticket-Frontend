@@ -56,7 +56,6 @@ type SeatStatus = 'available' | 'selected' | 'booked' | 'unavailable' | 'locked'
 function SeatSelectionMap({
     layoutConfig,
     seatPricing,
-    bookedSeats = [],
     onSelectionChange,
     maxSeats = 10,
     className,
@@ -75,6 +74,7 @@ function SeatSelectionMap({
     const {
         isConnected,          // WebSocket connection status
         lockedSeats,         // Seats currently locked by other users
+        bookedSeats,
         lockSeat,           // Function to lock a seat
         unlockSeat,         // Function to unlock a seat
         isSeatLockedByOthers, // Check if seat is locked by someone else
@@ -83,11 +83,16 @@ function SeatSelectionMap({
         tripId,
         enabled: enableRealtime,
     });
-
+    
+    useEffect(() => {
+        console.log("useEffect triggered - Booked seats:", bookedSeats);
+        console.log("Booked seats size:", bookedSeats.size);
+        console.log("Booked seats array:", Array.from(bookedSeats));
+    }, [bookedSeats]);
     /**
      * Group seats by row number for organized rendering
      * Creates a structure like: { 1: [seat1, seat2], 2: [seat3, seat4], ... }
-     */
+     */ 
     const seatsByRow: Record<number, SeatInfo[]> = {};
     // console.log(layoutConfig)
     if (layoutConfig?.seats) {
@@ -115,7 +120,7 @@ function SeatSelectionMap({
      */
     const getSeatStatus = (seat: SeatInfo): SeatStatus => {
         if (!seat.isAvailable) return 'unavailable';           // Seat is permanently unavailable
-        if (bookedSeats.includes(seat.id)) return 'booked';   // Seat is already booked
+        if (bookedSeats.has(seat.id)) return 'booked';   // Seat is already booked
         if (selectedSeats.some(s => s.id === seat.id)) return 'selected'; // Seat is selected by current user
         if (enableRealtime && isSeatLockedByOthers(seat.id)) return 'locked'; // Seat is locked by another user
         return 'available';                                    // Seat is available for selection

@@ -168,8 +168,39 @@ export default function SeatEditor({
   };
 
   const addColumn = () => {
-    console.log("addColumn called - stack trace:", new Error().stack);
     if (!layoutConfig?.seats) return;
+    if(layoutConfig.seats.length === 0) {
+      markAsCustom(); // Mark as CUSTOM when modifying structure
+      
+      const seatId = crypto.randomUUID();
+      const newSeat: SeatInfo = {
+        id: seatId,
+        code: `1A`,
+        type: 'normal',
+        position: {
+          row: 1,
+          position: 1,
+          x: 0,
+          y: 0,
+          width: layoutConfig.dimensions?.seatWidth || 40,
+          height: layoutConfig.dimensions?.seatHeight || 40,
+        },
+        isAvailable: true,
+      };
+      
+      if (layoutConfig) {
+        onLayoutChange({
+          ...layoutConfig,
+          seats: [newSeat],
+          dimensions: {
+            ...layoutConfig.dimensions,
+            totalWidth: layoutConfig.dimensions?.seatWidth || 40,
+            totalHeight: layoutConfig.dimensions?.seatHeight || 40,
+          },
+        });
+      }
+      return;
+    }
     markAsCustom(); // Mark as CUSTOM when modifying structure
     
     const rows = Object.keys(seatsByRow).map(Number).sort((a, b) => a - b);
