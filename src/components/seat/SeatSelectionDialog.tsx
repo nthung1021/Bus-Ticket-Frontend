@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Bus, Users, Check, Loader2 } from "lucide-react";
 import api from "@/lib/api";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface SeatData {
   id: string;
@@ -335,15 +336,15 @@ export default function SeatSelectionDialog({
             <div className="mt-4 flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-green-50 border-2 border-green-300 rounded"></div>
-                <span>Normal (150,000 VNĐ)</span>
+                <span>Normal {formatCurrency(150000)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-purple-50 border-2 border-purple-300 rounded"></div>
-                <span>VIP (250,000 VNĐ)</span>
+                <span>VIP {formatCurrency(250000)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-blue-50 border-2 border-blue-300 rounded"></div>
-                <span>Business (350,000 VNĐ)</span>
+                <span>Business {formatCurrency(350000)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-gray-200 border-2 border-gray-300 rounded"></div>
@@ -382,7 +383,7 @@ export default function SeatSelectionDialog({
                       <div className="flex justify-between items-center font-semibold">
                         <span>Total:</span>
                         <span className="text-primary">
-                          {getTotalPrice().toLocaleString('vi-VN')} VNĐ
+                          {formatCurrency(getTotalPrice())}
                         </span>
                       </div>
                     </div>

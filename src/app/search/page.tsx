@@ -10,6 +10,7 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { Route } from "@/services/route.service";
 import { routeService } from "@/services/route.service";
+import { formatCurrency, getCurrencySymbol } from "@/utils/formatCurrency";
 
 // Search filters interface
 interface SearchFilters {
@@ -411,7 +412,7 @@ function SearchPageContent() {
                       d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                     />
                   </svg>
-                  Price Range (VNĐ)
+                  Price Range ({getCurrencySymbol()})
                 </h4>
                 <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <div className="grid grid-cols-2 gap-3">
@@ -685,7 +686,7 @@ function SearchPageContent() {
                           </div>
                           <div className="flex items-center justify-between pt-2">
                             <span className="text-h5 font-bold text-primary">
-                              {result.price.toLocaleString("vi-VN")} VNĐ
+                              {formatCurrency(result.price)}
                             </span>
                             <Link href={`/trips/${result.id}`}>
                               <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
