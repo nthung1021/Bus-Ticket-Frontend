@@ -37,6 +37,7 @@ interface TripInfo {
   arrivalTime: string;
   duration: string;
   busModel: string;
+  price: number;
 }
 
 interface PassengerData {
@@ -247,6 +248,7 @@ function PassengerInfoPageContent() {
           hour12: false
         }),
         duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
+        price: trip.pricing.basePrice,
         busModel: trip.bus.model
       };
     } catch (error) {
@@ -321,10 +323,12 @@ function PassengerInfoPageContent() {
   }, [tripId, passengersData]);
 
   const calculateTotalPrice = () => {
-    return selectedSeats.reduce((total, seat) => {
+    const tripPrice = tripInfo ? tripInfo.price : 0;
+    const seatsPrice = selectedSeats.reduce((total, seat) => {
       const price = seat.price ?? 0;
       return total + price;
     }, 0);
+    return tripPrice + seatsPrice;
   };
 
   const validateContactInfo = () => {
@@ -680,7 +684,14 @@ function PassengerInfoPageContent() {
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Selected Seats */}
+                {/* Base price */}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Base Price</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(tripInfo.price)}
+                  </span>
+                </div>
+                {/* Selected Seats */}  
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
                   <div className="space-y-2">
@@ -702,12 +713,25 @@ function PassengerInfoPageContent() {
                     })}
                   </div>
                 </div>
+                {/* Additional Fee */}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Service Fee</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(serviceFee)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Processing Fee</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(processingFee)}
+                  </span>
+                </div>
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total Amount</span>
                     <span className="text-primary">
-                      {formatCurrency(calculateTotalPrice())}  
+                      {formatCurrency(calculateTotalPrice() + serviceFee + processingFee)}  
                     </span>
                   </div>
                 </div>
