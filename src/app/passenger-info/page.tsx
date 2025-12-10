@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, use, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { useSeatWebSocket } from "@/hooks/useSeatWebSocket";
+import api from "@/lib/api";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,8 +16,6 @@ import Link from "next/link";
 import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCurrentUser } from "@/hooks/useAuth";
-import api from "@/lib/api";
 
 interface SelectedSeat {
   id: string;
@@ -62,6 +64,49 @@ function PassengerInfoPageContent() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
+
+  // WebSocket to maintain seat locks during passenger info process
+  const { lockSeat, unlockSeat, unlockAllMySeats } = useSeatWebSocket({
+    tripId: tripId || '',
+    enabled: !!tripId,
+  });
+
+  // Lock all selected seats when component mounts
+  useEffect(() => {
+    if (selectedSeats.length > 0 && tripId) {
+      const lockSeats = async () => {
+        console.log('Locking seats for passenger info:', selectedSeats.map(s => s.id));
+        
+        const lockPromises = selectedSeats.map(seat => lockSeat(seat.id));
+        const results = await Promise.allSettled(lockPromises);
+        
+        const failedLocks = results.filter(result => result.status === 'rejected' || !result.value);
+        
+        if (failedLocks.length > 0) {
+          console.warn(`Failed to lock ${failedLocks.length} seats`);
+          toast.error('Some seats are no longer available. Please select different seats.');
+          // Redirect back to seat selection if seats are no longer available
+          setTimeout(() => {
+            router.push(`/trips/${tripId}`);
+          }, 2000);
+        } else {
+          console.log('All seats locked successfully');
+        }
+      };
+
+      lockSeats();
+    }
+  }, [selectedSeats, tripId, lockSeat, router]);
+
+  // Unlock all seats when component unmounts or user leaves
+  useEffect(() => {
+    return () => {
+      if (selectedSeats.length > 0) {
+        console.log('Unlocking seats on component unmount');
+        unlockAllMySeats();
+      }
+    };
+  }, [selectedSeats, unlockAllMySeats]);
 
   useEffect(() => {
     // Try to load existing data from localStorage first
