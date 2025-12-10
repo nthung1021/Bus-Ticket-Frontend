@@ -66,7 +66,7 @@ function PassengerInfoPageContent() {
   const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
 
   // WebSocket to maintain seat locks during passenger info process
-  const { lockSeat, unlockSeat, unlockAllMySeats } = useSeatWebSocket({
+  const { lockSeat, unlockSeat, unlockAllMySeats, bookedSeats } = useSeatWebSocket({
     tripId: tripId || '',
     enabled: !!tripId,
   });
@@ -77,7 +77,15 @@ function PassengerInfoPageContent() {
       const lockSeats = async () => {
         console.log('Locking seats for passenger info:', selectedSeats.map(s => s.id));
         
-        const lockPromises = selectedSeats.map(seat => lockSeat(seat.id));
+        // Only lock seats that are not already booked
+        const lockPromises = selectedSeats.map(seat => {
+          if (bookedSeats.has(seat.id)) {
+            console.log(`Seat ${seat.id} is already booked, skipping lock`);
+            return Promise.resolve(false);
+          }
+          return lockSeat(seat.id);
+        });
+        
         const results = await Promise.allSettled(lockPromises);
         
         const failedLocks = results.filter(result => result.status === 'rejected' || !result.value);
@@ -95,8 +103,29 @@ function PassengerInfoPageContent() {
       };
 
       lockSeats();
+
+      // Cleanup function to unlock seats when component unmounts
+      return () => {
+        const unlockSeats = async () => {
+          console.log('Unlocking seats on passenger info cleanup:', selectedSeats.map(s => s.id));
+          
+          // Only unlock seats that are not already booked
+          const unlockPromises = selectedSeats.map(seat => {
+            if (bookedSeats.has(seat.id)) {
+              console.log(`Seat ${seat.id} is already booked, skipping unlock`);
+              return Promise.resolve(false);
+            }
+            return unlockSeat(seat.id);
+          });
+          
+          await Promise.allSettled(unlockPromises);
+          console.log('Seat unlocking process completed');
+        };
+
+        unlockSeats();
+      };
     }
-  }, [selectedSeats, tripId, lockSeat, router]);
+  }, [selectedSeats, tripId, lockSeat, unlockSeat, router, bookedSeats]);
 
   // Unlock all seats when component unmounts or user leaves
   useEffect(() => {

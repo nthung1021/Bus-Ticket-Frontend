@@ -82,7 +82,7 @@ function PaymentPageContent() {
   const { data: user, isLoading: authLoading } = useCurrentUser();
 
   const tripId = searchParams.get('tripId');
-  const { bookSeat, lockSeat, unlockSeat } = useSeatWebSocket({ tripId: tripId || '', enabled: !!tripId });
+  const { bookSeat, lockSeat, unlockSeat, bookedSeats } = useSeatWebSocket({ tripId: tripId || '', enabled: !!tripId });
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
   const [tripDetails, setTripDetails] = useState<TripDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,12 +348,26 @@ function PaymentPageContent() {
   // Lock seats when payment page loads and unlock on cleanup
   useEffect(() => {
     if (!bookingData?.seats || !tripId) return;
+    
+    // Additional check: if bookingData is incomplete, don't proceed
+    if (!bookingData.tripId || !bookingData.passengers || bookingData.passengers.length === 0) {
+      console.log('Incomplete booking data, skipping seat locking');
+      return;
+    }
 
     const lockSeats = async () => {
       try {
-        const lockPromises = bookingData.seats.map(seat => lockSeat(seat.id));
+        // Only lock seats that are not already booked
+        const lockPromises = bookingData.seats.map(seat => {
+          // Check if seat is already booked
+          if (bookedSeats.has(seat.id)) {
+            console.log(`Seat ${seat.id} is already booked, skipping lock`);
+            return Promise.resolve(false);
+          }
+          return lockSeat(seat.id);
+        });
         await Promise.allSettled(lockPromises);
-        console.log('Seats locked for payment');
+        console.log('Seat locking process completed');
       } catch (error) {
         console.error('Error locking seats:', error);
       }
@@ -364,9 +378,17 @@ function PaymentPageContent() {
     return () => {
       const unlockSeats = async () => {
         try {
-          const unlockPromises = bookingData.seats.map(seat => unlockSeat(seat.id));
+          // Only unlock seats that are currently locked by this user
+          const unlockPromises = bookingData.seats.map(seat => {
+            // Don't unlock if seat is booked
+            if (bookedSeats.has(seat.id)) {
+              console.log(`Seat ${seat.id} is already booked, skipping unlock`);
+              return Promise.resolve(false);
+            }
+            return unlockSeat(seat.id);
+          });
           await Promise.allSettled(unlockPromises);
-          console.log('Seats unlocked on payment page cleanup');
+          console.log('Seat unlocking process completed');
         } catch (error) {
           console.error('Error unlocking seats:', error);
         }
@@ -374,7 +396,7 @@ function PaymentPageContent() {
 
       unlockSeats();
     };
-  }, [bookingData?.seats, tripId, lockSeat, unlockSeat]);  
+  }, [bookingData?.seats, tripId, lockSeat, unlockSeat, bookedSeats]);  
 
   // Timer countdown
   useEffect(() => {
