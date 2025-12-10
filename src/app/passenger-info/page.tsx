@@ -16,8 +16,6 @@ import Link from "next/link";
 import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCurrentUser } from "@/hooks/useAuth";
-import api from "@/lib/api";
 import { formatCurrency } from "@/utils/formatCurrency";
 
 const serviceFee = 10000;
