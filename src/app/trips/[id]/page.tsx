@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface TripParams {
   id: string;
@@ -300,12 +301,12 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             <div className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
               <div className="flex items-center gap-4">
                 <span className="text-h4 text-primary font-bold">
-                  {trip.price.toLocaleString('vi-VN')} VNĐ
+                  {formatCurrency(trip.price)}
                 </span>
                 {trip.originalPrice && (
                   <div className="flex items-center gap-2">
                     <span className="text-body text-muted-foreground line-through">
-                      {trip.originalPrice.toLocaleString('vi-VN')} VNĐ
+                      {formatCurrency(trip.originalPrice)}
                     </span>
                     <span className="bg-accent text-white px-2 py-1 rounded text-caption font-medium">
                       Save {Math.round(((trip.originalPrice - trip.price) / trip.originalPrice) * 100)}%
@@ -386,7 +387,9 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {(trip.price + selectedSeats.reduce((total, seat) => total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)).toLocaleString('vi-VN')} VNĐ
+                    {formatCurrency(
+                      (trip.price + selectedSeats.reduce((total, seat) => 
+                        total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)))}
                   </p>
                 </div>
               </div>
@@ -515,7 +518,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                     </div>
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-h6 font-bold text-primary">
-                        {relatedTrip.price.toLocaleString('vi-VN')} VNĐ
+                        {formatCurrency(relatedTrip.price)}
                       </span>
                       <Button size="sm" className="group-hover:bg-primary/90 text-caption cursor-pointer px-4 py-2">
                         View Details
@@ -529,7 +532,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         </section>
 
         {/* Seat Selection Dialog */}
-        <Dialog open={seatDialogOpen} onOpenChange={setSeatDialogOpen}>
+        <Dialog open={seatDialogOpen} onOpenChange={(open) => {
+          setSeatDialogOpen(open);
+          // When dialog closes, unlock all seats will be handled by SeatSelectionMap's cleanup
+        }}>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-h4 font-bold">
@@ -541,7 +547,6 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               <SeatSelectionMap
                 layoutConfig={seatLayout.layoutConfig}
                 seatPricing={seatLayout.seatPricing}
-                bookedSeats={[]} // TODO: Fetch booked seats from API
                 onSelectionChange={handleSeatSelectionChange}
                 maxSeats={selectedQuantity}
                 tripId={trip.id}

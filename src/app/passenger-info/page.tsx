@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, use, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { useSeatWebSocket } from "@/hooks/useSeatWebSocket";
+import api from "@/lib/api";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,8 +16,10 @@ import Link from "next/link";
 import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCurrentUser } from "@/hooks/useAuth";
-import api from "@/lib/api";
+import { formatCurrency } from "@/utils/formatCurrency";
+
+const serviceFee = 10000;
+const processingFee = 5000;
 
 interface SelectedSeat {
   id: string;
@@ -31,6 +37,7 @@ interface TripInfo {
   arrivalTime: string;
   duration: string;
   busModel: string;
+  price: number;
 }
 
 interface PassengerData {
@@ -62,6 +69,78 @@ function PassengerInfoPageContent() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
+
+  // WebSocket to maintain seat locks during passenger info process
+  const { lockSeat, unlockSeat, unlockAllMySeats, bookedSeats } = useSeatWebSocket({
+    tripId: tripId || '',
+    enabled: !!tripId,
+  });
+
+  // Lock all selected seats when component mounts
+  useEffect(() => {
+    if (selectedSeats.length > 0 && tripId) {
+      const lockSeats = async () => {
+        console.log('Locking seats for passenger info:', selectedSeats.map(s => s.id));
+        
+        // Only lock seats that are not already booked
+        const lockPromises = selectedSeats.map(seat => {
+          if (bookedSeats.has(seat.id)) {
+            console.log(`Seat ${seat.id} is already booked, skipping lock`);
+            return Promise.resolve(false);
+          }
+          return lockSeat(seat.id);
+        });
+        
+        const results = await Promise.allSettled(lockPromises);
+        
+        const failedLocks = results.filter(result => result.status === 'rejected' || !result.value);
+        
+        if (failedLocks.length > 0) {
+          console.warn(`Failed to lock ${failedLocks.length} seats`);
+          toast.error('Some seats are no longer available. Please select different seats.');
+          // Redirect back to seat selection if seats are no longer available
+          setTimeout(() => {
+            router.push(`/trips/${tripId}`);
+          }, 2000);
+        } else {
+          console.log('All seats locked successfully');
+        }
+      };
+
+      lockSeats();
+
+      // Cleanup function to unlock seats when component unmounts
+      return () => {
+        const unlockSeats = async () => {
+          console.log('Unlocking seats on passenger info cleanup:', selectedSeats.map(s => s.id));
+          
+          // Only unlock seats that are not already booked
+          const unlockPromises = selectedSeats.map(seat => {
+            if (bookedSeats.has(seat.id)) {
+              console.log(`Seat ${seat.id} is already booked, skipping unlock`);
+              return Promise.resolve(false);
+            }
+            return unlockSeat(seat.id);
+          });
+          
+          await Promise.allSettled(unlockPromises);
+          console.log('Seat unlocking process completed');
+        };
+
+        unlockSeats();
+      };
+    }
+  }, [selectedSeats, tripId, lockSeat, unlockSeat, router, bookedSeats]);
+
+  // Unlock all seats when component unmounts or user leaves
+  useEffect(() => {
+    return () => {
+      if (selectedSeats.length > 0) {
+        console.log('Unlocking seats on component unmount');
+        unlockAllMySeats();
+      }
+    };
+  }, [selectedSeats, unlockAllMySeats]);
 
   useEffect(() => {
     // Try to load existing data from localStorage first
@@ -198,6 +277,7 @@ function PassengerInfoPageContent() {
           hour12: false
         }),
         duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
+        price: trip.pricing.basePrice,
         busModel: trip.bus.model
       };
     } catch (error) {
@@ -272,10 +352,12 @@ function PassengerInfoPageContent() {
   }, [tripId, passengersData]);
 
   const calculateTotalPrice = () => {
-    return selectedSeats.reduce((total, seat) => {
+    const tripPrice = tripInfo ? tripInfo.price : 0;
+    const seatsPrice = selectedSeats.reduce((total, seat) => {
       const price = seat.price ?? 0;
       return total + price;
     }, 0);
+    return tripPrice + seatsPrice;
   };
 
   const validateContactInfo = () => {
@@ -631,7 +713,14 @@ function PassengerInfoPageContent() {
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Selected Seats */}
+                {/* Base price */}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Base Price</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(tripInfo.price)}
+                  </span>
+                </div>
+                {/* Selected Seats */}  
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
                   <div className="space-y-2">
@@ -646,19 +735,32 @@ function PassengerInfoPageContent() {
                             </span>
                           </span>
                           <span className="font-medium">
-                            {price.toLocaleString('vi-VN')} VNĐ
+                            {formatCurrency(price)}
                           </span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
+                {/* Additional Fee */}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Service Fee</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(serviceFee)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Processing Fee</h4>
+                  <span className="space-y-2 font-medium text-sm">
+                    {formatCurrency(processingFee)}
+                  </span>
+                </div>
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total Amount</span>
                     <span className="text-primary">
-                      {calculateTotalPrice().toLocaleString('vi-VN')} VNĐ
+                      {formatCurrency(calculateTotalPrice() + serviceFee + processingFee)}  
                     </span>
                   </div>
                 </div>
@@ -785,20 +887,20 @@ function PassengerInfoPageContent() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span>Seat charges:</span>
-                <span>{calculateTotalPrice().toLocaleString('vi-VN')} VNĐ</span>
+                <span>{formatCurrency(calculateTotalPrice())}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Service fee:</span>
-                <span>10,000 VNĐ</span>
+                <span>{formatCurrency(serviceFee)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Processing fee:</span>
-                <span>5,000 VNĐ</span>
+                <span>{formatCurrency(processingFee)}</span>
               </div>
               <Separator className="my-1.5" />
               <div className="flex justify-between font-semibold text-sm">
                 <span>Total Amount:</span>
-                <span className="text-primary">{(calculateTotalPrice() + 15000).toLocaleString('vi-VN')} VNĐ</span>
+                <span className="text-primary">{formatCurrency(calculateTotalPrice() + serviceFee + processingFee)}</span>
               </div>
             </div>
 

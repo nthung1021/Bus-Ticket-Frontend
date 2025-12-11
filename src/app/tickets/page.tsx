@@ -32,16 +32,30 @@ type GuestBooking = {
   totalAmount: number;
   status: string;
   bookedAt: string;
+  contactEmail?: string;
+  contactPhone?: string;
   trip?: {
+    id: string;
+    routeId?: string;
+    busId?: string;
     departureTime?: string;
     arrivalTime?: string;
+    basePrice?: string;
+    status?: string;
     route?: {
+      id?: string;
+      name?: string;
+      description?: string;
       origin?: string;
       destination?: string;
+      distanceKm?: number;
+      estimatedMinutes?: number;
     };
     bus?: {
+      id?: string;
       plateNumber?: string;
       model?: string;
+      seatCapacity?: number;
     };
   };
   passengerDetails?: {
@@ -58,6 +72,8 @@ export default function TicketsPage() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [booking, setBooking] = useState<GuestBooking | null>(null);
+  const [routeDetails, setRouteDetails] = useState<any>(null);
+  const [busDetails, setBusDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
@@ -67,6 +83,8 @@ export default function TicketsPage() {
 
     setError(null);
     setBooking(null);
+    setRouteDetails(null);
+    setBusDetails(null);
     setHasSearched(false);
 
     const trimmedEmail = contactEmail.trim();
@@ -94,6 +112,26 @@ export default function TicketsPage() {
       }
 
       const data = response.data.data as GuestBooking;
+      
+      // Fetch additional route and bus details if we have the IDs
+      if (data.trip?.routeId) { 
+        try {
+          const routeResponse = await api.get(`/routes/${data.trip.routeId}`);
+          setRouteDetails(routeResponse.data);
+        } catch (err) {
+          console.warn("Failed to fetch route details:", err);
+        }
+      }
+      
+      if (data.trip?.busId) {
+        try {
+          const busResponse = await api.get(`/buses/${data.trip.busId}`);
+          setBusDetails(busResponse.data);
+        } catch (err) {
+          console.warn("Failed to fetch bus details:", err);
+        }
+      }
+
       setBooking(data);
       setHasSearched(true);
     } catch (err: any) {
@@ -254,7 +292,7 @@ export default function TicketsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span>{booking.trip?.route?.origin || "Origin not available"}</span>
+                      <span>From: {routeDetails?.origin || booking.trip?.route?.origin || "Origin not available"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -276,15 +314,15 @@ export default function TicketsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span>{booking.trip?.route?.destination || "Destination not available"}</span>
+                      <span>To: {routeDetails?.destination || booking.trip?.route?.destination || "Destiation not available"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Bus className="w-4 h-4 text-muted-foreground" />
-                      <span>Bus {booking.trip?.bus?.plateNumber || "N/A"}</span>
+                      <span>Bus Plate: {busDetails?.plateNumber || booking.trip?.bus?.plateNumber || "N/A"}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Model:</span>
-                      <span>{booking.trip?.bus?.model || "N/A"}</span>
+                      <Bus className="w-4 h-4 text-muted-foreground" /> 
+                      <span>Bus Model: {busDetails?.model || booking.trip?.bus?.model || "N/A"}</span>
                     </div>
                   </div>
                 </div>

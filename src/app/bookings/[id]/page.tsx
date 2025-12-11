@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 import UserBookingService, { type Booking } from "@/services/userBookingService";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 export default function BookingDetailsPage() {
   const params = useParams();
@@ -280,7 +281,7 @@ export default function BookingDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Seat charges ({booking.seats.length} seat{booking.seats.length > 1 ? 's' : ''})</span>
-                    <span>{booking.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+                    <span>{formatCurrency(booking.totalAmount)}</span>
                   </div>
                 </div>
 
@@ -288,7 +289,7 @@ export default function BookingDetailsPage() {
 
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total Amount</span>
-                  <span className="text-primary">{booking.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+                  <span className="text-primary">{formatCurrency(booking.totalAmount)}</span>
                 </div>
 
                 {booking.status === 'pending' && UserBookingService.canPayBooking(booking) && (
@@ -404,7 +405,7 @@ export default function BookingDetailsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Số tiền:</span>
-                    <span className="font-medium text-primary">{booking.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+                    <span className="font-medium text-primary">{formatCurrency(booking.totalAmount)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Số ghế:</span>

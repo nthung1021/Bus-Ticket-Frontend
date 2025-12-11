@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useSeatWebSocket } from "@/hooks/useSeatWebSocket";
+
 import { 
   ArrowLeft, 
   Clock, 
@@ -31,6 +33,11 @@ import api from "@/lib/api";
 import PaymentService, { type PaymentMethod } from "@/services/paymentService";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { showToast } from "@/lib/toast";
+import { formatCurrency } from "@/utils/formatCurrency";
+import seatStatusService, { SeatState } from "@/services/seat-status.service";
+
+const serviceFee = 10000;
+const processingFee = 5000;
 
 interface BookingData {
   tripId: string;
@@ -77,9 +84,9 @@ function PaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading: authLoading } = useCurrentUser();
-  
+
   const tripId = searchParams.get('tripId');
-  
+  const { bookSeat, lockSeat, unlockSeat, bookedSeats } = useSeatWebSocket({ tripId: tripId || '', enabled: !!tripId });
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
   const [tripDetails, setTripDetails] = useState<TripDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -342,6 +349,59 @@ function PaymentPageContent() {
     loadBookingData();
   }, [authLoading, user]);
 
+  // Lock seats when payment page loads and unlock on cleanup
+  useEffect(() => {
+    if (!bookingData?.seats || !tripId) return;
+    
+    // Additional check: if bookingData is incomplete, don't proceed
+    if (!bookingData.tripId || !bookingData.passengers || bookingData.passengers.length === 0) {
+      console.log('Incomplete booking data, skipping seat locking');
+      return;
+    }
+
+    const lockSeats = async () => {
+      try {
+        // Only lock seats that are not already booked
+        const lockPromises = bookingData.seats.map(seat => {
+          // Check if seat is already booked
+          if (bookedSeats.has(seat.id)) {
+            console.log(`Seat ${seat.id} is already booked, skipping lock`);
+            return Promise.resolve(false);
+          }
+          return lockSeat(seat.id);
+        });
+        await Promise.allSettled(lockPromises);
+        console.log('Seat locking process completed');
+      } catch (error) {
+        console.error('Error locking seats:', error);
+      }
+    };
+
+    lockSeats();
+
+    return () => {
+      const unlockSeats = async () => {
+        try {
+          // Only unlock seats that are currently locked by this user
+          const unlockPromises = bookingData.seats.map(seat => {
+            // Don't unlock if seat is booked
+            if (bookedSeats.has(seat.id)) {
+              console.log(`Seat ${seat.id} is already booked, skipping unlock`);
+              return Promise.resolve(false);
+            }
+            return unlockSeat(seat.id);
+          });
+          await Promise.allSettled(unlockPromises);
+          console.log('Seat unlocking process completed');
+        } catch (error) {
+          console.error('Error unlocking seats:', error);
+        }
+      };
+
+      unlockSeats();
+    };
+  }, [bookingData?.seats, tripId, lockSeat, unlockSeat, bookedSeats]);  
+
   // Timer countdown
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -424,7 +484,7 @@ function PaymentPageContent() {
             // Remove seatCode field - backend DTO doesn't allow it
           };
         }),
-        totalPrice: bookingData.totalPrice,
+        totalPrice: bookingData.totalPrice + serviceFee + processingFee,
         paymentMethod: selectedPaymentMethod,
         isGuestCheckout: bookingData.isGuestCheckout,
         contactEmail: bookingData.isGuestCheckout ? bookingData.contactEmail : undefined,
@@ -446,6 +506,27 @@ function PaymentPageContent() {
           showToast.dismiss(bookingToast);
           showToast.success('Booking created successfully!');
           
+          // Update seat statuses to 'booked' for all booked seats
+          try {
+            const bookingId = response.data.data.id;
+            const updatePromises = bookingData.seats.map(seat => 
+              bookSeat(seat.id, bookingId)
+            );
+            
+            const results = await Promise.all(updatePromises);
+            const failedUpdates = results.filter(success => !success).length;
+            
+            if (failedUpdates > 0) {
+              console.warn(`Failed to update status for ${failedUpdates} seats`);
+              showToast.warning('Booking created, but there was an issue updating some seat statuses');
+            } else {
+              console.log('✅ Successfully updated all seat statuses to BOOKED');
+            }
+          } catch (seatUpdateError) {
+            console.error('Failed to update seat statuses:', seatUpdateError);
+            showToast.warning('Booking created, but there was an issue updating seat statuses');
+          }
+
           // Clear all booking-related data from storage
           sessionStorage.removeItem('bookingData');
           // Clear passenger data for this trip
@@ -961,7 +1042,7 @@ function PaymentPageContent() {
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Complete Booking {PaymentService.formatCurrency(bookingData.totalPrice + 15000)}
+                    Complete Booking {formatCurrency(bookingData.totalPrice + serviceFee + processingFee)}
                   </>
                 )}
               </Button>
@@ -1024,19 +1105,19 @@ function PaymentPageContent() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal ({bookingData.passengers.length} passenger{bookingData.passengers.length !== 1 ? 's' : ''})</span>
-                  <span>{PaymentService.formatCurrency(bookingData.totalPrice)}</span>
+                  <span>{formatCurrency(bookingData.totalPrice)}</span>
                 </div><div className="flex justify-between text-xs">
                 <span>Service fee:</span>
-                  <span>10,000 VNĐ</span>
+                  <span>{formatCurrency(serviceFee)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span>Processing fee:</span>
-                  <span>5,000 VNĐ</span>
+                  <span>{formatCurrency(processingFee)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span className="text-primary">{PaymentService.formatCurrency(bookingData.totalPrice + 15000)}</span>
+                  <span className="text-primary">{formatCurrency(bookingData.totalPrice + serviceFee + processingFee)}</span>
                 </div>
               </div>
 

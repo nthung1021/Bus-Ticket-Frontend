@@ -24,8 +24,8 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/useAuth";
 import UserBookingService, { type Booking } from "@/services/userBookingService";
-import PaymentService from "@/services/paymentService";
 import api from "@/lib/api";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 function PaymentSuccessPageContent() {
   const router = useRouter();
@@ -188,7 +188,7 @@ Date: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime
 Time: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), 'p') : 'N/A'}
 Bus: ${booking.trip?.bus?.plateNumber || 'N/A'}
 Passengers: ${booking.passengers?.map(p => `${p.fullName} (Seat ${p.seatCode})`).join(', ')}
-Total Amount: ${PaymentService.formatCurrency(booking.totalAmount)}
+Total Amount: ${formatCurrency(booking.totalAmount)}
 Booked At: ${format(new Date(booking.bookedAt), 'PPp')}
 
 Present this ticket when boarding the bus.
@@ -364,7 +364,7 @@ Present this ticket when boarding the bus.
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Total Amount</span>
-                  <span className="font-medium">{PaymentService.formatCurrency(booking.totalAmount)}</span>
+                  <span className="font-medium">{formatCurrency(booking.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Payment Status</span>
