@@ -469,17 +469,35 @@ function PassengerInfoPageContent() {
         contactPhone: isGuest ? contactPhone : undefined,
       };
 
-      // Store in sessionStorage for payment
-      sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+      // Create booking first to get the booking ID
+      const bookingResponse = await api.post("/bookings", bookingData);
 
-      // Create PayOS payment link
-      const response = await api.post("/payment/payos/create-payment-link", {
+      if (!bookingResponse.data?.success || !bookingResponse.data?.data) {
+        throw new Error(
+          bookingResponse.data?.message || "Failed to create booking"
+        );
+      }
+
+      const createdBooking = bookingResponse.data.data;
+      const bookingId = createdBooking.id;
+
+      // Store booking data for payment confirmation
+      sessionStorage.setItem(
+        "bookingData",
+        JSON.stringify({
+          ...bookingData,
+          bookingId,
+          bookingReference: createdBooking.bookingReference,
+        })
+      );
+
+      // Create PayOS payment link with actual booking ID
+      const response = await api.post("/payos/create-payment-link", {
         amount: calculateTotalPrice(),
-        orderCode: `BK-${tripId}-${Date.now()}`,
+        bookingId: bookingId,
         description: `Bus ticket booking for trip ${tripId}`,
         returnUrl: `${window.location.origin}/payment/success`,
         cancelUrl: `${window.location.origin}/payment/failure`,
-        bookingData,
       });
 
       if (response.data && response.data.checkoutUrl) {
