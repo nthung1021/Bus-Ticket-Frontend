@@ -499,7 +499,6 @@ function PassengerInfoPageContent() {
         returnUrl: `${window.location.origin}/payment/success`,
         cancelUrl: `${window.location.origin}/payment/failure`,
       });
-      console.log("payos link response", response.data);
 
       if (response.data.checkoutUrl) {
         // Redirect to PayOS payment page

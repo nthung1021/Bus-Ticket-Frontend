@@ -107,6 +107,7 @@ function PaymentFailurePageContent() {
   const errorCode = searchParams.get("error") || "PAYMENT_FAILED";
   const bookingId = searchParams.get("bookingId");
   const paymentId = searchParams.get("paymentId");
+  const orderCode = searchParams.get("orderCode");
 
   // Parse error information from URL parameters
   useEffect(() => {
@@ -156,12 +157,38 @@ function PaymentFailurePageContent() {
     setRetryCount((prev) => prev + 1);
 
     try {
-      // If we have booking data, redirect back to payment page
+      // If we have booking data, cancel old payment and create new one
       if (bookingData) {
-        showToast.info("Redirecting to payment page...");
-        setTimeout(() => {
-          router.push(`/payment?tripId=${bookingData.tripId}`);
-        }, 1000);
+        showToast.info("Creating new payment link...");
+
+        // Import api dynamically to avoid import issues
+        const api = (await import("@/lib/api")).default;
+
+        try {
+          // Cancel old payment link if exists
+          if (orderCode) {
+            await api.post(`/payos/cancel-payment/${orderCode}`);
+          }
+        } catch (cancelError) {
+          console.warn("Failed to cancel old payment link:", cancelError);
+          // Continue with creating new payment link even if cancel fails
+        }
+
+        // Create new payment link
+        const response = await api.post("/payos/create-payment-link", {
+          amount: bookingData.totalPrice || 0,
+          bookingId: bookingData.bookingId,
+          description: "",
+          returnUrl: `${window.location.origin}/payment/success`,
+          cancelUrl: `${window.location.origin}/payment/failure`,
+        });
+
+        if (response.data.checkoutUrl) {
+          showToast.info("Redirecting to payment...");
+          window.location.href = response.data.checkoutUrl;
+        } else {
+          throw new Error("Failed to create payment link");
+        }
       } else {
         // Otherwise, go back to trips
         showToast.info("Starting new booking...");
