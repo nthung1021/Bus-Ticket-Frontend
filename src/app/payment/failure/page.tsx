@@ -102,20 +102,72 @@ function PaymentFailurePageContent() {
 
   const [bookingData, setBookingData] = useState<any>(null);
 
-  // Use payment retry hook
+  // Load retry state from sessionStorage on mount
+  const getInitialRetryState = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("paymentRetryState");
+        console.log(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+
+          // Check if retry state is recent (within 5 minutes) to avoid stale data
+          const now = Date.now();
+          const stateAge = now - parsed.timestamp;
+          const fiveMinutes = 5 * 60 * 1000;
+
+          if (stateAge < fiveMinutes) {
+            return parsed;
+          } else {
+            sessionStorage.removeItem("paymentRetryState");
+          }
+        } else {
+          console.log("No retry state found in sessionStorage");
+        }
+      } catch (err) {
+        console.warn("Failed to parse saved retry state:", err);
+      }
+    }
+    return null;
+  };
+
+  const initialRetryState = getInitialRetryState();
+  // console.log(initialRetryState);
+
+  // Use payment retry hook with initial state from sessionStorage
   const { execute, state, reset } = usePaymentRetry({
     maxRetries: 3,
     retryDelay: 1000,
+    initialAttempt: initialRetryState?.attempt || 0,
     onRetry: (attempt) => {
       console.log(`Payment retry attempt ${attempt}`);
     },
     onSuccess: () => {
       console.log("Payment retry succeeded");
+      // Don't clear retry state on success - let it persist for potential retries
+      // State will be cleared when user actually completes payment successfully
     },
     onFailure: (error) => {
       console.error("Payment retry failed:", error);
+      // Keep retry state for next attempt
     },
   });
+
+  // Save retry state to sessionStorage (sync operation)
+  const saveRetryState = (attempt: number) => {
+    console.log("saveRetryState called with attempt:", attempt);
+    const retryState = {
+      attempt,
+      orderCode: searchParams.get("orderCode"),
+      timestamp: Date.now(),
+    };
+    console.log("Saving retry state:", retryState);
+    sessionStorage.setItem("paymentRetryState", JSON.stringify(retryState));
+    console.log(
+      "Verify saved data:",
+      sessionStorage.getItem("paymentRetryState")
+    );
+  };
 
   const errorCode = searchParams.get("error") || "PAYMENT_FAILED";
   const bookingId = searchParams.get("bookingId");
@@ -153,6 +205,7 @@ function PaymentFailurePageContent() {
 
   // Handle retry payment
   const handleRetryPayment = async () => {
+    console.log("handleRetryPayment called");
     if (!error?.retryable) {
       showToast.error(
         "This error cannot be retried. Please start a new booking."
@@ -175,8 +228,10 @@ function PaymentFailurePageContent() {
       return;
     }
 
+    console.log("About to call execute function");
     // Use payment retry hook to execute the retry logic
     const result = await execute(async () => {
+      console.log("Execute function called");
       const api = (await import("@/lib/api")).default;
 
       // Cancel old payment link if exists
@@ -197,11 +252,16 @@ function PaymentFailurePageContent() {
         throw new Error("Failed to create payment link");
       }
 
+      console.log("About to save retry state and redirect");
+      // Save retry state BEFORE redirecting
+      saveRetryState(state.attempt + 1);
+
       // Redirect to PayOS checkout
       window.location.href = response.data.checkoutUrl;
       return response.data;
     }, "payment retry");
 
+    console.log("Execute function completed, result:", result);
     if (!result) {
       // Retry failed, hook already handled error display
       console.error("Payment retry failed after all attempts");

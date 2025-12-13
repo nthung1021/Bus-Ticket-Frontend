@@ -178,6 +178,15 @@ function PaymentSuccessPageContent() {
     sendEticketEmail();
   }, [booking, emailTriggered]);
 
+  // Clear payment retry state when payment is successful
+  useEffect(() => {
+    if (booking && booking.status === "paid") {
+      // Clear retry state from sessionStorage
+      sessionStorage.removeItem("paymentRetryState");
+      console.log("Payment successful, cleared retry state");
+    }
+  }, [booking]);
+
   // Auto-redirect if no booking ID
   useEffect(() => {
     if (!bookingId) {

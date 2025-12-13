@@ -5,6 +5,7 @@ import { showToast } from "@/lib/toast";
 interface RetryOptions {
   maxRetries?: number;
   retryDelay?: number;
+  initialAttempt?: number;
   onRetry?: (attempt: number) => void;
   onSuccess?: () => void;
   onFailure?: (error: Error) => void;
@@ -41,6 +42,7 @@ interface RetryState {
  * @param {Object} [options] - Configuration options for the retry behavior
  * @param {number} [options.maxRetries=3] - Maximum number of retry attempts before giving up
  * @param {number} [options.retryDelay=1000] - Delay in milliseconds between retry attempts
+ * @param {number} [options.initialAttempt=0] - Initial attempt count (useful for state persistence)
  * @param {(attempt: number) => void} [options.onRetry] - Callback triggered when a retry is attempted
  * @param {() => void} [options.onSuccess] - Callback triggered when the operation succeeds
  * @param {(error: Error) => void} [options.onFailure] - Callback triggered when all retry attempts fail
@@ -58,6 +60,7 @@ export function usePaymentRetry(options: RetryOptions = {}) {
   const {
     maxRetries = 3,
     retryDelay = 1000,
+    initialAttempt = 0,
     onRetry,
     onSuccess,
     onFailure,
@@ -65,9 +68,9 @@ export function usePaymentRetry(options: RetryOptions = {}) {
 
   const router = useRouter();
   const [state, setState] = useState<RetryState>({
-    attempt: 0,
+    attempt: initialAttempt,
     isRetrying: false,
-    canRetry: true,
+    canRetry: initialAttempt < maxRetries,
     lastError: null,
   });
 
