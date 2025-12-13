@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { showToast } from "@/lib/toast";
+import { usePaymentRetry } from "@/hooks/usePaymentRetry";
 
 interface PaymentError {
   code?: string;
@@ -99,10 +100,22 @@ function PaymentFailurePageContent() {
   const searchParams = useSearchParams();
   const { data: user } = useCurrentUser();
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<PaymentError | null>(null);
   const [bookingData, setBookingData] = useState<any>(null);
-  const [retryCount, setRetryCount] = useState(0);
+
+  // Use payment retry hook
+  const { execute, state, reset } = usePaymentRetry({
+    maxRetries: 3,
+    retryDelay: 1000,
+    onRetry: (attempt) => {
+      console.log(`Payment retry attempt ${attempt}`);
+    },
+    onSuccess: () => {
+      console.log("Payment retry succeeded");
+    },
+    onFailure: (error) => {
+      console.error("Payment retry failed:", error);
+    },
+  });
 
   const errorCode = searchParams.get("error") || "PAYMENT_FAILED";
   const bookingId = searchParams.get("bookingId");
@@ -112,6 +125,7 @@ function PaymentFailurePageContent() {
   // Parse error information from URL parameters
   useEffect(() => {
     const errorType = ERROR_TYPES[errorCode] || ERROR_TYPES.PAYMENT_FAILED;
+    setError(errorType);
 
     // Override with custom message if provided
     const customMessage = searchParams.get("message");
@@ -124,8 +138,6 @@ function PaymentFailurePageContent() {
       errorType.details = customDetails;
     }
 
-    setError(errorType);
-
     // Try to recover booking data from sessionStorage if available
     try {
       const savedBookingData = sessionStorage.getItem("bookingData");
@@ -137,6 +149,8 @@ function PaymentFailurePageContent() {
     }
   }, [errorCode, searchParams]);
 
+  const [error, setError] = useState<PaymentError | null>(null);
+
   // Handle retry payment
   const handleRetryPayment = async () => {
     if (!error?.retryable) {
@@ -146,61 +160,51 @@ function PaymentFailurePageContent() {
       return;
     }
 
-    if (retryCount >= 3) {
+    if (!state.canRetry) {
       showToast.error(
         "Maximum retry attempts reached. Please contact support."
       );
       return;
     }
 
-    setLoading(true);
-    setRetryCount((prev) => prev + 1);
+    if (!bookingData) {
+      showToast.info("Starting new booking...");
+      setTimeout(() => {
+        router.push("/trips");
+      }, 1000);
+      return;
+    }
 
-    try {
-      // If we have booking data, cancel old payment and create new one
-      if (bookingData) {
-        showToast.info("Creating new payment link...");
+    // Use payment retry hook to execute the retry logic
+    const result = await execute(async () => {
+      const api = (await import("@/lib/api")).default;
 
-        // Import api dynamically to avoid import issues
-        const api = (await import("@/lib/api")).default;
-
-        try {
-          // Cancel old payment link if exists
-          if (orderCode) {
-            await api.post(`/payos/cancel-payment/${orderCode}`);
-          }
-        } catch (cancelError) {
-          console.warn("Failed to cancel old payment link:", cancelError);
-          // Continue with creating new payment link even if cancel fails
-        }
-
-        // Create new payment link
-        const response = await api.post("/payos/create-payment-link", {
-          amount: bookingData.totalPrice || 0,
-          bookingId: bookingData.bookingId,
-          description: "",
-          returnUrl: `${window.location.origin}/payment/success`,
-          cancelUrl: `${window.location.origin}/payment/failure`,
-        });
-
-        if (response.data.checkoutUrl) {
-          showToast.info("Redirecting to payment...");
-          window.location.href = response.data.checkoutUrl;
-        } else {
-          throw new Error("Failed to create payment link");
-        }
-      } else {
-        // Otherwise, go back to trips
-        showToast.info("Starting new booking...");
-        setTimeout(() => {
-          router.push("/trips");
-        }, 1000);
+      // Cancel old payment link if exists
+      if (orderCode) {
+        await api.post(`/payos/cancel-payment/${orderCode}`);
       }
-    } catch (err) {
-      console.error("Retry failed:", err);
-      showToast.error("Retry failed. Please try again or contact support.");
-    } finally {
-      setLoading(false);
+
+      // Create new payment link
+      const response = await api.post("/payos/create-payment-link", {
+        amount: bookingData.totalPrice || 0,
+        bookingId: bookingData.bookingId,
+        description: "",
+        returnUrl: `${window.location.origin}/payment/success`,
+        cancelUrl: `${window.location.origin}/payment/failure`,
+      });
+
+      if (!response.data.checkoutUrl) {
+        throw new Error("Failed to create payment link");
+      }
+
+      // Redirect to PayOS checkout
+      window.location.href = response.data.checkoutUrl;
+      return response.data;
+    }, "payment retry");
+
+    if (!result) {
+      // Retry failed, hook already handled error display
+      console.error("Payment retry failed after all attempts");
     }
   };
 
@@ -344,8 +348,8 @@ function PaymentFailurePageContent() {
                   <h4 className="font-medium">Try Again</h4>
                   <p className="text-sm text-muted-foreground">
                     Click the retry button to attempt the payment again.
-                    {retryCount > 0 &&
-                      ` You've tried ${retryCount} time${retryCount > 1 ? "s" : ""}.`}
+                    {state.attempt > 0 &&
+                      ` You've tried ${state.attempt} time${state.attempt > 1 ? "s" : ""}.`}
                   </p>
                 </div>
               </div>
@@ -393,10 +397,10 @@ function PaymentFailurePageContent() {
               {error.retryable && (
                 <Button
                   onClick={handleRetryPayment}
-                  disabled={loading || retryCount >= 3}
+                  disabled={state.isRetrying || !state.canRetry}
                   className="w-full"
                 >
-                  {loading ? (
+                  {state.isRetrying ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Processing...
@@ -404,7 +408,7 @@ function PaymentFailurePageContent() {
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Retry Payment ({3 - retryCount} left)
+                      Retry Payment ({3 - state.attempt} left)
                     </>
                   )}
                 </Button>
