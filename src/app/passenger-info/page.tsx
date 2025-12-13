@@ -495,12 +495,13 @@ function PassengerInfoPageContent() {
       const response = await api.post("/payos/create-payment-link", {
         amount: calculateTotalPrice(),
         bookingId: bookingId,
-        description: `Bus ticket booking for trip ${tripId}`,
+        description: "",
         returnUrl: `${window.location.origin}/payment/success`,
         cancelUrl: `${window.location.origin}/payment/failure`,
       });
+      console.log("payos link response", response.data);
 
-      if (response.data && response.data.checkoutUrl) {
+      if (response.data.checkoutUrl) {
         // Redirect to PayOS payment page
         window.location.href = response.data.checkoutUrl;
       } else {
