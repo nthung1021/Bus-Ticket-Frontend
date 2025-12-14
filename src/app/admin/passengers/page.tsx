@@ -1,7 +1,11 @@
 "use client";
 
 import ProtectedRole from "@/components/ProtectedRole";
-import Navbar from "@/components/Navbar";
+import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   useAdminUsers,
   useChangeUserRole,
@@ -32,76 +36,83 @@ function AdminPageContent() {
 
   if (isLoading) {
     return (
-      <>
-        <div className="site-container py-12">Loading users…</div>
-      </>
+      <div className="flex bg-background min-h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
+          <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
+            <div className="text-center py-8">Loading users…</div>
+          </main>
+        </div>
+      </div>
     );
   }
   if (isError) {
     return (
-      <>
-        <div className="site-container py-12">
-          Error: {String(error?.message)}
+      <div className="flex bg-background min-h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
+          <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
+            <div className="text-center py-8 text-destructive">
+              Error: {String(error?.message)}
+            </div>
+          </main>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <section className="site-container py-12">
-        <h1 className="m-4 font-bold text-h2">Admin — Manage Passengers</h1>
-
-        <div className="bg-background rounded-2xl">
-          <table className="min-w-full divide-y divide-foreground">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-foreground">
-                  Action - Change Role
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-background divide-y divide-foreground">
-              {users?.map((u) => (
-                <UserRow
-                  key={u.userId}
-                  user={u}
-                  onChangeRole={async (role) => {
-                    const confirm = window.confirm(
-                      `Change ${u.name}'s role to ${role}?`,
-                    );
-                    if (!confirm) return;
-                    setChangingUser(u.userId);
-                    await changeRole.mutateAsync({ userId: u.userId, role });
-                    setChangingUser(null);
-                  }}
-                  disabled={changingUser !== null}
-                />
-              ))}
-              {!users?.length && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-4 text-center text-sm text-foreground"
-                  >
-                    No users
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </>
+    <div className="flex bg-background min-h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
+        <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle>Passenger Management</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Name</TableHead>
+                      <TableHead className="w-[250px]">Email</TableHead>
+                      <TableHead className="w-[120px]">Role</TableHead>
+                      <TableHead className="w-[200px]">Change Role</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users?.map((u) => (
+                      <UserRow
+                        key={u.userId}
+                        user={u}
+                        onChangeRole={async (role) => {
+                          const confirm = window.confirm(
+                            `Change ${u.name}'s role to ${role}?`,
+                          );
+                          if (!confirm) return;
+                          setChangingUser(u.userId);
+                          await changeRole.mutateAsync({ userId: u.userId, role });
+                          setChangingUser(null);
+                        }}
+                        disabled={changingUser !== null}
+                      />
+                    ))}
+                    {!users?.length && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 px-6">
+                          No users found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    </div>
   );
 }
 
@@ -115,43 +126,35 @@ function UserRow({
   disabled: boolean;
 }) {
   return (
-    <tr>
-      <td className="px-6 py-4 whitespace-nowrap text-sm">{user.name}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email}</td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass(user.role)}`}
+    <TableRow>
+      <TableCell className="font-medium">
+        <div className="max-w-[180px] truncate">{user.name}</div>
+      </TableCell>
+      <TableCell>
+        <div className="max-w-[230px] truncate">{user.email}</div>
+      </TableCell>
+      <TableCell>
+        <Badge
+          variant={user.role === "admin" ? "destructive" : user.role === "operator" ? "default" : "secondary"}
         >
-          {user.role.toLocaleUpperCase()}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm">
-        <div className="flex gap-2">
+          {user.role.toUpperCase()}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-2 flex-wrap">
           {ROLES.map((r) => (
-            <button
+            <Button
               key={r.key}
-              className={
-                `px-3 py-1 rounded-full text-sm border-foreground border-2
-                ${user.role === r.key ? "bg-gray-400" : "hover:bg-gray-300"}`}
+              variant={user.role === r.key ? "secondary" : "outline"}
+              size="sm"
               onClick={() => onChangeRole(r.key)}
               disabled={disabled || user.role === r.key}
             >
               {r.label}
-            </button>
+            </Button>
           ))}
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
-}
-
-function badgeClass(role: string) {
-  switch (role) {
-    case "admin":
-      return "bg-red-100 text-red-800";
-    case "operator":
-      return "bg-primary/10 text-primary";
-    case "customer":
-      return "bg-green-100 text-green-800";
-  }
 }
