@@ -79,7 +79,7 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
           {routePoints.map((point, index) => (
             <Card key={index} className="p-4">
               <div className="flex items-start justify-between">
-                <div className="flex-1 grid grid-cols-2 gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div>
                       <Label className="text-sm">Point Name</Label>
@@ -179,7 +179,7 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm">Point Name</Label>
               <Input
@@ -202,7 +202,7 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm">Latitude</Label>
               <Input
@@ -224,7 +224,7 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm">Distance from Start (meters)</Label>
               <Input

@@ -40,8 +40,8 @@ export default function RouteForm({
   ];
 
   return (
-    <div className="space-y-6 overflow-y-auto">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="operatorId">Operator</Label>
           <Select value={formData.operatorId} onValueChange={(value) => setFormData({ ...formData, operatorId: value })}>
@@ -68,7 +68,7 @@ export default function RouteForm({
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="origin">Origin</Label>
           <Input
@@ -89,7 +89,7 @@ export default function RouteForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="distanceKm">Distance (km)</Label>
           <Input
@@ -126,7 +126,7 @@ export default function RouteForm({
 
       <div>
         <Label className="text-base font-medium">Amenities</Label>
-        <div className="grid grid-cols-2 gap-3 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
           {availableAmenities.map((amenity) => (
             <div key={amenity} className="flex items-center space-x-2">
               <Checkbox

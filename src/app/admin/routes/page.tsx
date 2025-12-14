@@ -193,26 +193,26 @@ function RoutesManagement() {
   });
 
   return (
-    <div className="flex bg-background">
+    <div className="flex bg-background min-h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <main className="flex-1 pt-20 px-4 pb-4">
-          <Card>
+      <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
+        <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
+          <Card className="min-w-0">
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
                 <CardTitle>Route Management</CardTitle>
-                <div className="flex space-x-2">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search routes..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-10 w-full sm:w-64"
                     />
                   </div>
                   <Select value={operatorFilter} onValueChange={setOperatorFilter}>
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="Filter by operator" />
                     </SelectTrigger>
                     <SelectContent>
@@ -231,7 +231,7 @@ function RoutesManagement() {
                         Add Route
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
                       <DialogHeader>
                         <DialogTitle>Create New Route</DialogTitle>
                       </DialogHeader>
@@ -247,27 +247,28 @@ function RoutesManagement() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {loading ? (
-                <div className="text-center py-8">Loading routes...</div>
+                <div className="text-center py-8 px-6">Loading routes...</div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Route</TableHead>
-                      <TableHead>Origin → Destination</TableHead>
-                      <TableHead>Distance/Duration</TableHead>
-                      <TableHead>Operator</TableHead>
-                      <TableHead>Points</TableHead>
-                      <TableHead>Amenities</TableHead>
-                      <TableHead>Trips</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[800px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[200px]">Route</TableHead>
+                        <TableHead className="w-[200px]">Origin → Destination</TableHead>
+                        <TableHead className="hidden md:table-cell w-[150px]">Distance/Duration</TableHead>
+                        <TableHead className="hidden lg:table-cell w-[120px]">Operator</TableHead>
+                        <TableHead className="hidden lg:table-cell w-[100px]">Points</TableHead>
+                        <TableHead className="hidden xl:table-cell w-[150px]">Amenities</TableHead>
+                        <TableHead className="hidden xl:table-cell w-[80px]">Trips</TableHead>
+                        <TableHead className="text-right w-[120px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {filteredRoutes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8 px-6">
                           No routes found
                         </TableCell>
                       </TableRow>
@@ -275,23 +276,23 @@ function RoutesManagement() {
                       filteredRoutes.map((route) => (
                         <TableRow key={route.id}>
                           <TableCell className="font-medium">
-                            <div>
-                              <div className="font-semibold">{route.name}</div>
-                              <div className="text-sm text-muted-foreground mt-1">
+                            <div className="max-w-[180px]">
+                              <div className="font-semibold truncate">{route.name}</div>
+                              <div className="text-sm text-muted-foreground mt-1 truncate">
                                 {route.description}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{route.origin || 'Unknown'}</div>
-                                <div className="text-sm text-muted-foreground">→ {route.destination || 'Unknown'}</div>
+                            <div className="flex items-center space-x-2 max-w-[180px]">
+                              <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium truncate">{route.origin || 'Unknown'}</div>
+                                <div className="text-sm text-muted-foreground truncate">→ {route.destination || 'Unknown'}</div>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             <div className="space-y-1">
                               {route.distanceKm && (
                                 <div className="flex items-center space-x-1 text-sm">
@@ -307,12 +308,12 @@ function RoutesManagement() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden lg:table-cell">
                             <Badge variant="outline">
                               {route.operator?.name || route.operatorId}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden lg:table-cell">
                             <div>
                               <button 
                                 onClick={() => toggleRouteExpansion(route.id)}
@@ -342,10 +343,10 @@ function RoutesManagement() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
+                          <TableCell className="hidden xl:table-cell">
+                            <div className="flex flex-wrap gap-1 max-w-[130px]">
                               {route.amenities?.slice(0, 2).map((amenity) => (
-                                <Badge key={amenity} variant="outline" className="text-xs">
+                                <Badge key={amenity} variant="outline" className="text-xs truncate">
                                   {amenity}
                                 </Badge>
                               ))}
@@ -356,7 +357,7 @@ function RoutesManagement() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden xl:table-cell">
                             <Badge variant="secondary">
                               {route.trips?.length || 0} trips
                             </Badge>
@@ -385,12 +386,13 @@ function RoutesManagement() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
               <DialogHeader>
                 <DialogTitle>Edit Route</DialogTitle>
               </DialogHeader>
