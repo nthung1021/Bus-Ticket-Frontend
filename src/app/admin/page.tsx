@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
 import { StatCard } from "@/components/dashboard/StatCard/StatCard";
 import {
@@ -28,6 +29,7 @@ import {
   Ticket,
   Users,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -179,9 +181,18 @@ function Dashboard() {
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-                <h2 className="text-h2 text-card-foreground mb-6">
-                  Statistics Overview
-                </h2>
+                <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mb-6">
+                  <h2 className="text-h2 text-card-foreground">
+                    Statistics Overview
+                  </h2>
+                  <Link 
+                    href="/admin/analytics/revenue"
+                    className="inline-flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    <span>View Revenue Analytics</span>
+                  </Link>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {dashboardData.stats.map((stat, index) => (
                     <StatCard
