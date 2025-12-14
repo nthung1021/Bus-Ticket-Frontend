@@ -98,7 +98,7 @@ function PassengerInfoPageContent() {
       enabled: !!tripId,
     });
 
-  // WebSocket for booking management
+  // WebSocket for booking management - only enable when tripId is valid
   const {
     isConnected: isBookingConnected,
     bookings,
@@ -107,7 +107,7 @@ function PassengerInfoPageContent() {
     getBookingStatus,
   } = useBookingWebSocket({
     tripId: tripId || "",
-    enabled: !!tripId,
+    enabled: !!tripId && tripId.length > 0,
     userId: currentUser?.id,
   });
 

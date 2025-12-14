@@ -129,6 +129,18 @@ class BookingWebSocketService {
 
       this.socket.on("connect_error", (error) => {
         console.error("Booking WebSocket connection error:", error);
+        console.error("Error details:", {
+          message: error.message,
+          url: `${SOCKET_URL}/bookings`,
+        });
+
+        // Check if it's a namespace error
+        if (error.message?.includes("Invalid namespace")) {
+          console.error(
+            "Namespace error detected - checking server availability...",
+          );
+          console.error(`Attempting to connect to: ${SOCKET_URL}/bookings`);
+        }
       });
     }
 
@@ -151,6 +163,12 @@ class BookingWebSocketService {
     return new Promise((resolve, reject) => {
       if (!this.socket) {
         reject(new Error("Socket not connected"));
+        return;
+      }
+
+      // Validate tripId before emitting
+      if (!tripId || tripId.trim() === "") {
+        reject(new Error("Invalid tripId: tripId cannot be empty"));
         return;
       }
 

@@ -51,6 +51,18 @@ function PaymentSuccessPageContent() {
       return bookingData ? JSON.parse(bookingData).bookingId : null;
     })();
 
+  // Get tripId from session storage for WebSocket connection
+  const getTripIdFromStorage = () => {
+    const bookingData = sessionStorage.getItem("bookingData");
+    if (bookingData) {
+      const parsed = JSON.parse(bookingData);
+      return parsed.tripId || "";
+    }
+    return "";
+  };
+
+  const tripId = getTripIdFromStorage();
+
   // WebSocket for booking management
   const {
     isConnected,
@@ -59,8 +71,8 @@ function PaymentSuccessPageContent() {
     updatePaymentStatus,
     getPaymentStatus,
   } = useBookingWebSocket({
-    tripId: "", // We'll get this from booking data
-    enabled: !!bookingId,
+    tripId,
+    enabled: !!bookingId && !!tripId,
     userId: user?.id,
   });
 
