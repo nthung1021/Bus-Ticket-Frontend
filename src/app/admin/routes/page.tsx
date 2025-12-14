@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
-import { Header } from "@/components/dashboard/Header/Header";
 import ProtectedRole from "@/components/ProtectedRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,8 +196,7 @@ function RoutesManagement() {
     <div className="flex bg-background">
       <Sidebar />
       <div className="flex-1 ml-64 flex flex-col">
-        <Header />
-        <main className="flex-1 pt-4 px-4 pb-4">
+        <main className="flex-1 pt-20 px-4 pb-4">
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">

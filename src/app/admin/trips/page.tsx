@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
-import { Header } from "@/components/dashboard/Header/Header";
 import { TripForm } from "@/components/dashboard/TripForm/TripForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -221,11 +220,8 @@ function TripManagementPage() {
 
             {/* Main Content */}
             <div className="flex-1 ml-64 flex flex-col">
-                {/* Header */}
-                <Header />
-
                 {/* Content Area */}
-                <main className="flex-1 p-6">
+                <main className="flex-1 pt-20 p-6">
                     {/* Page Header */}
                     <div className="mb-6">
                         <h1 className="text-3xl font-bold text-foreground mb-2">
