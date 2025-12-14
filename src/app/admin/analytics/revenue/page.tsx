@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, DollarSign, TrendingUp, TrendingDown, BarChart3, Users, Ticket } from "lucide-react";
+import { CalendarIcon, DollarSign, TrendingUp, TrendingDown, BarChart3, Users, Ticket, CreditCard } from "lucide-react";
 import ProtectedRole from "@/components/ProtectedRole";
 import {
   LineChart,
@@ -37,6 +37,7 @@ export default function RevenueAnalyticsPage() {
 
 function RevenueAnalyticsContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Mock data - replace with actual API calls
   const revenueData = {
@@ -90,6 +91,33 @@ function RevenueAnalyticsContent() {
     { route: 'Others', revenue: 9800, percentage: 7 },
   ];
 
+  // Payment method distribution data
+  const paymentMethodData = [
+    { method: 'Credit Card', amount: 156800, percentage: 45, color: '#0088FE' },
+    { method: 'Bank Transfer', amount: 121200, percentage: 35, color: '#00C49F' },
+    { method: 'Digital Wallet', amount: 52000, percentage: 15, color: '#FFBB28' },
+    { method: 'Cash', amount: 17600, percentage: 5, color: '#FF8042' },
+  ];
+
+  // Revenue over time data (more detailed for line chart)
+  const revenueOverTimeData = [
+    { date: '2024-12-01', revenue: 15200, tickets: 178 },
+    { date: '2024-12-02', revenue: 13800, tickets: 162 },
+    { date: '2024-12-03', revenue: 18500, tickets: 215 },
+    { date: '2024-12-04', revenue: 16200, tickets: 189 },
+    { date: '2024-12-05', revenue: 19800, tickets: 231 },
+    { date: '2024-12-06', revenue: 22100, tickets: 258 },
+    { date: '2024-12-07', revenue: 20500, tickets: 239 },
+    { date: '2024-12-08', revenue: 17900, tickets: 209 },
+    { date: '2024-12-09', revenue: 14300, tickets: 167 },
+    { date: '2024-12-10', revenue: 16700, tickets: 195 },
+    { date: '2024-12-11', revenue: 18900, tickets: 221 },
+    { date: '2024-12-12', revenue: 21400, tickets: 250 },
+    { date: '2024-12-13', revenue: 19600, tickets: 229 },
+    { date: '2024-12-14', revenue: 23100, tickets: 270 },
+    { date: '2024-12-15', revenue: 20800, tickets: 243 },
+  ];
+
   const getCurrentData = () => {
     return revenueData[selectedPeriod];
   };
@@ -113,6 +141,22 @@ function RevenueAnalyticsContent() {
       currency: 'VND'
     }).format(amount);
   };
+
+  // Loading component
+  const LoadingCard = ({ height }: { height: string }) => (
+    <div className="flex items-center justify-center" style={{ height }}>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
+
+  // Empty state component
+  const EmptyStateCard = ({ height, title, description }: { height: string; title: string; description: string }) => (
+    <div className="flex flex-col items-center justify-center text-center" style={{ height }}>
+      <BarChart3 className="w-12 h-12 text-gray-400 mb-4" />
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+      <p className="text-gray-500 dark:text-gray-400">{description}</p>
+    </div>
+  );
 
   const currentData = getCurrentData();
 
@@ -234,83 +278,169 @@ function RevenueAnalyticsContent() {
             </div>
 
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Revenue Trend Chart */}
-              <Card>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {/* Revenue Over Time - Line Chart */}
+              <Card className="xl:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <BarChart3 className="w-5 h-5" />
-                    <span>Revenue Trend</span>
+                    <TrendingUp className="w-5 h-5" />
+                    <span>Revenue Over Time</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={getChartData()}>
-                      <defs>
-                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey={selectedPeriod === 'month' ? 'month' : selectedPeriod === 'week' ? 'date' : 'date'} 
-                        tickFormatter={(value) => {
-                          if (selectedPeriod === 'month') return value;
-                          return format(new Date(value), 'MMM dd');
-                        }}
-                      />
-                      <YAxis tickFormatter={(value) => `${(value / 1000)}k`} />
-                      <Tooltip 
-                        formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-                        labelFormatter={(label) => {
-                          if (selectedPeriod === 'month') return label;
-                          return format(new Date(label), 'MMM dd, yyyy');
-                        }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke="#3b82f6" 
-                        fillOpacity={1} 
-                        fill="url(#colorRevenue)" 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {isLoading ? (
+                    <LoadingCard height="300px" />
+                  ) : revenueOverTimeData.length === 0 ? (
+                    <EmptyStateCard 
+                      height="300px" 
+                      title="No Revenue Data"
+                      description="No revenue data available for the selected period"
+                    />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={revenueOverTimeData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis 
+                          dataKey="date" 
+                          tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis 
+                          tickFormatter={(value) => `${(value / 1000)}k`}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <Tooltip 
+                          formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                          labelFormatter={(label) => format(new Date(label), 'MMM dd, yyyy')}
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                          }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="#3b82f6" 
+                          strokeWidth={3}
+                          dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, fill: '#3b82f6' }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Route Performance */}
+              {/* Payment Method Distribution - Pie Chart */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Users className="w-5 h-5" />
-                    <span>Top Routes by Revenue</span>
+                    <CreditCard className="w-5 h-5" />
+                    <span>Payment Methods</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={routePerformanceData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(entry: any) => `${entry.percentage}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="revenue"
+                  {isLoading ? (
+                    <LoadingCard height="300px" />
+                  ) : paymentMethodData.length === 0 ? (
+                    <EmptyStateCard 
+                      height="300px" 
+                      title="No Payment Data"
+                      description="No payment method data available"
+                    />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={paymentMethodData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ payload }) => `${payload.method}\n${payload.percentage}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="percentage"
+                        >
+                          {paymentMethodData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => [`${value}%`, 'Share']}
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Revenue by Route - Bar Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="w-5 h-5" />
+                  <span>Revenue by Route</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <LoadingCard height="400px" />
+                ) : routePerformanceData.length === 0 ? (
+                  <EmptyStateCard 
+                    height="400px" 
+                    title="No Route Data"
+                    description="No route performance data available"
+                  />
+                ) : (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart 
+                      data={routePerformanceData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis 
+                        dataKey="route" 
+                        tick={{ fontSize: 12 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                      />
+                      <YAxis 
+                        tickFormatter={(value) => `${(value / 1000)}k`}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="revenue" 
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
                       >
                         {routePerformanceData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
-                      </Pie>
-                      <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
-                    </PieChart>
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Route Performance Table */}
             <Card>
@@ -318,50 +448,60 @@ function RevenueAnalyticsContent() {
                 <CardTitle>Route Performance Details</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3">Route</th>
-                        <th className="text-right p-3">Revenue</th>
-                        <th className="text-right p-3">Percentage</th>
-                        <th className="text-center p-3">Performance</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {routePerformanceData.map((route, index) => (
-                        <tr key={route.route} className="border-b hover:bg-muted/50">
-                          <td className="p-3">
-                            <div className="flex items-center space-x-3">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                              />
-                              <span className="font-medium">{route.route}</span>
-                            </div>
-                          </td>
-                          <td className="text-right p-3 font-medium">
-                            {formatCurrency(route.revenue)}
-                          </td>
-                          <td className="text-right p-3">
-                            {route.percentage}%
-                          </td>
-                          <td className="text-center p-3">
-                            <Badge variant={
-                              route.percentage >= 30 ? 'default' : 
-                              route.percentage >= 20 ? 'secondary' : 
-                              'outline'
-                            }>
-                              {route.percentage >= 30 ? 'High' : 
-                               route.percentage >= 20 ? 'Medium' : 
-                               'Low'}
-                            </Badge>
-                          </td>
+                {isLoading ? (
+                  <LoadingCard height="300px" />
+                ) : routePerformanceData.length === 0 ? (
+                  <EmptyStateCard 
+                    height="300px" 
+                    title="No Route Data"
+                    description="No route performance data available"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3">Route</th>
+                          <th className="text-right p-3">Revenue</th>
+                          <th className="text-right p-3">Percentage</th>
+                          <th className="text-center p-3">Performance</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {routePerformanceData.map((route, index) => (
+                          <tr key={route.route} className="border-b hover:bg-muted/50">
+                            <td className="p-3">
+                              <div className="flex items-center space-x-3">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                />
+                                <span className="font-medium">{route.route}</span>
+                              </div>
+                            </td>
+                            <td className="text-right p-3 font-medium">
+                              {formatCurrency(route.revenue)}
+                            </td>
+                            <td className="text-right p-3">
+                              {route.percentage}%
+                            </td>
+                            <td className="text-center p-3">
+                              <Badge variant={
+                                route.percentage >= 30 ? 'default' : 
+                                route.percentage >= 20 ? 'secondary' : 
+                                'outline'
+                              }>
+                                {route.percentage >= 30 ? 'High' : 
+                                 route.percentage >= 20 ? 'Medium' : 
+                                 'Low'}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
