@@ -33,6 +33,10 @@ interface UseBookingWebSocketOptions {
 interface UseBookingWebSocketReturn {
   /** True if the WebSocket is currently connected to the server. */
   isConnected: boolean;
+  /** Map of all bookings with their detailed information */
+  bookings: Map<string, BookingInfo>;
+  /** Set of currently tracked booking IDs */
+  trackedBookings: Set<string>;
   /**
    * Attempts to track a specific booking for real-time updates.
    * @param bookingId The ID of the booking to track.
@@ -125,6 +129,7 @@ export function useBookingWebSocket({
    * Use booking context for managing booking states
    */
   const {
+    bookings,
     trackedBookings,
     addBooking,
     updateBooking,
@@ -544,6 +549,8 @@ export function useBookingWebSocket({
 
   return {
     isConnected,
+    bookings,
+    trackedBookings,
     trackBooking,
     untrackBooking,
     updateBookingStatus,
