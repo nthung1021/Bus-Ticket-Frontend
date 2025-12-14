@@ -231,8 +231,8 @@ function RoutesManagement() {
                         Add Route
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
-                      <DialogHeader>
+                    <DialogContent className="max-w-5xl max-h-[95vh] w-[98vw] sm:w-full flex flex-col">
+                      <DialogHeader className="flex-shrink-0">
                         <DialogTitle>Create New Route</DialogTitle>
                       </DialogHeader>
                       <RouteForm
@@ -392,8 +392,8 @@ function RoutesManagement() {
           </Card>
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
-              <DialogHeader>
+            <DialogContent className="max-w-5xl max-h-[95vh] w-[98vw] sm:w-full flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Edit Route</DialogTitle>
               </DialogHeader>
               <RouteForm
