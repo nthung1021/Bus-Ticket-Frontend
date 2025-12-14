@@ -173,7 +173,7 @@ function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col">
         {/* Content Area */}
-        <main className="flex-1 pt-20 px-4">
+        <main className="flex-1 pt-10 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">

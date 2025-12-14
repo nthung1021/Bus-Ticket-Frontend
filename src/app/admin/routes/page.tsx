@@ -196,7 +196,7 @@ function RoutesManagement() {
     <div className="flex bg-background min-h-screen overflow-hidden">
       <Sidebar />
       <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
-        <main className="flex-1 pt-20 px-4 pb-4 overflow-auto">
+        <main className="flex-1 pt-10 px-4 pb-4 overflow-auto">
           <Card className="min-w-0">
             <CardHeader>
               <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">

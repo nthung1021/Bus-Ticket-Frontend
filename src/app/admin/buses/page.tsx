@@ -187,7 +187,7 @@ function BusesManagement() {
     <div className="flex bg-background">
       <Sidebar />
       <div className="flex-1 ml-64 flex flex-col">
-        <main className="flex-1 pt-20 px-4 pb-4">
+        <main className="flex-1 pt-10 px-4 pb-4">
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
