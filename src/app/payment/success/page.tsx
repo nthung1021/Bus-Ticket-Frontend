@@ -23,6 +23,8 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useBookingWebSocket } from "@/hooks/useBookingWebSocket";
+import { BookingStatus } from "@/services/booking-websocket.service";
 import UserBookingService, {
   type Booking,
 } from "@/services/userBookingService";
@@ -32,6 +34,7 @@ import { formatCurrency } from "@/utils/formatCurrency";
 function PaymentSuccessPageContent() {
   const router = useRouter();
   const { data: user } = useCurrentUser();
+  const searchParams = useSearchParams();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,26 +43,100 @@ function PaymentSuccessPageContent() {
 
   const bookingService = new UserBookingService();
 
+  // Get booking ID from URL params or session storage
+  const bookingId =
+    searchParams.get("bookingId") ||
+    (() => {
+      const bookingData = sessionStorage.getItem("bookingData");
+      return bookingData ? JSON.parse(bookingData).bookingId : null;
+    })();
+
+  // WebSocket for booking management
+  const {
+    isConnected,
+    bookings,
+    getBookingStatus,
+    updatePaymentStatus,
+    getPaymentStatus,
+  } = useBookingWebSocket({
+    tripId: "", // We'll get this from booking data
+    enabled: !!bookingId,
+    userId: user?.id,
+  });
+
   useEffect(() => {
     const fetchBooking = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Get booking data from session storage
-        const bookingData = sessionStorage.getItem("bookingData");
-        if (!bookingData) {
-          setError("Booking information not found. Please check again.");
+        if (!bookingId) {
+          setError("Booking ID not found. Please check again.");
           return;
         }
 
-        // Parse booking data
-        const parsedBookingData = JSON.parse(bookingData);
-        setBooking(parsedBookingData);
+        // Get booking data from session storage first for initial display
+        const bookingData = sessionStorage.getItem("bookingData");
+        if (bookingData) {
+          const parsedBookingData = JSON.parse(bookingData);
+          setBooking(parsedBookingData);
+        }
 
-        if (parsedBookingData.status !== "paid") {
-          setError("Payment not successful");
-          return;
+        // Get real-time booking status from WebSocket
+        if (isConnected) {
+          const bookingStatus = getBookingStatus(bookingId);
+          const paymentStatus = getPaymentStatus(bookingId);
+
+          if (!bookingStatus) {
+            setError("Booking not found or not being tracked.");
+            return;
+          }
+
+          // Check if payment was successful
+          if (bookingStatus !== BookingStatus.PAID) {
+            setError(
+              "Payment not successful. Please try again or contact support."
+            );
+            return;
+          }
+
+          // Update booking with real-time data if available
+          if (bookings.has(bookingId)) {
+            const realTimeBooking = bookings.get(bookingId);
+            if (realTimeBooking) {
+              setBooking((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      ...realTimeBooking,
+                      status:
+                        bookingStatus === BookingStatus.PAID
+                          ? "paid"
+                          : bookingStatus,
+                      bookedAt:
+                        typeof realTimeBooking.bookedAt === "string"
+                          ? realTimeBooking.bookedAt
+                          : realTimeBooking.bookedAt?.toISOString() ||
+                            prev.bookedAt,
+                    }
+                  : null
+              );
+            }
+          }
+        } else {
+          // Fallback to session storage data if WebSocket not connected
+          if (!bookingData) {
+            setError("Booking information not found. Please check again.");
+            return;
+          }
+
+          const parsedBookingData = JSON.parse(bookingData);
+          setBooking(parsedBookingData);
+
+          if (parsedBookingData.status !== "paid") {
+            setError("Payment not successful");
+            return;
+          }
         }
       } catch (error) {
         console.error("Error fetching booking:", error);
@@ -74,7 +151,43 @@ function PaymentSuccessPageContent() {
     };
 
     fetchBooking();
-  }, []);
+  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus]);
+
+  // Add real-time booking updates effect
+  useEffect(() => {
+    if (!bookingId || !isConnected) return;
+
+    // Listen for booking updates in real-time
+    const interval = setInterval(() => {
+      const bookingStatus = getBookingStatus(bookingId);
+      const paymentStatus = getPaymentStatus(bookingId);
+
+      if (bookingStatus && bookings.has(bookingId)) {
+        const realTimeBooking = bookings.get(bookingId);
+        if (realTimeBooking) {
+          setBooking((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  ...realTimeBooking,
+                  status:
+                    bookingStatus === BookingStatus.PAID
+                      ? "paid"
+                      : bookingStatus,
+                  bookedAt:
+                    typeof realTimeBooking.bookedAt === "string"
+                      ? realTimeBooking.bookedAt
+                      : realTimeBooking.bookedAt?.toISOString() ||
+                        prev.bookedAt,
+                }
+              : null
+          );
+        }
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus]);
 
   useEffect(() => {
     const sendEticketEmail = async () => {
