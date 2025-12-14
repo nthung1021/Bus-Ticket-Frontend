@@ -200,7 +200,7 @@ function RoutesManagement() {
           <Card className="min-w-0">
             <CardHeader>
               <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
-                <CardTitle>Route Management</CardTitle>
+                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Route Management</CardTitle>
                 <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -251,7 +251,7 @@ function RoutesManagement() {
               {loading ? (
                 <div className="text-center py-8 px-6">Loading routes...</div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto px-4">
                   <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>

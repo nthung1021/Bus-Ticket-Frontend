@@ -173,7 +173,7 @@ function OperatorsManagement() {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Operator Management</CardTitle>
+                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Operator Management</CardTitle>
                 <div className="flex space-x-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

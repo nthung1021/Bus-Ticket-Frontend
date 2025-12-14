@@ -221,10 +221,10 @@ function TripManagementPage() {
             {/* Main Content */}
             <div className="flex-1 ml-64 flex flex-col">
                 {/* Content Area */}
-                <main className="flex-1 pt-10 p-6">
+                <main className="flex-1 pt-10 px-6 pb-6">
                     {/* Page Header */}
                     <div className="mb-6">
-                        <h1 className="text-3xl font-bold text-foreground mb-2">
+                        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                             Trip Management
                         </h1>
                         <p className="text-muted-foreground">
