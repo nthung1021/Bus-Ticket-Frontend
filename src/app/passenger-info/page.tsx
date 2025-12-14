@@ -32,8 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/utils/formatCurrency";
 
-const serviceFee = 10000;
-const processingFee = 5000;
+// const serviceFee = 10000;
+// const processingFee = 5000;
 
 interface SelectedSeat {
   id: string;
@@ -946,7 +946,7 @@ function PassengerInfoPageContent() {
                   </div>
                 </div>
                 {/* Additional Fee */}
-                <div className="flex justify-between items-center">
+                {/* <div className="flex justify-between items-center">
                   <h4 className="font-medium">Service Fee</h4>
                   <span className="space-y-2 font-medium text-sm">
                     {formatCurrency(serviceFee)}
@@ -957,14 +957,15 @@ function PassengerInfoPageContent() {
                   <span className="space-y-2 font-medium text-sm">
                     {formatCurrency(processingFee)}
                   </span>
-                </div>
+                </div> */}
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total Amount</span>
                     <span className="text-primary">
                       {formatCurrency(
-                        calculateTotalPrice() + serviceFee + processingFee
+                        // calculateTotalPrice() + serviceFee + processingFee
+                        calculateTotalPrice()
                       )}
                     </span>
                   </div>
@@ -1116,20 +1117,21 @@ function PassengerInfoPageContent() {
                 <span>Seat charges:</span>
                 <span>{formatCurrency(calculateTotalPrice())}</span>
               </div>
-              <div className="flex justify-between text-xs">
+              {/* <div className="flex justify-between text-xs">
                 <span>Service fee:</span>
                 <span>{formatCurrency(serviceFee)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Processing fee:</span>
                 <span>{formatCurrency(processingFee)}</span>
-              </div>
+              </div> */}
               <Separator className="my-1.5" />
               <div className="flex justify-between font-semibold text-sm">
                 <span>Total Amount:</span>
                 <span className="text-primary">
                   {formatCurrency(
-                    calculateTotalPrice() + serviceFee + processingFee
+                    // calculateTotalPrice() + serviceFee + processingFee
+                    calculateTotalPrice()
                   )}
                 </span>
               </div>
