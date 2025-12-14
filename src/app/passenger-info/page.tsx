@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, use, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useSeatWebSocket } from "@/hooks/useSeatWebSocket";
+import { useBookingWebSocket } from "@/hooks/useBookingWebSocket";
+import { BookingStatus } from "@/services/booking-websocket.service";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -95,6 +97,19 @@ function PassengerInfoPageContent() {
       tripId: tripId || "",
       enabled: !!tripId,
     });
+
+  // WebSocket for booking management
+  const {
+    isConnected: isBookingConnected,
+    bookings,
+    trackBooking,
+    updateBookingStatus,
+    getBookingStatus,
+  } = useBookingWebSocket({
+    tripId: tripId || "",
+    enabled: !!tripId,
+    userId: currentUser?.id,
+  });
 
   // Lock all selected seats when component mounts
   useEffect(() => {
@@ -458,6 +473,11 @@ function PassengerInfoPageContent() {
     setIsSubmitting(true);
 
     try {
+      // Check if booking WebSocket is connected
+      if (!isBookingConnected) {
+        throw new Error("Booking service is not connected. Please try again.");
+      }
+
       // Create booking data
       const bookingData = {
         tripId,
@@ -480,6 +500,27 @@ function PassengerInfoPageContent() {
 
       const createdBooking = bookingResponse.data.data;
       const bookingId = createdBooking.id;
+
+      // Track the booking using WebSocket for real-time updates
+      const trackResult = await trackBooking(bookingId);
+      if (!trackResult) {
+        console.warn("Failed to track booking for real-time updates");
+      }
+
+      // Update booking status to PENDING using WebSocket
+      const updateResult = await updateBookingStatus(
+        bookingId,
+        BookingStatus.PENDING,
+        {
+          paymentInitiated: true,
+          paymentMethod: "payos",
+          totalPrice: calculateTotalPrice(),
+        }
+      );
+
+      if (!updateResult) {
+        console.warn("Failed to update booking status to PENDING");
+      }
 
       // Store booking data for payment confirmation
       sessionStorage.setItem(
@@ -532,7 +573,7 @@ function PassengerInfoPageContent() {
         error: errorType,
         message: errorMessage,
         details:
-          error.response?.data?.details || "Failed to create payment link",
+          error.response.data?.details || "Failed to create payment link",
         bookingId: "none",
       });
 
