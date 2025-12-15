@@ -32,6 +32,7 @@ import api from "@/lib/api";
 import { formatCurrency } from "@/utils/formatCurrency";
 
 function PaymentSuccessPageContent() {
+  console.log("hello world");
   const router = useRouter();
   const { data: user } = useCurrentUser();
   const searchParams = useSearchParams();
@@ -231,8 +232,6 @@ function PaymentSuccessPageContent() {
       console.log("Payment successful, cleared retry state");
     }
   }, [booking]);
-
-  console.log("hello world");
 
   // Redirect to bookings page if no booking data
   useEffect(() => {
