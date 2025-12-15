@@ -232,6 +232,8 @@ function PaymentSuccessPageContent() {
     }
   }, [booking]);
 
+  console.log("hello world");
+
   // Redirect to bookings page if no booking data
   useEffect(() => {
     if (!booking && !loading) {
