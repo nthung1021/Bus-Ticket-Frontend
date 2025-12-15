@@ -237,6 +237,7 @@ function PaymentSuccessPageContent() {
     if (!booking && !loading) {
       router.push("/user/bookings");
     }
+    console.log(booking);
   }, [booking, loading, router]);
 
   // Download e-ticket
