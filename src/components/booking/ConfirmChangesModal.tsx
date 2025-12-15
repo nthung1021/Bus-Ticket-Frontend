@@ -225,7 +225,14 @@ export function ConfirmChangesModal({
             onClick={onConfirm}
             disabled={loading || !hasChanges}
           >
-            {loading ? "Saving..." : "Confirm Changes"}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Applying Changes...
+              </>
+            ) : (
+              "Confirm Changes"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,6 +10,7 @@ import { getUserBookings, modifyPassengerDetails, changeSeats } from "@/services
 import { BookingEditForm } from "@/components/booking/BookingEditForm";
 import { SeatSelectionForEdit } from "@/components/booking/SeatSelectionForEdit";
 import { ConfirmChangesModal } from "@/components/booking/ConfirmChangesModal";
+import { SaveProgress } from "@/components/booking/SaveProgress";
 import { formatCurrency } from "@/utils/formatCurrency";
 import toast from "react-hot-toast";
 
@@ -73,6 +74,7 @@ export default function BookingEditPage() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingStep, setSavingStep] = useState<'passenger' | 'seats' | 'complete' | null>(null);
 
   useEffect(() => {
     loadBookingDetails();
@@ -96,6 +98,24 @@ export default function BookingEditPage() {
       toast.error("Failed to load booking details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshBookingDetails = async () => {
+    try {
+      const bookings = await getUserBookings();
+      const foundBooking = bookings.find(b => b.id === bookingId);
+      if (foundBooking) {
+        setBooking(foundBooking);
+        // Reset changes state after successful update
+        setChanges({
+          passengerChanges: [],
+          seatChanges: [],
+          priceDifference: 0
+        });
+      }
+    } catch (err) {
+      console.error("Error refreshing booking:", err);
     }
   };
 
@@ -163,27 +183,170 @@ export default function BookingEditPage() {
   };
 
   const confirmChanges = async () => {
+    if (!booking) return;
+    
+    const originalBookingState = { ...booking };
+    let passengerUpdateSuccess = false;
+    let seatUpdateSuccess = false;
+    
     try {
       setSaving(true);
+      setShowConfirmModal(false); // Close modal to show progress
       
-      // Apply passenger changes if any
+      // Step 1: Apply passenger changes if any
       if (changes.passengerChanges.length > 0) {
-        await modifyPassengerDetails(bookingId, changes.passengerChanges);
+        setSavingStep('passenger');
+        toast.loading("Updating passenger information...", {
+          duration: 3000,
+          id: 'passenger-update'
+        });
+        
+        try {
+          const passengerResult = await modifyPassengerDetails(bookingId, changes.passengerChanges);
+          passengerUpdateSuccess = true;
+          
+          toast.success(
+            `Updated information for ${changes.passengerChanges.length} passenger${changes.passengerChanges.length > 1 ? 's' : ''}`,
+            { id: 'passenger-update' }
+          );
+          
+          console.log('Passenger update result:', passengerResult);
+        } catch (passengerErr: any) {
+          toast.error(
+            `Failed to update passenger information: ${passengerErr.response?.data?.message || passengerErr.message}`,
+            { id: 'passenger-update' }
+          );
+          throw new Error(`Passenger update failed: ${passengerErr.response?.data?.message || passengerErr.message}`);
+        }
+      } else {
+        passengerUpdateSuccess = true; // No passenger changes, consider as success
       }
       
-      // Apply seat changes if any  
+      // Step 2: Apply seat changes if any
       if (changes.seatChanges.length > 0) {
-        await changeSeats(bookingId, changes.seatChanges);
+        setSavingStep('seats');
+        toast.loading("Changing seat assignments...", {
+          duration: 3000,
+          id: 'seat-update'
+        });
+        
+        try {
+          const seatResult = await changeSeats(bookingId, changes.seatChanges);
+          seatUpdateSuccess = true;
+          
+          // Show detailed seat change feedback
+          const seatChangeMessage = changes.seatChanges
+            .map(change => {
+              const passenger = booking.passengers.find(p => p.id === change.passengerId);
+              return `${passenger?.fullName || 'Passenger'}: ${change.oldSeatCode} → ${change.newSeatCode}`;
+            })
+            .join(', ');
+          
+          toast.success(
+            `Seat changes applied: ${seatChangeMessage}`,
+            { 
+              id: 'seat-update',
+              duration: 5000 // Longer duration for seat change details
+            }
+          );
+          
+          // Show price change if applicable
+          if (seatResult.data.totalPriceDifference !== 0) {
+            const priceMessage = seatResult.data.totalPriceDifference > 0 
+              ? `Additional cost: ${formatCurrency(seatResult.data.totalPriceDifference)}`
+              : `Refund: ${formatCurrency(Math.abs(seatResult.data.totalPriceDifference))}`;
+            
+            toast.info(priceMessage, {
+              duration: 4000
+            });
+          }
+          
+          console.log('Seat update result:', seatResult);
+        } catch (seatErr: any) {
+          console.error('Seat change error:', seatErr);
+          
+          // Handle rollback for seat changes
+          if (passengerUpdateSuccess && changes.passengerChanges.length > 0) {
+            toast.error(
+              "Seat change failed. Passenger information was updated but seats remain unchanged.",
+              { 
+                id: 'seat-update',
+                duration: 6000
+              }
+            );
+            
+            // Partial success scenario
+            toast.info(
+              "Your passenger information has been saved. You can try changing seats again later.",
+              { duration: 5000 }
+            );
+          } else {
+            toast.error(
+              `Failed to change seats: ${seatErr.response?.data?.message || seatErr.message}`,
+              { 
+                id: 'seat-update',
+                duration: 5000
+              }
+            );
+          }
+          
+          throw new Error(`Seat change failed: ${seatErr.response?.data?.message || seatErr.message}`);
+        }
+      } else {
+        seatUpdateSuccess = true; // No seat changes, consider as success
       }
       
-      toast.success("Booking updated successfully!");
-      router.push("/user/bookings");
+      // Step 3: Complete success
+      setSavingStep('complete');
+      
+      // Refresh booking details to get updated information
+      await refreshBookingDetails();
+      
+      // Final success message
+      const changesSummary = [];
+      if (changes.passengerChanges.length > 0) {
+        changesSummary.push(`${changes.passengerChanges.length} passenger info update${changes.passengerChanges.length > 1 ? 's' : ''}`);
+      }
+      if (changes.seatChanges.length > 0) {
+        changesSummary.push(`${changes.seatChanges.length} seat change${changes.seatChanges.length > 1 ? 's' : ''}`);
+      }
+      
+      toast.success(
+        `✅ Booking updated successfully! Applied: ${changesSummary.join(' and ')}`,
+        {
+          duration: 4000,
+          icon: '🎉'
+        }
+      );
+      
+      // Navigate back with a delay to show the success message
+      setTimeout(() => {
+        router.push("/user/bookings");
+      }, 1500);
+      
     } catch (err: any) {
       console.error("Error saving changes:", err);
-      toast.error(err.response?.data?.message || "Failed to save changes");
+      
+      // Determine error type and show appropriate message
+      const errorMessage = err.message || err.response?.data?.message || "An unexpected error occurred";
+      
+      // Show main error toast
+      toast.error(
+        `❌ Failed to update booking: ${errorMessage}`,
+        {
+          duration: 6000,
+          icon: '⚠️'
+        }
+      );
+      
+      // Re-open confirmation modal for retry
+      setTimeout(() => {
+        setShowConfirmModal(true);
+      }, 1000);
+      
     } finally {
       setSaving(false);
-      setShowConfirmModal(false);
+      setSavingStep(null);
     }
   };
 
@@ -286,6 +449,7 @@ export default function BookingEditPage() {
               currentSeats={booking.passengers.map(p => p.seatCode)}
               passengers={booking.passengers}
               onSeatChange={handleSeatChange}
+              disabled={saving}
             />
 
             {/* Action Buttons */}
@@ -305,9 +469,20 @@ export default function BookingEditPage() {
                     <Button 
                       onClick={handleSaveChanges}
                       className="w-full"
-                      disabled={!hasChanges()}
+                      disabled={!hasChanges() || saving}
                     >
-                      Save Changes
+                      {saving 
+                        ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                            {savingStep === 'passenger' && 'Updating Passengers...'}
+                            {savingStep === 'seats' && 'Changing Seats...'}
+                            {savingStep === 'complete' && 'Finalizing...'}
+                            {!savingStep && 'Saving Changes...'}
+                          </>
+                        )
+                        : 'Save Changes'
+                      }
                     </Button>
                     <Button 
                       variant="outline" 
@@ -332,6 +507,14 @@ export default function BookingEditPage() {
         changes={changes}
         loading={saving}
         booking={booking}
+      />
+
+      {/* Save Progress Indicator */}
+      <SaveProgress 
+        show={saving}
+        currentStep={savingStep}
+        hasPassengerChanges={changes.passengerChanges.length > 0}
+        hasSeatChanges={changes.seatChanges.length > 0}
       />
     </div>
   );

@@ -22,6 +22,7 @@ interface SeatSelectionForEditProps {
   currentSeats: string[];
   passengers: Passenger[];
   onSeatChange: (passengerId: string, oldSeatCode: string, newSeatCode: string) => void;
+  disabled?: boolean;
 }
 
 interface SeatStatus {
@@ -35,7 +36,8 @@ export function SeatSelectionForEdit({
   busId, 
   currentSeats, 
   passengers,
-  onSeatChange 
+  onSeatChange,
+  disabled = false
 }: SeatSelectionForEditProps) {
   const [seatLayout, setSeatLayout] = useState<SeatLayoutConfig | null>(null);
   const [seatStatuses, setSeatStatuses] = useState<SeatStatus[]>([]);
@@ -90,6 +92,11 @@ export function SeatSelectionForEdit({
   };
 
   const handleSeatClick = (seatCode: string) => {
+    if (disabled) {
+      toast.error('Seat selection is currently disabled');
+      return;
+    }
+
     if (!selectedPassenger) {
       toast.error('Please select a passenger first');
       return;
@@ -298,6 +305,7 @@ export function SeatSelectionForEdit({
         <div className="text-xs text-muted-foreground space-y-1">
           <p>💡 Select a passenger first, then click on an available seat to change.</p>
           <p>⚠️ Seat changes may affect the total booking price.</p>
+          <p>🔄 Changes are saved automatically when you confirm.</p>
         </div>
       </CardContent>
     </Card>
