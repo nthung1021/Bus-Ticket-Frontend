@@ -96,8 +96,45 @@ function SearchPageContent() {
   const passengers = searchParams.get("passengers") || "";
 
   useEffect(() => {
+    // If no search params, load all routes instead of trips
     if (!origin || !destination || !date) {
-      console.log('🔍 Missing search parameters:', { origin, destination, date });
+      console.log('🔍 No search parameters, loading all routes');
+      setIsLoading(true);
+      setError(null);
+      
+      routeService.getAllSimple()
+        .then((routesData) => {
+          console.log('✅ Loaded routes:', routesData.length);
+          
+          // Convert routes to SearchResult format
+          const mapped: SearchResult[] = routesData.map((route: Route) => ({
+            id: route.id,
+            title: route.name,
+            origin: route.origin,
+            destination: route.destination,
+            departure: route.origin,
+            arrival: route.destination,
+            price: 0, // Routes don't have direct prices, shows in trips
+            duration: `${Math.floor(route.estimatedMinutes / 60)}h${route.estimatedMinutes % 60 ? ` ${route.estimatedMinutes % 60}m` : ''}`,
+            distance: route.distanceKm,
+            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            description: route.description || `${route.distanceKm} km • ${Math.floor(route.estimatedMinutes / 60)}h${route.estimatedMinutes % 60 ? ` ${route.estimatedMinutes % 60}m` : ''}`,
+            category: route.amenities?.length > 0 ? "Premium" : "Standard",
+            rating: route.operator?.rating ?? 4.0,
+            location: `${route.origin} → ${route.destination}`,
+          }));
+          
+          setAllResults(mapped);
+        })
+        .catch((err) => {
+          setError(
+            err?.response?.data?.message ||
+            "Failed to load routes. Please try again.",
+          );
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
       return;
     }
 
@@ -570,7 +607,7 @@ function SearchPageContent() {
               <div className="text-body text-muted-foreground">
                 {origin && destination && date ? (
                   <>
-                    Found {results.length} routes for{" "}
+                    Found {results.length} trips for{" "}
                     <span className="font-semibold text-foreground">
                       {origin} → {destination}
                     </span>{" "}
@@ -588,7 +625,7 @@ function SearchPageContent() {
                   </>
                 ) : (
                   <>
-                    Found {results.length} routes
+                    Found {results.length} available routes
                     {filters.query && (
                       <span> for "{filters.query}"</span>
                     )}
@@ -685,14 +722,30 @@ function SearchPageContent() {
                             </p>
                           </div>
                           <div className="flex items-center justify-between pt-2">
-                            <span className="text-h5 font-bold text-primary">
-                              {formatCurrency(result.price)}
-                            </span>
-                            <Link href={`/trips/${result.id}`}>
-                              <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
-                                View Details
-                              </Button>
-                            </Link>
+                            {/* Show price for trips, distance for routes */}
+                            {result.price > 0 ? (
+                              <span className="text-h5 font-bold text-primary">
+                                {formatCurrency(result.price)}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                {result.distance} km • {result.duration}
+                              </span>
+                            )}
+                            {/* Different actions for trips vs routes */}
+                            {result.price > 0 ? (
+                              <Link href={`/trips/${result.id}`}>
+                                <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
+                                  View Details
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Link href={`/search?origin=${encodeURIComponent(result.origin)}&destination=${encodeURIComponent(result.destination)}`}>
+                                <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
+                                  View Trips
+                                </Button>
+                              </Link>
+                            )}
                           </div>
                         </div>
                       </CardContent>
