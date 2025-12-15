@@ -32,7 +32,7 @@ import api from "@/lib/api";
 import { formatCurrency } from "@/utils/formatCurrency";
 
 function PaymentSuccessPageContent() {
-  console.log("hello world");
+  // console.log("hello world");
   const router = useRouter();
   const { data: user } = useCurrentUser();
   const searchParams = useSearchParams();
@@ -575,6 +575,7 @@ export default function PaymentSuccessPage() {
         </div>
       }
     >
+      <p>"hello world"</p>
       <PaymentSuccessPageContent />
     </Suspense>
   );
