@@ -335,232 +335,232 @@ Present this ticket when boarding the bus.
       </div>
     );
   }
+  return null;
+  // return (
+  //   <div className="min-h-screen bg-background">
+  //     <div className="container mx-auto py-8 px-4 max-w-2xl">
+  //       {/* Success Header */}
+  //       <Card className="text-center mb-6">
+  //         <CardHeader className="pb-4">
+  //           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+  //             <CheckCircle className="w-8 h-8 text-green-600" />
+  //           </div>
+  //           <CardTitle className="text-2xl text-green-600">
+  //             Booking Confirmed!
+  //           </CardTitle>
+  //           <p className="text-muted-foreground">
+  //             Your bus ticket has been successfully booked and paid
+  //           </p>
+  //         </CardHeader>
+  //         <CardContent>
+  //           <div className="space-y-2">
+  //             <Badge className="bg-green-100 text-green-800 border-green-200">
+  //               BOOKING CONFIRMED
+  //             </Badge>
+  //             <div className="text-sm text-muted-foreground">
+  //               Confirmation sent to: {user?.email || "Your registered email"}
+  //             </div>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
-        {/* Success Header */}
-        <Card className="text-center mb-6">
-          <CardHeader className="pb-4">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl text-green-600">
-              Booking Confirmed!
-            </CardTitle>
-            <p className="text-muted-foreground">
-              Your bus ticket has been successfully booked and paid
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Badge className="bg-green-100 text-green-800 border-green-200">
-                BOOKING CONFIRMED
-              </Badge>
-              <div className="text-sm text-muted-foreground">
-                Confirmation sent to: {user?.email || "Your registered email"}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  //       {/* Payment Confirmation */}
+  //       <Card className="mb-6 border-green-200 bg-green-50">
+  //         <CardContent className="pt-6">
+  //           <div className="flex items-center gap-3">
+  //             <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+  //               <CheckCircle className="w-5 h-5 text-white" />
+  //             </div>
+  //             <div>
+  //               <h4 className="font-medium text-green-800">
+  //                 Payment Successful
+  //               </h4>
+  //               <p className="text-sm text-green-700">
+  //                 Your payment has been processed and booking is confirmed
+  //               </p>
+  //             </div>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
 
-        {/* Payment Confirmation */}
-        <Card className="mb-6 border-green-200 bg-green-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-medium text-green-800">
-                  Payment Successful
-                </h4>
-                <p className="text-sm text-green-700">
-                  Your payment has been processed and booking is confirmed
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  //       {/* Booking Details */}
+  //       <Card className="mb-6">
+  //         <CardHeader>
+  //           <CardTitle>Booking Confirmation</CardTitle>
+  //           <p className="text-sm text-muted-foreground">
+  //             Booking ID: {booking.id}
+  //           </p>
+  //         </CardHeader>
+  //         <CardContent className="space-y-4">
+  //           {/* Trip Details */}
+  //           <div>
+  //             <h4 className="font-medium mb-3">Trip Information</h4>
+  //             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //               <div className="space-y-2">
+  //                 <div className="flex items-center gap-2 text-sm">
+  //                   <MapPin className="w-4 h-4 text-muted-foreground" />
+  //                   <span>{booking.trip?.route?.origin}</span>
+  //                 </div>
+  //                 <div className="flex items-center gap-2 text-sm">
+  //                   <Calendar className="w-4 h-4 text-muted-foreground" />
+  //                   <span>
+  //                     {booking.trip?.departureTime
+  //                       ? format(
+  //                           new Date(booking.trip.departureTime),
+  //                           "EEEE, MMMM dd, yyyy"
+  //                         )
+  //                       : "Date not available"}
+  //                   </span>
+  //                 </div>
+  //                 <div className="flex items-center gap-2 text-sm">
+  //                   <Clock className="w-4 h-4 text-muted-foreground" />
+  //                   <span>
+  //                     {booking.trip?.departureTime
+  //                       ? format(new Date(booking.trip.departureTime), "HH:mm")
+  //                       : "Time not available"}
+  //                   </span>
+  //                 </div>
+  //               </div>
+  //               <div className="space-y-2">
+  //                 <div className="flex items-center gap-2 text-sm">
+  //                   <MapPin className="w-4 h-4 text-muted-foreground" />
+  //                   <span>{booking.trip?.route?.destination}</span>
+  //                 </div>
+  //                 <div className="flex items-center gap-2 text-sm">
+  //                   <Bus className="w-4 h-4 text-muted-foreground" />
+  //                   <span>Bus {booking.trip?.bus?.plateNumber || "N/A"}</span>
+  //                 </div>
+  //                 <div className="flex items-center gap-2 text-sm">
+  //                   <span className="text-muted-foreground">Model:</span>
+  //                   <span>{booking.trip?.bus?.model || "N/A"}</span>
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </div>
 
-        {/* Booking Details */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Booking Confirmation</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Booking ID: {booking.id}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Trip Details */}
-            <div>
-              <h4 className="font-medium mb-3">Trip Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>{booking.trip?.route?.origin}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      {booking.trip?.departureTime
-                        ? format(
-                            new Date(booking.trip.departureTime),
-                            "EEEE, MMMM dd, yyyy"
-                          )
-                        : "Date not available"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      {booking.trip?.departureTime
-                        ? format(new Date(booking.trip.departureTime), "HH:mm")
-                        : "Time not available"}
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>{booking.trip?.route?.destination}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Bus className="w-4 h-4 text-muted-foreground" />
-                    <span>Bus {booking.trip?.bus?.plateNumber || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Model:</span>
-                    <span>{booking.trip?.bus?.model || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+  //           <Separator />
 
-            <Separator />
+  //           {/* Passengers */}
+  //           <div>
+  //             <h4 className="font-medium mb-3">Passenger Details</h4>
+  //             <div className="space-y-2">
+  //               {booking.passengers?.map((passenger, index) => (
+  //                 <div
+  //                   key={passenger.id}
+  //                   className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+  //                 >
+  //                   <div className="flex items-center gap-2">
+  //                     <User className="w-4 h-4 text-muted-foreground" />
+  //                     <div>
+  //                       <p className="font-medium text-sm">
+  //                         {passenger.fullName}
+  //                       </p>
+  //                       <p className="text-xs text-muted-foreground">
+  //                         ID: {passenger.documentId}
+  //                       </p>
+  //                     </div>
+  //                   </div>
+  //                   <Badge variant="outline">Seat {passenger.seatCode}</Badge>
+  //                 </div>
+  //               ))}
+  //             </div>
+  //           </div>
 
-            {/* Passengers */}
-            <div>
-              <h4 className="font-medium mb-3">Passenger Details</h4>
-              <div className="space-y-2">
-                {booking.passengers?.map((passenger, index) => (
-                  <div
-                    key={passenger.id}
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium text-sm">
-                          {passenger.fullName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          ID: {passenger.documentId}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">Seat {passenger.seatCode}</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
+  //           <Separator />
 
-            <Separator />
+  //           {/* Payment Summary */}
+  //           <div>
+  //             <h4 className="font-medium mb-3">Payment Summary</h4>
+  //             <div className="space-y-2">
+  //               <div className="flex justify-between text-sm">
+  //                 <span>Total Amount</span>
+  //                 <span className="font-medium">
+  //                   {formatCurrency(booking.totalAmount)}
+  //                 </span>
+  //               </div>
+  //               <div className="flex justify-between text-sm">
+  //                 <span>Payment Status</span>
+  //                 <Badge className="bg-green-100 text-green-800 border-green-200">
+  //                   Paid
+  //                 </Badge>
+  //               </div>
+  //               <div className="flex justify-between text-sm">
+  //                 <span>Payment Date</span>
+  //                 <span>{format(new Date(), "PPp")}</span>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
 
-            {/* Payment Summary */}
-            <div>
-              <h4 className="font-medium mb-3">Payment Summary</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Total Amount</span>
-                  <span className="font-medium">
-                    {formatCurrency(booking.totalAmount)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Payment Status</span>
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                    Paid
-                  </Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Payment Date</span>
-                  <span>{format(new Date(), "PPp")}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  //       {/* Action Buttons */}
+  //       <Card>
+  //         <CardContent className="pt-6">
+  //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //             <Button
+  //               onClick={handleDownloadTicket}
+  //               className="w-full"
+  //               variant="outline"
+  //             >
+  //               <Download className="w-4 h-4 mr-2" />
+  //               Download Ticket
+  //             </Button>
+  //             <Button asChild className="w-full">
+  //               <Link href="/user/bookings">View All Bookings</Link>
+  //             </Button>
+  //             <Button
+  //               onClick={() => window.print()}
+  //               variant="outline"
+  //               className="w-full"
+  //             >
+  //               <Download className="w-4 h-4 mr-2" />
+  //               Print Confirmation
+  //             </Button>
+  //             <Button asChild variant="outline" className="w-full">
+  //               <Link href="/trips">Book Another Trip</Link>
+  //             </Button>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
 
-        {/* Action Buttons */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                onClick={handleDownloadTicket}
-                className="w-full"
-                variant="outline"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download Ticket
-              </Button>
-              <Button asChild className="w-full">
-                <Link href="/user/bookings">View All Bookings</Link>
-              </Button>
-              <Button
-                onClick={() => window.print()}
-                variant="outline"
-                className="w-full"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Print Confirmation
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/trips">Book Another Trip</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Important Information */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Important Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex gap-2">
-              <span className="font-medium text-blue-600">•</span>
-              <span>
-                Please arrive at the departure station at least 15 minutes
-                before departure time
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-medium text-blue-600">•</span>
-              <span>
-                Bring your ID document and show this confirmation when boarding
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-medium text-blue-600">•</span>
-              <span>
-                You can cancel or modify your booking up to 2 hours before
-                departure
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-medium text-blue-600">•</span>
-              <span>
-                For assistance, contact our customer service at
-                support@busticket.com
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+  //       {/* Important Information */}
+  //       <Card className="mt-6">
+  //         <CardHeader>
+  //           <CardTitle className="text-lg">Important Information</CardTitle>
+  //         </CardHeader>
+  //         <CardContent className="space-y-3 text-sm">
+  //           <div className="flex gap-2">
+  //             <span className="font-medium text-blue-600">•</span>
+  //             <span>
+  //               Please arrive at the departure station at least 15 minutes
+  //               before departure time
+  //             </span>
+  //           </div>
+  //           <div className="flex gap-2">
+  //             <span className="font-medium text-blue-600">•</span>
+  //             <span>
+  //               Bring your ID document and show this confirmation when boarding
+  //             </span>
+  //           </div>
+  //           <div className="flex gap-2">
+  //             <span className="font-medium text-blue-600">•</span>
+  //             <span>
+  //               You can cancel or modify your booking up to 2 hours before
+  //               departure
+  //             </span>
+  //           </div>
+  //           <div className="flex gap-2">
+  //             <span className="font-medium text-blue-600">•</span>
+  //             <span>
+  //               For assistance, contact our customer service at
+  //               support@busticket.com
+  //             </span>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   </div>
+  // );
 }
 
 export default function PaymentSuccessPage() {
@@ -575,7 +575,6 @@ export default function PaymentSuccessPage() {
         </div>
       }
     >
-      <p>"hello world"</p>
       <PaymentSuccessPageContent />
     </Suspense>
   );
