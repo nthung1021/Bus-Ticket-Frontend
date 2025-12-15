@@ -189,5 +189,36 @@ class UserBookingService {
   }
 }
 
+// Booking modification API functions
+export async function checkModificationPermissions(bookingId: string) {
+  const response = await api.get(`/bookings/${bookingId}/modification-permissions`);
+  return response.data;
+}
+
+export async function modifyPassengerDetails(
+  bookingId: string, 
+  passengers: Array<{ id: string; fullName?: string; documentId?: string; }>
+) {
+  const response = await api.put(`/bookings/${bookingId}/passengers`, {
+    passengers
+  });
+  return response.data;
+}
+
+export async function changeSeats(
+  bookingId: string,
+  seatChanges: Array<{ passengerId: string; newSeatCode: string; }>
+) {
+  const response = await api.put(`/bookings/${bookingId}/seats`, {
+    seatChanges
+  });
+  return response.data;
+}
+
+export async function getBookingModificationHistory(bookingId: string) {
+  const response = await api.get(`/bookings/${bookingId}/modification-history`);
+  return response.data;
+}
+
 export default UserBookingService;
 export type { Booking, BookingApiResponse };
