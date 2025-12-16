@@ -28,6 +28,7 @@ import { BookingStatus } from "@/services/booking-websocket.service";
 import UserBookingService, {
   type Booking,
 } from "@/services/userBookingService";
+import { getTripById } from "@/services/trip.service";
 import api from "@/lib/api";
 import { formatCurrency } from "@/utils/formatCurrency";
 
@@ -90,13 +91,59 @@ function PaymentSuccessPageContent() {
 
         // Get booking data from session storage first for initial display
         const bookingData = sessionStorage.getItem("bookingData");
+        console.log("Booking data from session: ", bookingData);
+        let parsedBookingData = null;
+        
         if (bookingData) {
-          const parsedBookingData = JSON.parse(bookingData);
+          parsedBookingData = JSON.parse(bookingData);
+          
+          // Fetch trip data and attach to booking
+          if (parsedBookingData.tripId) {
+            try {
+              const tripData = await getTripById(parsedBookingData.tripId);
+              console.log("Raw trip data:", tripData);
+              
+              // Convert Date objects to strings and ensure required properties to match Booking type
+              const formattedTripData = {
+                ...tripData,
+                departureTime: tripData.departureTime instanceof Date 
+                  ? tripData.departureTime.toISOString() 
+                  : new Date(tripData.departureTime).toISOString(),
+                arrivalTime: tripData.arrivalTime instanceof Date 
+                  ? tripData.arrivalTime.toISOString() 
+                  : new Date(tripData.arrivalTime).toISOString(),
+                status: tripData.status.toString(),
+                route: {
+                  id: tripData.route?.id || '',
+                  name: tripData.route?.name || '',
+                  description: tripData.route?.description || '',
+                  origin: tripData.route?.points?.[0]?.name || '',
+                  destination: tripData.route?.points?.[tripData.route.points.length - 1]?.name || '',
+                  distanceKm: 0, // Calculate from route points if available
+                  estimatedMinutes: 0, // Calculate from route points if available
+                },
+                bus: tripData.bus || {
+                  id: '',
+                  plateNumber: '',
+                  model: '',
+                  seatCapacity: 0,
+                },
+              };
+              parsedBookingData.trip = formattedTripData;
+            } catch (tripError) {
+              console.error("Error fetching trip data:", tripError);
+              // Continue with booking data even if trip fetch fails
+            }
+          }
+          
           setBooking(parsedBookingData);
+
+          // console.log("Booking after getting info from session storage:", booking)
         }
 
         // Get real-time booking status from WebSocket
         if (isConnected) {
+          // console.log("Bookings: ", bookings)
           const bookingStatus = getBookingStatus(bookingId);
           const paymentStatus = getPaymentStatus(bookingId);
 
@@ -117,11 +164,48 @@ function PaymentSuccessPageContent() {
           if (bookings.has(bookingId)) {
             const realTimeBooking = bookings.get(bookingId);
             if (realTimeBooking) {
-              setBooking((prev) =>
+              // Fetch trip data if not already present
+              let tripData = parsedBookingData?.trip;
+              if (!tripData && (realTimeBooking as any).tripId) {
+                try {
+                  const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
+                  // Convert Date objects to strings and ensure required properties to match Booking type
+                  tripData = {
+                    ...tripDataRaw,
+                    departureTime: tripDataRaw.departureTime instanceof Date 
+                      ? tripDataRaw.departureTime.toISOString() 
+                      : new Date(tripDataRaw.departureTime).toISOString(),
+                    arrivalTime: tripDataRaw.arrivalTime instanceof Date 
+                      ? tripDataRaw.arrivalTime.toISOString() 
+                      : new Date(tripDataRaw.arrivalTime).toISOString(),
+                    status: tripDataRaw.status.toString(),
+                    route: {
+                      id: tripDataRaw.route?.id || '',
+                      name: tripDataRaw.route?.name || '',
+                      description: tripDataRaw.route?.description || '',
+                      origin: tripDataRaw.route?.points?.[0]?.name || '',
+                      destination: tripDataRaw.route?.points?.[tripDataRaw.route.points.length - 1]?.name || '',
+                      distanceKm: 0, // Calculate from route points if available
+                      estimatedMinutes: 0, // Calculate from route points if available
+                    },
+                    bus: tripDataRaw.bus || {
+                      id: '',
+                      plateNumber: '',
+                      model: '',
+                      seatCapacity: 0,
+                    },
+                  };
+                } catch (tripError) {
+                  console.error("Error fetching trip data:", tripError);
+                }
+              }
+              
+              setBooking((prev: any) =>
                 prev
                   ? {
                       ...prev,
                       ...realTimeBooking,
+                      trip: tripData || prev.trip,
                       status:
                         bookingStatus === BookingStatus.PAID
                           ? "paid"
@@ -142,9 +226,6 @@ function PaymentSuccessPageContent() {
             setError("Booking information not found. Please check again.");
             return;
           }
-
-          const parsedBookingData = JSON.parse(bookingData);
-          setBooking(parsedBookingData);
 
           if (parsedBookingData.status !== "paid") {
             setError("Payment not successful");
@@ -171,36 +252,76 @@ function PaymentSuccessPageContent() {
     if (!bookingId || !isConnected) return;
 
     // Listen for booking updates in real-time
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       const bookingStatus = getBookingStatus(bookingId);
+      console.log("Booking status: ", bookingStatus);
       const paymentStatus = getPaymentStatus(bookingId);
 
       if (bookingStatus && bookings.has(bookingId)) {
         const realTimeBooking = bookings.get(bookingId);
         if (realTimeBooking) {
-          setBooking((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  ...realTimeBooking,
-                  status:
-                    bookingStatus === BookingStatus.PAID
-                      ? "paid"
-                      : bookingStatus,
-                  bookedAt:
-                    typeof realTimeBooking.bookedAt === "string"
-                      ? realTimeBooking.bookedAt
-                      : realTimeBooking.bookedAt?.toISOString() ||
-                        prev.bookedAt,
-                }
-              : null
-          );
+          // Fetch trip data if not already present
+          let tripData = booking?.trip;
+          if (!tripData && (realTimeBooking as any).tripId) {
+            try {
+              const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
+              // Convert Date objects to strings and ensure required properties to match Booking type
+              tripData = {
+                ...tripDataRaw,
+                departureTime: tripDataRaw.departureTime instanceof Date 
+                  ? tripDataRaw.departureTime.toISOString() 
+                  : new Date(tripDataRaw.departureTime).toISOString(),
+                arrivalTime: tripDataRaw.arrivalTime instanceof Date 
+                  ? tripDataRaw.arrivalTime.toISOString() 
+                  : new Date(tripDataRaw.arrivalTime).toISOString(),
+                status: tripDataRaw.status.toString(),
+                route: {
+                  id: tripDataRaw.route?.id || '',
+                  name: tripDataRaw.route?.name || '',
+                  description: tripDataRaw.route?.description || '',
+                  origin: tripDataRaw.route?.points?.[0]?.name || '',
+                  destination: tripDataRaw.route?.points?.[tripDataRaw.route.points.length - 1]?.name || '',
+                  distanceKm: 0, // Calculate from route points if available
+                  estimatedMinutes: 0, // Calculate from route points if available
+                },
+                bus: tripDataRaw.bus || {
+                  id: '',
+                  plateNumber: '',
+                  model: '',
+                  seatCapacity: 0,
+                },
+              };
+            } catch (tripError) {
+              console.error("Error fetching trip data:", tripError);
+            }
+          }
+          
+          setBooking((prev: any) => {
+            const updatedBooking = {
+              ...prev,
+              ...realTimeBooking,
+              trip: tripData || prev.trip,
+              status:
+                bookingStatus === BookingStatus.PAID
+                  ? "paid"
+                  : bookingStatus,
+              bookedAt:
+                typeof realTimeBooking.bookedAt === "string"
+                  ? realTimeBooking.bookedAt
+                  : realTimeBooking.bookedAt?.toISOString() ||
+                    prev.bookedAt,
+            };
+            
+            return updatedBooking;
+          });
+          // console.log("Updated booking: ", booking);
+          // setError(null);
         }
       }
     }, 2000); // Check every 2 seconds
 
     return () => clearInterval(interval);
-  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus]);
+  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus, booking?.trip]);
 
   useEffect(() => {
     const sendEticketEmail = async () => {
@@ -227,6 +348,7 @@ function PaymentSuccessPageContent() {
   // Clear payment retry state when payment is successful
   useEffect(() => {
     if (booking && booking.status === "paid") {
+      setError(null);
       // Clear retry state from sessionStorage
       sessionStorage.removeItem("paymentRetryState");
       console.log("Payment successful, cleared retry state");
@@ -238,7 +360,7 @@ function PaymentSuccessPageContent() {
     if (!booking && !loading) {
       router.push("/user/bookings");
     }
-    console.log(booking);
+    // console.log(booking);
   }, [booking, loading, router]);
 
   // Download e-ticket
@@ -255,7 +377,7 @@ Route: ${booking.trip?.route?.origin} → ${booking.trip?.route?.destination}
 Date: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), "PPP") : "N/A"}
 Time: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), "p") : "N/A"}
 Bus: ${booking.trip?.bus?.plateNumber || "N/A"}
-Passengers: ${booking.passengers?.map((p) => `${p.fullName} (Seat ${p.seatCode})`).join(", ")}
+Passengers: ${booking.passengers?.map((p: any) => `${p.fullName} (Seat ${p.seatCode})`).join(", ")}
 Total Amount: ${formatCurrency(booking.totalAmount)}
 Booked At: ${format(new Date(booking.bookedAt), "PPp")}
 
@@ -335,232 +457,232 @@ Present this ticket when boarding the bus.
       </div>
     );
   }
-  return null;
-  // return (
-  //   <div className="min-h-screen bg-background">
-  //     <div className="container mx-auto py-8 px-4 max-w-2xl">
-  //       {/* Success Header */}
-  //       <Card className="text-center mb-6">
-  //         <CardHeader className="pb-4">
-  //           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-  //             <CheckCircle className="w-8 h-8 text-green-600" />
-  //           </div>
-  //           <CardTitle className="text-2xl text-green-600">
-  //             Booking Confirmed!
-  //           </CardTitle>
-  //           <p className="text-muted-foreground">
-  //             Your bus ticket has been successfully booked and paid
-  //           </p>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <div className="space-y-2">
-  //             <Badge className="bg-green-100 text-green-800 border-green-200">
-  //               BOOKING CONFIRMED
-  //             </Badge>
-  //             <div className="text-sm text-muted-foreground">
-  //               Confirmation sent to: {user?.email || "Your registered email"}
-  //             </div>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
+  // return null;
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4 max-w-2xl">
+        {/* Success Header */}
+        <Card className="text-center mb-6">
+          <CardHeader className="pb-4">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl text-green-600">
+              Booking Confirmed!
+            </CardTitle>
+            <p className="text-muted-foreground">
+              Your bus ticket has been successfully booked and paid
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                BOOKING CONFIRMED
+              </Badge>
+              <div className="text-sm text-muted-foreground">
+                Confirmation sent to: {user?.email || "Your registered email"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-  //       {/* Payment Confirmation */}
-  //       <Card className="mb-6 border-green-200 bg-green-50">
-  //         <CardContent className="pt-6">
-  //           <div className="flex items-center gap-3">
-  //             <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-  //               <CheckCircle className="w-5 h-5 text-white" />
-  //             </div>
-  //             <div>
-  //               <h4 className="font-medium text-green-800">
-  //                 Payment Successful
-  //               </h4>
-  //               <p className="text-sm text-green-700">
-  //                 Your payment has been processed and booking is confirmed
-  //               </p>
-  //             </div>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
+        {/* Payment Confirmation */}
+        <Card className="mb-6 border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h4 className="font-medium text-green-800">
+                  Payment Successful
+                </h4>
+                <p className="text-sm text-green-700">
+                  Your payment has been processed and booking is confirmed
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-  //       {/* Booking Details */}
-  //       <Card className="mb-6">
-  //         <CardHeader>
-  //           <CardTitle>Booking Confirmation</CardTitle>
-  //           <p className="text-sm text-muted-foreground">
-  //             Booking ID: {booking.id}
-  //           </p>
-  //         </CardHeader>
-  //         <CardContent className="space-y-4">
-  //           {/* Trip Details */}
-  //           <div>
-  //             <h4 className="font-medium mb-3">Trip Information</h4>
-  //             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  //               <div className="space-y-2">
-  //                 <div className="flex items-center gap-2 text-sm">
-  //                   <MapPin className="w-4 h-4 text-muted-foreground" />
-  //                   <span>{booking.trip?.route?.origin}</span>
-  //                 </div>
-  //                 <div className="flex items-center gap-2 text-sm">
-  //                   <Calendar className="w-4 h-4 text-muted-foreground" />
-  //                   <span>
-  //                     {booking.trip?.departureTime
-  //                       ? format(
-  //                           new Date(booking.trip.departureTime),
-  //                           "EEEE, MMMM dd, yyyy"
-  //                         )
-  //                       : "Date not available"}
-  //                   </span>
-  //                 </div>
-  //                 <div className="flex items-center gap-2 text-sm">
-  //                   <Clock className="w-4 h-4 text-muted-foreground" />
-  //                   <span>
-  //                     {booking.trip?.departureTime
-  //                       ? format(new Date(booking.trip.departureTime), "HH:mm")
-  //                       : "Time not available"}
-  //                   </span>
-  //                 </div>
-  //               </div>
-  //               <div className="space-y-2">
-  //                 <div className="flex items-center gap-2 text-sm">
-  //                   <MapPin className="w-4 h-4 text-muted-foreground" />
-  //                   <span>{booking.trip?.route?.destination}</span>
-  //                 </div>
-  //                 <div className="flex items-center gap-2 text-sm">
-  //                   <Bus className="w-4 h-4 text-muted-foreground" />
-  //                   <span>Bus {booking.trip?.bus?.plateNumber || "N/A"}</span>
-  //                 </div>
-  //                 <div className="flex items-center gap-2 text-sm">
-  //                   <span className="text-muted-foreground">Model:</span>
-  //                   <span>{booking.trip?.bus?.model || "N/A"}</span>
-  //                 </div>
-  //               </div>
-  //             </div>
-  //           </div>
+        {/* Booking Details */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Booking Confirmation</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Booking ID: {booking.id}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Trip Details */}
+            <div>
+              <h4 className="font-medium mb-3">Trip Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{booking.trip?.route?.origin}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span>
+                      {booking.trip?.departureTime
+                        ? format(
+                            new Date(booking.trip.departureTime),
+                            "EEEE, MMMM dd, yyyy"
+                          )
+                        : "Date not available"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span>
+                      {booking.trip?.departureTime
+                        ? format(new Date(booking.trip.departureTime), "HH:mm")
+                        : "Time not available"}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{booking.trip?.route?.destination}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Bus className="w-4 h-4 text-muted-foreground" />
+                    <span>Bus {booking.trip?.bus?.plateNumber || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Model:</span>
+                    <span>{booking.trip?.bus?.model || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-  //           <Separator />
+            <Separator />
 
-  //           {/* Passengers */}
-  //           <div>
-  //             <h4 className="font-medium mb-3">Passenger Details</h4>
-  //             <div className="space-y-2">
-  //               {booking.passengers?.map((passenger, index) => (
-  //                 <div
-  //                   key={passenger.id}
-  //                   className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-  //                 >
-  //                   <div className="flex items-center gap-2">
-  //                     <User className="w-4 h-4 text-muted-foreground" />
-  //                     <div>
-  //                       <p className="font-medium text-sm">
-  //                         {passenger.fullName}
-  //                       </p>
-  //                       <p className="text-xs text-muted-foreground">
-  //                         ID: {passenger.documentId}
-  //                       </p>
-  //                     </div>
-  //                   </div>
-  //                   <Badge variant="outline">Seat {passenger.seatCode}</Badge>
-  //                 </div>
-  //               ))}
-  //             </div>
-  //           </div>
+            {/* Passengers */}
+            <div>
+              <h4 className="font-medium mb-3">Passenger Details</h4>
+              <div className="space-y-2">
+                {booking.passengers?.map((passenger: any, index: any) => (
+                  <div
+                    key={passenger.id}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-sm">
+                          {passenger.fullName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {passenger.documentId}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">Seat {passenger.seatCode}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-  //           <Separator />
+            <Separator />
 
-  //           {/* Payment Summary */}
-  //           <div>
-  //             <h4 className="font-medium mb-3">Payment Summary</h4>
-  //             <div className="space-y-2">
-  //               <div className="flex justify-between text-sm">
-  //                 <span>Total Amount</span>
-  //                 <span className="font-medium">
-  //                   {formatCurrency(booking.totalAmount)}
-  //                 </span>
-  //               </div>
-  //               <div className="flex justify-between text-sm">
-  //                 <span>Payment Status</span>
-  //                 <Badge className="bg-green-100 text-green-800 border-green-200">
-  //                   Paid
-  //                 </Badge>
-  //               </div>
-  //               <div className="flex justify-between text-sm">
-  //                 <span>Payment Date</span>
-  //                 <span>{format(new Date(), "PPp")}</span>
-  //               </div>
-  //             </div>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
+            {/* Payment Summary */}
+            <div>
+              <h4 className="font-medium mb-3">Payment Summary</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Total Amount</span>
+                  <span className="font-medium">
+                    {formatCurrency(booking.totalAmount)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Payment Status</span>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    Paid
+                  </Badge>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Payment Date</span>
+                  <span>{format(new Date(), "PPp")}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-  //       {/* Action Buttons */}
-  //       <Card>
-  //         <CardContent className="pt-6">
-  //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  //             <Button
-  //               onClick={handleDownloadTicket}
-  //               className="w-full"
-  //               variant="outline"
-  //             >
-  //               <Download className="w-4 h-4 mr-2" />
-  //               Download Ticket
-  //             </Button>
-  //             <Button asChild className="w-full">
-  //               <Link href="/user/bookings">View All Bookings</Link>
-  //             </Button>
-  //             <Button
-  //               onClick={() => window.print()}
-  //               variant="outline"
-  //               className="w-full"
-  //             >
-  //               <Download className="w-4 h-4 mr-2" />
-  //               Print Confirmation
-  //             </Button>
-  //             <Button asChild variant="outline" className="w-full">
-  //               <Link href="/trips">Book Another Trip</Link>
-  //             </Button>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
+        {/* Action Buttons */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                onClick={handleDownloadTicket}
+                className="w-full"
+                variant="outline"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Ticket
+              </Button>
+              <Button asChild className="w-full">
+                <Link href="/user/bookings">View All Bookings</Link>
+              </Button>
+              <Button
+                onClick={() => window.print()}
+                variant="outline"
+                className="w-full"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Print Confirmation
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/trips">Book Another Trip</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-  //       {/* Important Information */}
-  //       <Card className="mt-6">
-  //         <CardHeader>
-  //           <CardTitle className="text-lg">Important Information</CardTitle>
-  //         </CardHeader>
-  //         <CardContent className="space-y-3 text-sm">
-  //           <div className="flex gap-2">
-  //             <span className="font-medium text-blue-600">•</span>
-  //             <span>
-  //               Please arrive at the departure station at least 15 minutes
-  //               before departure time
-  //             </span>
-  //           </div>
-  //           <div className="flex gap-2">
-  //             <span className="font-medium text-blue-600">•</span>
-  //             <span>
-  //               Bring your ID document and show this confirmation when boarding
-  //             </span>
-  //           </div>
-  //           <div className="flex gap-2">
-  //             <span className="font-medium text-blue-600">•</span>
-  //             <span>
-  //               You can cancel or modify your booking up to 2 hours before
-  //               departure
-  //             </span>
-  //           </div>
-  //           <div className="flex gap-2">
-  //             <span className="font-medium text-blue-600">•</span>
-  //             <span>
-  //               For assistance, contact our customer service at
-  //               support@busticket.com
-  //             </span>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   </div>
-  // );
+        {/* Important Information */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Important Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex gap-2">
+              <span className="font-medium text-blue-600">•</span>
+              <span>
+                Please arrive at the departure station at least 15 minutes
+                before departure time
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-medium text-blue-600">•</span>
+              <span>
+                Bring your ID document and show this confirmation when boarding
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-medium text-blue-600">•</span>
+              <span>
+                You can cancel or modify your booking up to 2 hours before
+                departure
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="font-medium text-blue-600">•</span>
+              <span>
+                For assistance, contact our customer service at
+                support@busticket.com
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
 
 export default function PaymentSuccessPage() {
