@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import api from "@/lib/api";
 import { formatCurrency, getCurrencySymbol } from "@/utils/formatCurrency";
+import { filterWithVietnameseSearch, matchesWithoutDiacritics } from "@/utils/vietnameseSearch";
 
 // Search filters interface
 interface SearchFilters {
@@ -193,11 +194,16 @@ function SearchPageContent() {
 
     // Apply filters
     if (filters.query) {
-      filteredResults = filteredResults.filter((result) =>
-        result.title.toLowerCase().includes(filters.query.toLowerCase()) ||
-        result.description.toLowerCase().includes(filters.query.toLowerCase()) ||
-        result.origin.toLowerCase().includes(filters.query.toLowerCase()) ||
-        result.destination.toLowerCase().includes(filters.query.toLowerCase())
+      filteredResults = filterWithVietnameseSearch(
+        filteredResults,
+        filters.query,
+        (result) => [
+          result.title,
+          result.description,
+          result.origin,
+          result.destination,
+          result.location || ''
+        ]
       );
     }
 
@@ -213,21 +219,21 @@ function SearchPageContent() {
 
     if (filters.from) {
       filteredResults = filteredResults.filter((result) =>
-        result.departure.toLowerCase().includes(filters.from.toLowerCase())
+        matchesWithoutDiacritics(result.departure, filters.from)
       );
     }
 
     if (filters.to) {
       filteredResults = filteredResults.filter((result) =>
-        result.arrival.toLowerCase().includes(filters.to.toLowerCase())
+        matchesWithoutDiacritics(result.arrival, filters.to)
       );
     }
 
     // Filter by operator
     if (filters.operator) {
       filteredResults = filteredResults.filter((result) =>
-        result.title.toLowerCase().includes(filters.operator.toLowerCase()) ||
-        result.description.toLowerCase().includes(filters.operator.toLowerCase())
+        matchesWithoutDiacritics(result.title, filters.operator) ||
+        matchesWithoutDiacritics(result.description, filters.operator)
       );
     }
 

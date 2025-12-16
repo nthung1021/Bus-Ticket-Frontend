@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { Route } from "@/services/route.service";
 import { routeService } from "@/services/route.service";
+import { filterWithVietnameseSearch, matchesWithoutDiacritics } from "@/utils/vietnameseSearch";
 
 // Route filters interface
 interface RouteFilters {
@@ -114,11 +115,15 @@ export default function RoutesPage() {
 
     // Apply filters
     if (filters.query) {
-      filteredRoutes = filteredRoutes.filter((route) =>
-        route.title.toLowerCase().includes(filters.query.toLowerCase()) ||
-        route.description.toLowerCase().includes(filters.query.toLowerCase()) ||
-        route.origin.toLowerCase().includes(filters.query.toLowerCase()) ||
-        route.destination.toLowerCase().includes(filters.query.toLowerCase())
+      filteredRoutes = filterWithVietnameseSearch(
+        filteredRoutes,
+        filters.query,
+        (route) => [
+          route.title,
+          route.description,
+          route.origin,
+          route.destination
+        ]
       );
     }
 
@@ -134,20 +139,20 @@ export default function RoutesPage() {
 
     if (filters.from) {
       filteredRoutes = filteredRoutes.filter((route) =>
-        route.origin.toLowerCase().includes(filters.from.toLowerCase())
+        matchesWithoutDiacritics(route.origin, filters.from)
       );
     }
 
     if (filters.to) {
       filteredRoutes = filteredRoutes.filter((route) =>
-        route.destination.toLowerCase().includes(filters.to.toLowerCase())
+        matchesWithoutDiacritics(route.destination, filters.to)
       );
     }
 
     // Filter by operator
     if (filters.operator) {
       filteredRoutes = filteredRoutes.filter((route) =>
-        route.title.toLowerCase().includes(filters.operator.toLowerCase())
+        matchesWithoutDiacritics(route.title, filters.operator)
       );
     }
 

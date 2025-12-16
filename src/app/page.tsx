@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { routeService, Route } from "@/services/route.service";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { removeDiacritics, getCitySuggestions } from "@/utils/vietnameseSearch";
 
 export default function Home() {
   const router = useRouter();
@@ -202,16 +203,6 @@ export default function Home() {
 
   const isVisible = (id: string) => visibleElements.has(id);
 
-  // Function to remove Vietnamese diacritics for better search
-  const removeDiacritics = (str: string): string => {
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .toLowerCase();
-  };
-
   const toUnsignedName = (str: string): string => {
     const normalized = removeDiacritics(str || '').trim();
     if (!normalized) return '';
@@ -225,15 +216,8 @@ export default function Home() {
   // Filter cities based on input with diacritic-insensitive search
   const filterCities = (input: string): string[] => {
     if (!input.trim()) return [];
-    const normalizedInput = removeDiacritics(input);
-
-    return popularCities
-      .filter(city => {
-        const normalizedCity = removeDiacritics(city);
-        return normalizedCity.includes(normalizedInput) ||
-          city.toLowerCase().includes(input.toLowerCase());
-      })
-      .slice(0, 5);
+    
+    return getCitySuggestions(input, 5);
   };
 
   // Handle from city input
