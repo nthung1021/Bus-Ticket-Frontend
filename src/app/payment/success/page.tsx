@@ -91,7 +91,7 @@ function PaymentSuccessPageContent() {
 
         // Get booking data from session storage first for initial display
         const bookingData = sessionStorage.getItem("bookingData");
-        console.log("Booking data from session: ", bookingData);
+        // console.log("Booking data from session: ", bookingData);
         let parsedBookingData = null;
         
         if (bookingData) {
@@ -101,7 +101,7 @@ function PaymentSuccessPageContent() {
           if (parsedBookingData.tripId) {
             try {
               const tripData = await getTripById(parsedBookingData.tripId);
-              console.log("Raw trip data:", tripData);
+              // console.log("Raw trip data:", tripData);
               
               // Convert Date objects to strings and ensure required properties to match Booking type
               const formattedTripData = {
@@ -117,10 +117,10 @@ function PaymentSuccessPageContent() {
                   id: tripData.route?.id || '',
                   name: tripData.route?.name || '',
                   description: tripData.route?.description || '',
-                  origin: tripData.route?.points?.[0]?.name || '',
-                  destination: tripData.route?.points?.[tripData.route.points.length - 1]?.name || '',
-                  distanceKm: 0, // Calculate from route points if available
-                  estimatedMinutes: 0, // Calculate from route points if available
+                  origin: (tripData as any).route?.origin || '',
+                  destination: (tripData as any).route?.destination || '',
+                  distanceKm: (tripData as any).route?.distanceKm || 0, // Calculate from route points if available
+                  estimatedMinutes: (tripData as any).route?.estimatedMinutes || 0, // Calculate from route points if available
                 },
                 bus: tripData.bus || {
                   id: '',
@@ -259,13 +259,14 @@ function PaymentSuccessPageContent() {
 
       if (bookingStatus && bookings.has(bookingId)) {
         const realTimeBooking = bookings.get(bookingId);
+        // console.log("Real time booking: ", realTimeBooking)
         if (realTimeBooking) {
           // Fetch trip data if not already present
           let tripData = booking?.trip;
           if (!tripData && (realTimeBooking as any).tripId) {
             try {
               const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
-              console.log("Trip data:", tripDataRaw)
+              // console.log("Trip data:", tripDataRaw)
               // Convert Date objects to strings and ensure required properties to match Booking type
               tripData = {
                 ...tripDataRaw,
@@ -296,25 +297,25 @@ function PaymentSuccessPageContent() {
               console.error("Error fetching trip data:", tripError);
             }
           }
-          
+          console.log("Trip data:", tripData);
           setBooking((prev: any) => {
-            const updatedBooking = {
-              ...prev,
-              ...realTimeBooking,
-              trip: tripData || prev.trip,
-              status:
-                bookingStatus === BookingStatus.PAID
-                  ? "paid"
-                  : bookingStatus,
-              bookedAt:
-                typeof realTimeBooking.bookedAt === "string"
-                  ? realTimeBooking.bookedAt
-                  : realTimeBooking.bookedAt?.toISOString() ||
-                    prev.bookedAt,
-            };
-            
-            return updatedBooking;
-          });
+              const updatedBooking = {
+                ...prev,
+                ...realTimeBooking,
+                trip: tripData,
+                status:
+                  bookingStatus === BookingStatus.PAID
+                    ? "paid"
+                    : bookingStatus,
+                bookedAt:
+                  typeof realTimeBooking.bookedAt === "string"
+                    ? realTimeBooking.bookedAt
+                    : realTimeBooking.bookedAt?.toISOString() ||
+                      prev.bookedAt,
+              };
+              
+              return updatedBooking;
+            });
           console.log("Updated booking: ", booking);
         }
       }
