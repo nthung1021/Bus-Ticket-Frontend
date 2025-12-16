@@ -372,7 +372,7 @@ function PaymentSuccessPageContent() {
     if (booking.id.startsWith("mock-booking-")) {
       const ticketContent = `
 === BUS TICKET ===
-Booking ID: ${booking.id}
+Booking ID: ${(booking as any)?.bookingId}
 Status: PAID
 Route: ${booking.trip?.route?.origin} → ${booking.trip?.route?.destination}
 Date: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), "PPP") : "N/A"}
