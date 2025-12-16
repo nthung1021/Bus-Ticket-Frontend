@@ -48,11 +48,6 @@ export default function Navbar() {
               </Link>
             </li>
             <li>
-              <Link href="/search" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                Search Trips
-              </Link>
-            </li>
-            <li>
               <a href="/tickets" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                 Tickets
               </a>

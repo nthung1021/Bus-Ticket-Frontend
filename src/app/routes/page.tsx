@@ -17,6 +17,7 @@ interface RouteFilters {
   from: string;
   to: string;
   category: string[];
+  operator: string;
   sortBy: string;
 }
 
@@ -37,6 +38,7 @@ interface RouteResult {
 }
 
 const categories = ["Premium", "Standard", "Express", "Economy"];
+const operators = ["Phương Trang", "Tuấn Hưng", "Hoàng Long", "Mai Linh", "Thành Bưởi", "Hà Lan"];
 const sortOptions = [
   { value: "newest", label: "Newest" },
   { value: "distance-asc", label: "Distance: Short to Long" },
@@ -47,7 +49,7 @@ const sortOptions = [
 // Convert Route to RouteResult
 const convertRouteToResult = (route: Route): RouteResult => ({
   id: route.id,
-  title: route.name || `${route.origin} → ${route.destination}`,
+  title: `${route.origin} to ${route.destination}`,
   origin: route.origin || 'Unknown',
   destination: route.destination || 'Unknown',
   distance: route.distanceKm || 100,
@@ -68,6 +70,7 @@ export default function RoutesPage() {
     from: "",
     to: "",
     category: [],
+    operator: "",
     sortBy: "newest",
   });
 
@@ -141,6 +144,13 @@ export default function RoutesPage() {
       );
     }
 
+    // Filter by operator
+    if (filters.operator) {
+      filteredRoutes = filteredRoutes.filter((route) =>
+        route.title.toLowerCase().includes(filters.operator.toLowerCase())
+      );
+    }
+
     // Apply sorting
     switch (filters.sortBy) {
       case "distance-asc":
@@ -186,40 +196,6 @@ export default function RoutesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <section className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-950 border-b border-border">
-        <div className="container mx-auto px-6 lg:px-8 xl:px-12 py-16 max-w-7xl">
-          <div className="text-center space-y-6">
-            <div className="inline-flex items-center gap-3 bg-primary/10 px-4 py-2 rounded-full border border-primary/20">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              <span className="text-primary font-medium">Bus Routes</span>
-            </div>
-            <h1 className="text-5xl lg:text-6xl font-bold text-foreground bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-              Explore Routes
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Discover all available bus routes across Vietnam. Browse by distance, destination, and find the perfect journey for your travel needs.
-            </p>
-            <div className="flex items-center justify-center gap-8 pt-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Real-time updates</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>Fast booking</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Search Bar */}
       <section className="bg-card/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-6 lg:px-8 xl:px-12 py-6 max-w-7xl">
@@ -308,6 +284,23 @@ export default function RoutesPage() {
                 </div>
               </div>
 
+              {/* Operator Filter */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">Bus Operator</h4>
+                <select
+                  value={filters.operator}
+                  onChange={(e) => handleFilterChange("operator", e.target.value)}
+                  className="w-full h-8 text-xs bg-background border border-border rounded-md px-2"
+                >
+                  <option value="">All Operators</option>
+                  {operators.map((operator) => (
+                    <option key={operator} value={operator}>
+                      {operator}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Category - Compact */}
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-foreground">Category</h4>
@@ -339,6 +332,7 @@ export default function RoutesPage() {
                     from: "",
                     to: "",
                     category: [],
+                    operator: "",
                     sortBy: "newest",
                   });
                 }}
@@ -384,89 +378,92 @@ export default function RoutesPage() {
               <>
                 <div className="space-y-4">
                   {currentRoutes.map((route) => (
-                    <Card key={route.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                          {/* Route Image */}
-                          <div className="w-full lg:w-48 h-32 lg:h-28 relative overflow-hidden rounded-xl flex-shrink-0">
-                            <img
-                              src={route.image}
-                              alt={route.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
-                            <div className="absolute top-3 left-3">
-                              <span className="bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-medium">
-                                {route.category}
-                              </span>
+                    <Link 
+                      key={route.id} 
+                      href={`/search?origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent(route.destination)}`}
+                      className="block"
+                    >
+                      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                            {/* Route Image */}
+                            <div className="w-full lg:w-48 h-32 lg:h-28 relative overflow-hidden rounded-xl flex-shrink-0">
+                              <img
+                                src={route.image}
+                                alt={route.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                              <div className="absolute top-3 left-3">
+                                <span className="bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-medium">
+                                  {route.category}
+                                </span>
+                              </div>
+                              <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
+                                <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                <span className="text-white text-xs font-medium">{route.rating.toFixed(1)}</span>
+                              </div>
                             </div>
-                            <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
-                              <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                              <span className="text-white text-xs font-medium">{route.rating.toFixed(1)}</span>
-                            </div>
-                          </div>
 
-                          {/* Route Details */}
-                          <div className="flex-1 space-y-4">
-                            <div className="space-y-2">
-                              <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-                                {route.title}
-                              </h3>
-                              <div className="flex items-center gap-4 text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            {/* Route Details */}
+                            <div className="flex-1 space-y-4">
+                              <div className="space-y-2">
+                                <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                                  {route.title}
+                                </h3>
+                                <div className="flex items-center gap-4 text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <span className="font-medium">{route.origin}</span>
+                                  </div>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
                                   </svg>
-                                  <span className="font-medium">{route.origin}</span>
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <span className="font-medium">{route.destination}</span>
+                                  </div>
                                 </div>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <p className="text-muted-foreground line-clamp-2">
+                                  {route.description}
+                                </p>
+                              </div>
+
+                              {/* Route Stats */}
+                              <div className="flex items-center gap-6 text-sm">
+                                <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg">
+                                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                  </svg>
+                                  <span className="font-medium">{route.distance} km</span>
+                                </div>
+                                <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg">
+                                  <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-medium">{route.duration}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Arrow */}
+                            <div className="flex-shrink-0">
+                              <div className="bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary p-3 rounded-xl transition-all duration-300">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
                                 </svg>
-                                <div className="flex items-center gap-2">
-                                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                  </svg>
-                                  <span className="font-medium">{route.destination}</span>
-                                </div>
-                              </div>
-                              <p className="text-muted-foreground line-clamp-2">
-                                {route.description}
-                              </p>
-                            </div>
-
-                            {/* Route Stats */}
-                            <div className="flex items-center gap-6 text-sm">
-                              <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg">
-                                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                </svg>
-                                <span className="font-medium">{route.distance} km</span>
-                              </div>
-                              <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg">
-                                <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span className="font-medium">{route.duration}</span>
                               </div>
                             </div>
                           </div>
-
-                          {/* Action Button */}
-                          <div className="flex-shrink-0">
-                            <Link href={`/search?origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent(route.destination)}&date=${new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}`}>
-                              <Button size="lg" className="group-hover:bg-primary/90 cursor-pointer min-w-[120px]">
-                                Find Trips
-                                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
-                                </svg>
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
 
@@ -532,6 +529,7 @@ export default function RoutesPage() {
                       from: "",
                       to: "",
                       category: [],
+                      operator: "",
                       sortBy: "newest"
                     })}
                     variant="outline"

@@ -19,6 +19,7 @@ interface SearchFilters {
   from: string;
   to: string;
   category: string[];
+  operator: string;
   sortBy: string;
 }
 
@@ -28,6 +29,7 @@ interface SearchResult {
   title: string;
   origin: string;
   destination: string;
+  location?: string;
   departure: string;
   arrival: string;
   price: number;
@@ -40,6 +42,7 @@ interface SearchResult {
 }
 
 const categories = ["Premium", "Standard", "Tourist", "Cultural"];
+const operators = ["Phương Trang", "Tuấn Hưng", "Hoàng Long", "Mai Linh", "Thành Bưởi", "Hà Lan"];
 const tripTypes = ["One-way", "Round-trip"];
 const sortOptions = [
   { value: "newest", label: "Newest" },
@@ -61,6 +64,7 @@ function SearchPageContent() {
     from: "",
     to: "",
     category: [],
+    operator: "",
     sortBy: "newest",
   });
 
@@ -80,28 +84,34 @@ function SearchPageContent() {
   const passengers = searchParams.get("passengers") || "";
 
   useEffect(() => {
-    // Require search parameters for trip searches
-    if (!origin || !destination || !date) {
-      console.log('❌ Missing search parameters. Redirecting to home or routes page.');
+    // Require at least origin and destination for trip searches
+    if (!origin || !destination) {
+      console.log('❌ Missing required search parameters (origin/destination).');
       setAllResults([]);
       setIsLoading(false);
-      setError("Please provide origin, destination and date to search for trips.");
+      setError("Please provide origin and destination to search for trips.");
       return;
     }
 
-    console.log('🚌 Searching trips with params:', { origin, destination, date });
+    console.log('🚌 Searching trips with params:', { origin, destination, date: date || 'any date' });
     setIsLoading(true);
     setError(null);
 
-    // Convert date to ISO 8601 format (YYYY-MM-DD)
-    const formattedDate = date ? new Date(`${date}T00:00:00`).toISOString() : '';
-    console.log(formattedDate)
+    // Convert date to ISO 8601 format (YYYY-MM-DD) if provided
+    const searchParams: any = {
+      origin,
+      destination,
+    };
+    
+    if (date) {
+      const formattedDate = new Date(`${date}T00:00:00`).toISOString();
+      searchParams.date = formattedDate;
+      console.log('📅 Using specific date:', formattedDate);
+    } else {
+      console.log('📅 Searching all dates');
+    }
     api.get("/trips/search", {
-      params: {
-        origin,
-        destination,
-        date: formattedDate,
-      },
+      params: searchParams,
     })
       .then((response) => {
         const data = response.data?.data ?? [];
@@ -210,6 +220,14 @@ function SearchPageContent() {
     if (filters.to) {
       filteredResults = filteredResults.filter((result) =>
         result.arrival.toLowerCase().includes(filters.to.toLowerCase())
+      );
+    }
+
+    // Filter by operator
+    if (filters.operator) {
+      filteredResults = filteredResults.filter((result) =>
+        result.title.toLowerCase().includes(filters.operator.toLowerCase()) ||
+        result.description.toLowerCase().includes(filters.operator.toLowerCase())
       );
     }
 
@@ -495,6 +513,40 @@ function SearchPageContent() {
                 </div>
               </div>
 
+              {/* Bus Operator */}
+              <div className="space-y-3">
+                <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
+                  </svg>
+                  Bus Operator
+                </h4>
+                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                  <select
+                    value={filters.operator}
+                    onChange={(e) => handleFilterChange("operator", e.target.value)}
+                    className="w-full h-9 bg-background/90 dark:bg-black/95 border border-border/60 dark:border-border/40 focus:border-primary text-sm rounded-md px-2 transition-colors"
+                  >
+                    <option value="">All Operators</option>
+                    {operators.map((operator) => (
+                      <option key={operator} value={operator}>
+                        {operator}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Category */}
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
@@ -549,6 +601,7 @@ function SearchPageContent() {
                       from: "",
                       to: "",
                       category: [],
+                      operator: "",
                       sortBy: "price-asc",
                     });
                   }}
@@ -578,16 +631,20 @@ function SearchPageContent() {
             {/* Sort Controls & Results Count */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="text-body text-muted-foreground">
-                {origin && destination && date ? (
+                {origin && destination ? (
                   <>
                     Found {results.length} trips for{" "}
                     <span className="font-semibold text-foreground">
                       {origin} → {destination}
-                    </span>{" "}
-                    on{" "}
-                    <span className="font-semibold text-foreground">
-                      {date}
                     </span>
+                    {date && (
+                      <>
+                        {" "}on{" "}
+                        <span className="font-semibold text-foreground">
+                          {date}
+                        </span>
+                      </>
+                    )}
                     {passengers && (
                       <span>
                         {" "}
@@ -595,10 +652,13 @@ function SearchPageContent() {
                         {Number(passengers) > 1 ? "s" : ""}
                       </span>
                     )}
+                    {!date && (
+                      <span className="text-muted-foreground ml-2">(all dates)</span>
+                    )}
                   </>
                 ) : (
                   <span className="text-destructive">
-                    Please search with origin, destination, and date to find trips.
+                    Please search with origin and destination to find trips.
                   </span>
                 )}
               </div>
@@ -627,7 +687,7 @@ function SearchPageContent() {
               </Card>
             )}
 
-            {!isLoading && (!origin || !destination || !date) ? (
+            {!isLoading && (!origin || !destination) ? (
               <Card className="bg-card border border-border rounded-xl p-12 text-center">
                 <div className="space-y-4">
                   <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
@@ -637,7 +697,7 @@ function SearchPageContent() {
                   </div>
                   <h3 className="text-h4 font-semibold text-foreground">Search for Trips</h3>
                   <p className="text-body text-muted-foreground max-w-md mx-auto">
-                    Enter your origin, destination, and travel date to find available trips.
+                    Enter your origin and destination to find available trips. Date is optional - leave blank to see all trips.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Link href="/">
@@ -840,6 +900,7 @@ function SearchPageContent() {
                       from: "",
                       to: "",
                       category: [],
+                      operator: "",
                       sortBy: "newest"
                     })}
                     variant="outline"
