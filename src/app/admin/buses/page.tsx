@@ -256,11 +256,18 @@ function BusesManagement() {
                           <TableCell>{bus.seatCapacity}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {bus.amenities.map((amenity, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {amenity}
-                                </Badge>
-                              ))}
+                              {(() => {
+                                const amenitiesArray = Array.isArray(bus.amenities) 
+                                  ? bus.amenities 
+                                  : typeof bus.amenities === 'string' 
+                                    ? bus.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                                    : [];
+                                return amenitiesArray.map((amenity, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {amenity}
+                                  </Badge>
+                                ));
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell>{bus.operator?.name || bus.operatorId}</TableCell>

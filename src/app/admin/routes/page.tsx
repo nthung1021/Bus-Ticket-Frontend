@@ -345,16 +345,30 @@ function RoutesManagement() {
                           </TableCell>
                           <TableCell className="hidden xl:table-cell">
                             <div className="flex flex-wrap gap-1 max-w-[130px]">
-                              {route.amenities?.slice(0, 2).map((amenity) => (
-                                <Badge key={amenity} variant="outline" className="text-xs truncate">
-                                  {amenity}
-                                </Badge>
-                              ))}
-                              {route.amenities && route.amenities.length > 2 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{route.amenities.length - 2}
-                                </Badge>
-                              )}
+                              {(() => {
+                                const amenitiesArray = Array.isArray(route.amenities) 
+                                  ? route.amenities 
+                                  : typeof route.amenities === 'string' 
+                                    ? route.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                                    : [];
+                                return amenitiesArray.slice(0, 2).map((amenity) => (
+                                  <Badge key={amenity} variant="outline" className="text-xs truncate">
+                                    {amenity}
+                                  </Badge>
+                                ));
+                              })()}
+                              {(() => {
+                                const amenitiesArray = Array.isArray(route.amenities) 
+                                  ? route.amenities 
+                                  : typeof route.amenities === 'string' 
+                                    ? route.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                                    : [];
+                                return amenitiesArray.length > 2 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{amenitiesArray.length - 2}
+                                  </Badge>
+                                );
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell className="hidden xl:table-cell">

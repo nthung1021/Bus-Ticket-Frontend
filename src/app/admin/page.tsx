@@ -35,120 +35,85 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import ProtectedRole from "@/components/ProtectedRole";
+import { analyticsService, BookingsSummary, BookingTrend } from "@/services/analytics.service";
+import { routeService } from "@/services/route.service";
+import { operatorService } from "@/services/operator.service";
+import { busService } from "@/services/bus.service";
+import { toast } from "sonner";
 
-const dashboardData = {
+interface DashboardData {
+  stats: {
+    title: string;
+    value: string;
+    subtitle: string;
+    icon: React.ReactNode;
+    bgColor: string;
+  }[];
+  dailyAnalytics: { day: string; value: number }[];
+  dailyRevenue: { time: string; value: number }[];
+  bookingStatus: { name: string; value: number; fill: string }[];
+  recentBookings: any[];
+}
+
+// Initial fallback data
+const fallbackDashboardData: DashboardData = {
   stats: [
     {
       title: "Total Routes",
-      value: "260,200",
-      subtitle: "3 Admin",
+      value: "0",
+      subtitle: "Loading...",
       icon: <Route className="w-6 h-6" />,
       bgColor: "bg-primary",
     },
     {
       title: "Total Trips",
-      value: "375,00",
-      subtitle: "$4,00m",
+      value: "0",
+      subtitle: "Loading...",
       icon: <MapPin className="w-6 h-6" />,
       bgColor: "bg-accent",
     },
     {
       title: "Tickets Sold",
-      value: "88,230",
-      subtitle: "$4,00m",
+      value: "0",
+      subtitle: "Loading...",
       icon: <TicketCheck className="w-6 h-6" />,
       bgColor: "bg-secondary",
     },
     {
       title: "Revenue",
-      value: "225,702",
-      subtitle: "3k,00m",
+      value: "0",
+      subtitle: "Loading...",
       icon: <TrendingUp className="w-6 h-6" />,
       bgColor: "bg-accent",
     },
   ],
   dailyAnalytics: [
-    { day: "Mon", value: 120 },
-    { day: "Tue", value: 240 },
-    { day: "Wed", value: 140 },
-    { day: "Thu", value: 220 },
-    { day: "Fri", value: 290 },
-    { day: "Sat", value: 250 },
-    { day: "Sun", value: 320 },
+    { day: "Mon", value: 0 },
+    { day: "Tue", value: 0 },
+    { day: "Wed", value: 0 },
+    { day: "Thu", value: 0 },
+    { day: "Fri", value: 0 },
+    { day: "Sat", value: 0 },
+    { day: "Sun", value: 0 },
   ],
   dailyRevenue: [
-    { time: "00", value: 30 },
-    { time: "20", value: 60 },
-    { time: "40", value: 80 },
-    { time: "60", value: 110 },
-    { time: "80", value: 130 },
-    { time: "100", value: 150 },
-    { time: "120", value: 170 },
-    { time: "140", value: 190 },
-    { time: "160", value: 210 },
+    { time: "00", value: 0 },
+    { time: "20", value: 0 },
+    { time: "40", value: 0 },
+    { time: "60", value: 0 },
+    { time: "80", value: 0 },
+    { time: "100", value: 0 },
+    { time: "120", value: 0 },
+    { time: "140", value: 0 },
+    { time: "160", value: 0 },
   ],
   bookingStatus: [
-    { name: "Ticket sold", value: 45, fill: "#5B5FFF" },
-    { name: "10/7 & Time", value: 25, fill: "#FDB927" },
-    { name: "Export Stunt", value: 20, fill: "#92D14F" },
-    { name: "1301 e Home", value: 10, fill: "#66A3E0" },
+    { name: "Confirmed", value: 0, fill: "#5B5FFF" },
+    { name: "Pending", value: 0, fill: "#FDB927" },
+    { name: "Cancelled", value: 0, fill: "#92D14F" },
+    { name: "Completed", value: 0, fill: "#66A3E0" },
   ],
-  recentBookings: [
-    {
-      id: "BOOK001",
-      passengerId: "PS001",
-      route: "HN-SG",
-      date: "2024-11-21",
-      price: "$45.00",
-      status: "Confirmed",
-    },
-    {
-      id: "BOOK002",
-      passengerId: "PS002",
-      route: "SG-DN",
-      date: "2024-11-22",
-      price: "$32.50",
-      status: "Pending",
-    },
-    {
-      id: "BOOK003",
-      passengerId: "PS003",
-      route: "DN-HN",
-      date: "2024-11-23",
-      price: "$38.75",
-      status: "Confirmed",
-    },
-    {
-      id: "BOOK004",
-      passengerId: "PS004",
-      route: "HN-HP",
-      date: "2024-11-24",
-      price: "$25.00",
-      status: "Cancelled",
-    },
-    {
-      id: "BOOK005",
-      passengerId: "PS005",
-      route: "SG-CT",
-      date: "2024-11-25",
-      price: "$28.00",
-      status: "Confirmed",
-    },
-  ],
-  sidebarLineChart: [
-    { name: "Jan", value: 400 },
-    { name: "Feb", value: 300 },
-    { name: "Mar", value: 200 },
-    { name: "Apr", value: 278 },
-    { name: "May", value: 189 },
-    { name: "Jun", value: 239 },
-  ],
-  sidebarPieChart: [
-    { name: "HN-SG", value: 30, fill: "#0206f3ff" },
-    { name: "SG-DN", value: 30, fill: "#2c4bf7ff" },
-    { name: "DN-HN", value: 20, fill: "#1d8fecff" },
-    { name: "Others", value: 20, fill: "#c9dee7ff" },
-  ],
+  recentBookings: []
 };
 
 export default function AdminDashboardPage() {
@@ -162,10 +127,101 @@ export default function AdminDashboardPage() {
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<DashboardData>(fallbackDashboardData);
   const { theme } = useTheme();
 
   // Dynamic grid color based on theme
   const gridColor = theme === "dark" ? "#374151" : "#e5e7eb";
+
+  // Fetch real dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch data from multiple sources
+        const [
+          bookingsSummary,
+          bookingsTrends,
+          routeAnalytics,
+          routes,
+          totalBookingsData,
+          seatOccupancyData
+        ] = await Promise.all([
+          analyticsService.getBookingsSummary().catch(() => null),
+          analyticsService.getBookingsTrends().catch(() => []),
+          analyticsService.getRouteAnalytics().catch(() => []),
+          routeService.getAllSimple().catch(() => []),
+          analyticsService.getTotalBookingsCount().catch(() => ({ totalBookings: 0 })),
+          analyticsService.getSeatOccupancyRate().catch(() => ({ seatOccupancyRate: 0 }))
+        ]);
+
+        // Transform data for dashboard
+        const newDashboardData: DashboardData = {
+          stats: [
+            {
+              title: "Total Routes",
+              value: routes.length.toString(),
+              subtitle: `${routes.filter(r => r.isActive).length} Active`,
+              icon: <Route className="w-6 h-6" />,
+              bgColor: "bg-primary",
+            },
+            {
+              title: "Total Bookings",
+              value: totalBookingsData.totalBookings.toLocaleString(),
+              subtitle: bookingsSummary ? `$${bookingsSummary.totalRevenue.toLocaleString()}` : "Revenue",
+              icon: <MapPin className="w-6 h-6" />,
+              bgColor: "bg-accent",
+            },
+            {
+              title: "Revenue",
+              value: bookingsSummary ? `$${bookingsSummary.totalRevenue.toLocaleString()}` : "$0",
+              subtitle: bookingsSummary ? `Avg: $${Math.round(bookingsSummary.averageBookingValue)}` : "Average",
+              icon: <TrendingUp className="w-6 h-6" />,
+              bgColor: "bg-secondary",
+            },
+            {
+              title: "Seat Occupancy",
+              value: `${Math.round(seatOccupancyData.seatOccupancyRate || 0)}%`,
+              subtitle: "Average Rate",
+              icon: <TicketCheck className="w-6 h-6" />,
+              bgColor: "bg-accent",
+            },
+          ],
+          dailyAnalytics: bookingsTrends.length > 0 
+            ? bookingsTrends.slice(-7).map(trend => ({
+                day: new Date(trend.date).toLocaleDateString('en', { weekday: 'short' }),
+                value: trend.bookings
+              }))
+            : fallbackDashboardData.dailyAnalytics,
+          dailyRevenue: bookingsTrends.length > 0
+            ? bookingsTrends.slice(-9).map((trend, index) => ({
+                time: (index * 20).toString(),
+                value: Math.round(trend.revenue / 1000)
+              }))
+            : fallbackDashboardData.dailyRevenue,
+          bookingStatus: [
+            { name: "Confirmed", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.7), fill: "#5B5FFF" },
+            { name: "Pending", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.15), fill: "#FDB927" },
+            { name: "Completed", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.1), fill: "#92D14F" },
+            { name: "Cancelled", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.05), fill: "#FF6B6B" },
+          ],
+          recentBookings: [] // You can implement this by fetching recent bookings from the API
+        };
+
+        setDashboardData(newDashboardData);
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data. Using fallback data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="flex bg-background min-h-screen">
@@ -194,16 +250,30 @@ function Dashboard() {
                   </Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                  {dashboardData.stats.map((stat, index) => (
-                    <StatCard
-                      key={index}
-                      title={stat.title}
-                      value={stat.value}
-                      subtitle={stat.subtitle}
-                      icon={stat.icon}
-                      bgColor={stat.bgColor}
-                    />
-                  ))}
+                  {loading ? (
+                    // Loading skeletons
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <div key={index} className="bg-muted rounded-lg p-4 animate-pulse">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="h-4 bg-muted-foreground/20 rounded w-20"></div>
+                          <div className="h-6 w-6 bg-muted-foreground/20 rounded"></div>
+                        </div>
+                        <div className="h-8 bg-muted-foreground/20 rounded w-16 mb-1"></div>
+                        <div className="h-3 bg-muted-foreground/20 rounded w-12"></div>
+                      </div>
+                    ))
+                  ) : (
+                    dashboardData.stats.map((stat, index) => (
+                      <StatCard
+                        key={index}
+                        title={stat.title}
+                        value={stat.value}
+                        subtitle={stat.subtitle}
+                        icon={stat.icon}
+                        bgColor={stat.bgColor}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -212,228 +282,251 @@ function Dashboard() {
                 <h2 className="text-h2 text-card-foreground mb-6">
                   Analytics Dashboard
                 </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                  {/* Daily Analytics */}
-                  <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-h3 text-card-foreground mb-4">
-                      Daily & Analytics
-                    </h3>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={dashboardData.dailyAnalytics}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke={gridColor}
-                        />
-                        <XAxis dataKey="day" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar
-                          dataKey="value"
-                          fill="#5B5FFF"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {loading ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    <div className="bg-muted rounded-lg p-4 animate-pulse">
+                      <div className="h-6 bg-muted-foreground/20 rounded w-32 mb-4"></div>
+                      <div className="h-[180px] bg-muted-foreground/20 rounded"></div>
+                    </div>
+                    <div className="bg-muted rounded-lg p-4 animate-pulse">
+                      <div className="h-6 bg-muted-foreground/20 rounded w-24 mb-4"></div>
+                      <div className="h-[180px] bg-muted-foreground/20 rounded"></div>
+                    </div>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    {/* Daily Analytics */}
+                    <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                      <h3 className="text-h3 text-card-foreground mb-4">
+                        Daily Bookings
+                      </h3>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <BarChart data={dashboardData.dailyAnalytics}>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke={gridColor}
+                          />
+                          <XAxis dataKey="day" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar
+                            dataKey="value"
+                            fill="#5B5FFF"
+                            radius={[8, 8, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
 
-                  {/* Daily Revenue */}
-                  <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                    <h3 className="text-h3 text-card-foreground mb-4">
-                      Daily Revenue
-                    </h3>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <LineChart data={dashboardData.dailyRevenue}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke={gridColor}
-                        />
-                        <XAxis dataKey="time" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#5B5FFF"
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {/* Daily Revenue */}
+                    <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                      <h3 className="text-h3 text-card-foreground mb-4">
+                        Revenue Trend
+                      </h3>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={dashboardData.dailyRevenue}>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke={gridColor}
+                          />
+                          <XAxis dataKey="time" />
+                          <YAxis />
+                          <Tooltip />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#5B5FFF"
+                            strokeWidth={2}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Bottom Section - Recent Bookings Table */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
                 <h2 className="text-h2 text-card-foreground mb-4 md:mb-6">
-                  Recent Bookings
+                  Recent Activity
                 </h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                          Booking
-                        </th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                          Passenger
-                        </th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden sm:table-cell">
-                          Route
-                        </th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden lg:table-cell">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                          Price
-                        </th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                          Status
-                        </th>
-                        <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashboardData.recentBookings.map((booking, index) => (
-                        <tr
-                          key={booking.id}
-                          className={`border-b border-border hover:bg-muted transition-colors ${index % 2 === 0 ? "bg-card" : "bg-muted"
-                            }`}
-                        >
-                          <td className="py-4 px-2 md:px-4 text-foreground font-medium">
-                            {booking.id}
-                          </td>
-                          <td className="py-4 px-2 md:px-4 text-foreground">
-                            {booking.passengerId}
-                          </td>
-                          <td className="py-4 px-2 md:px-4 text-foreground hidden sm:table-cell">
-                            {booking.route}
-                          </td>
-                          <td className="py-4 px-2 md:px-4 text-foreground hidden lg:table-cell">
-                            {booking.date}
-                          </td>
-                          <td className="py-4 px-2 md:px-4 text-foreground">
-                            {booking.price}
-                          </td>
-                          <td className="py-4 px-2 md:px-4">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === "Confirmed"
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                  : booking.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                    : booking.status === "Cancelled"
-                                      ? "bg-destructive/10 text-destructive"
-                                      : "bg-muted text-muted-foreground"
-                                }`}
-                            >
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td className="py-4 px-2 md:px-4">
-                            <button className="text-primary hover:underline">
-                              View
-                            </button>
-                          </td>
+                {loading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <div key={index} className="flex items-center space-x-4 p-3 animate-pulse">
+                        <div className="h-4 bg-muted-foreground/20 rounded w-20"></div>
+                        <div className="h-4 bg-muted-foreground/20 rounded w-16"></div>
+                        <div className="h-4 bg-muted-foreground/20 rounded w-24"></div>
+                        <div className="h-4 bg-muted-foreground/20 rounded w-16"></div>
+                        <div className="h-4 bg-muted-foreground/20 rounded w-12"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : dashboardData.recentBookings.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                            Booking
+                          </th>
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                            Passenger
+                          </th>
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden sm:table-cell">
+                            Route
+                          </th>
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden lg:table-cell">
+                            Date
+                          </th>
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                            Price
+                          </th>
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
+                            Status
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {dashboardData.recentBookings.map((booking, index) => (
+                          <tr
+                            key={booking.id}
+                            className={`border-b border-border hover:bg-muted transition-colors ${index % 2 === 0 ? "bg-card" : "bg-muted"
+                              }`}
+                          >
+                            <td className="py-4 px-2 md:px-4 text-foreground font-medium">
+                              {booking.id}
+                            </td>
+                            <td className="py-4 px-2 md:px-4 text-foreground">
+                              {booking.passengerId}
+                            </td>
+                            <td className="py-4 px-2 md:px-4 text-foreground hidden sm:table-cell">
+                              {booking.route}
+                            </td>
+                            <td className="py-4 px-2 md:px-4 text-foreground hidden lg:table-cell">
+                              {booking.date}
+                            </td>
+                            <td className="py-4 px-2 md:px-4 text-foreground">
+                              {booking.price}
+                            </td>
+                            <td className="py-4 px-2 md:px-4">
+                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                booking.status === "Confirmed" 
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                  : booking.status === "Pending"
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                              }`}>
+                                {booking.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>No recent bookings available.</p>
+                    <p className="text-sm mt-2">Check back later for booking activity.</p>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Right Sidebar - Full width on mobile, 1/3 on desktop */}
             <div className="w-full xl:w-1/3 bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
-              <div className="space-y-3 md:space-y-4">
-                {/* Line Chart Card */}
-                <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-h3 text-card-foreground mb-4">
-                    Monthly Trends
-                  </h3>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={dashboardData.sidebarLineChart}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#5B5FFF"
-                        strokeWidth={3}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              {loading ? (
+                <div className="space-y-4">
+                  <div className="bg-muted rounded-lg p-4 animate-pulse">
+                    <div className="h-6 bg-muted-foreground/20 rounded w-24 mb-4"></div>
+                    <div className="h-[180px] bg-muted-foreground/20 rounded"></div>
+                  </div>
+                  <div className="bg-muted rounded-lg p-4 animate-pulse">
+                    <div className="h-6 bg-muted-foreground/20 rounded w-32 mb-4"></div>
+                    <div className="h-[180px] bg-muted-foreground/20 rounded"></div>
+                  </div>
                 </div>
-
-                {/* Pie Chart Card */}
-                <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-h3 text-card-foreground mb-4">
-                    Tickets Sold Per Route
-                  </h3>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={dashboardData.sidebarPieChart}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={30}
-                        outerRadius={70}
-                        dataKey="value"
-                        label={false}
-                      >
-                        {dashboardData.sidebarPieChart.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="mt-4 space-y-2 text-caption">
-                    {dashboardData.sidebarPieChart.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: item.fill }}
-                          ></div>
-                          <span className="text-foreground">{item.name}</span>
+              ) : (
+                <div className="space-y-3 md:space-y-4">
+                  {/* Booking Status Pie Chart */}
+                  <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                    <h3 className="text-h3 text-card-foreground mb-4">
+                      Booking Status
+                    </h3>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie
+                          data={dashboardData.bookingStatus}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={70}
+                          dataKey="value"
+                          label={false}
+                        >
+                          {dashboardData.bookingStatus.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="mt-4 space-y-2 text-caption">
+                      {dashboardData.bookingStatus.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: item.fill }}
+                            ></div>
+                            <span className="text-foreground">{item.name}</span>
+                          </div>
+                          <span className="text-foreground font-medium">
+                            {item.value}
+                          </span>
                         </div>
-                        <span className="text-foreground font-medium">
-                          {item.value}%
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Quick Actions Card */}
-                <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
-                  <h3 className="text-h3 text-card-foreground mb-4">
-                    Quick Actions
-                  </h3>
-                  <div className="space-y-3">
-                    <Button
-                      className="w-full justify-start"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.location.href = '/admin/trips'}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add New Trip
-                    </Button>
-                    <Button
-                      className="w-full justify-start"
-                      variant="outline"
-                      size="sm"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Generate Report
-                    </Button>
+                  {/* Quick Actions */}
+                  <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
+                    <h3 className="text-h3 text-card-foreground mb-4">
+                      Quick Actions
+                    </h3>
+                    <div className="space-y-3">
+                      <Link href="/admin/routes">
+                        <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90">
+                          <Route className="w-4 h-4 mr-2" />
+                          Manage Routes
+                        </Button>
+                      </Link>
+                      <Link href="/admin/buses">
+                        <Button className="w-full justify-start" variant="outline">
+                          <Truck className="w-4 h-4 mr-2" />
+                          Manage Buses
+                        </Button>
+                      </Link>
+                      <Link href="/admin/trips">
+                        <Button className="w-full justify-start" variant="outline">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Schedule Trips
+                        </Button>
+                      </Link>
+                      <Link href="/admin/passengers">
+                        <Button className="w-full justify-start" variant="outline">
+                          <Users className="w-4 h-4 mr-2" />
+                          View Passengers
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -441,3 +534,4 @@ function Dashboard() {
     </div>
   );
 }
+

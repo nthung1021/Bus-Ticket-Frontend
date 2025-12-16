@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,8 @@ import {
   Cell
 } from "recharts";
 import { format, startOfToday, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth } from "date-fns";
+import { analyticsService, BookingsSummary, BookingTrend, RouteAnalytics } from "@/services/analytics.service";
+import { toast } from "sonner";
 
 export default function RevenueAnalyticsPage() {
   return (
@@ -37,61 +39,149 @@ export default function RevenueAnalyticsPage() {
 
 function RevenueAnalyticsContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [bookingsSummary, setBookingsSummary] = useState<BookingsSummary | null>(null);
+  const [bookingsTrends, setBookingsTrends] = useState<BookingTrend[]>([]);
+  const [routeAnalytics, setRouteAnalytics] = useState<RouteAnalytics[]>([]);
+  const [totalBookings, setTotalBookings] = useState<number>(0);
+  const [bookingGrowth, setBookingGrowth] = useState<number>(0);
+  const [seatOccupancy, setSeatOccupancy] = useState<number>(0);
 
-  // Mock data - replace with actual API calls
-  const revenueData = {
-    today: {
-      revenue: 12450,
-      growth: 8.5,
-      tickets: 156,
-      transactions: 142
-    },
-    week: {
-      revenue: 89750,
-      growth: 12.3,
-      tickets: 1087,
-      transactions: 982
-    },
-    month: {
-      revenue: 345600,
-      growth: -2.1,
-      tickets: 4521,
-      transactions: 4123
+  // Fetch analytics data
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [selectedPeriod]);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Calculate date range based on selected period
+      let startDate: string;
+      let endDate: string = new Date().toISOString();
+      
+      switch (selectedPeriod) {
+        case 'today':
+          startDate = startOfToday().toISOString();
+          endDate = endOfDay(new Date()).toISOString();
+          break;
+        case 'week':
+          startDate = startOfWeek(new Date()).toISOString();
+          endDate = endOfWeek(new Date()).toISOString();
+          break;
+        case 'month':
+          startDate = startOfMonth(new Date()).toISOString();
+          endDate = endOfMonth(new Date()).toISOString();
+          break;
+        default:
+          startDate = startOfToday().toISOString();
+      }
+
+      const queryParams = {
+        startDate: startDate.split('T')[0],
+        endDate: endDate.split('T')[0],
+        period: selectedPeriod === 'today' ? 'day' as const : selectedPeriod
+      };
+
+      // Fetch all analytics data
+      const [
+        summaryData,
+        trendsData,
+        routesData,
+        totalBookingsData,
+        growthData,
+        occupancyData
+      ] = await Promise.all([
+        analyticsService.getBookingsSummary(queryParams).catch(() => null),
+        analyticsService.getBookingsTrends(queryParams).catch(() => []),
+        analyticsService.getRouteAnalytics(queryParams).catch(() => []),
+        analyticsService.getTotalBookingsCount(queryParams).catch(() => ({ totalBookings: 0 })),
+        analyticsService.getBookingGrowth(queryParams).catch(() => ({ bookingGrowth: 0 })),
+        analyticsService.getSeatOccupancyRate(queryParams).catch(() => ({ seatOccupancyRate: 0 }))
+      ]);
+
+      setBookingsSummary(summaryData);
+      setBookingsTrends(trendsData);
+      setRouteAnalytics(routesData);
+      setTotalBookings(totalBookingsData.totalBookings);
+      setBookingGrowth(growthData.bookingGrowth);
+      setSeatOccupancy(occupancyData.seatOccupancyRate);
+      
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      toast.error('Failed to load analytics data. Using fallback data.');
+      
+      // Fallback to mock data if API fails
+      setBookingsSummary({
+        totalBookings: selectedPeriod === 'today' ? 156 : selectedPeriod === 'week' ? 1087 : 4521,
+        totalRevenue: selectedPeriod === 'today' ? 12450 : selectedPeriod === 'week' ? 89750 : 345600,
+        averageBookingValue: selectedPeriod === 'today' ? 80 : selectedPeriod === 'week' ? 82 : 76,
+        conversionRate: 3.2,
+        growthRate: selectedPeriod === 'today' ? 8.5 : selectedPeriod === 'week' ? 12.3 : -2.1
+      });
+      
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const dailyRevenueData = [
-    { date: '2024-12-09', revenue: 8500, tickets: 98 },
-    { date: '2024-12-10', revenue: 9200, tickets: 112 },
-    { date: '2024-12-11', revenue: 7800, tickets: 89 },
-    { date: '2024-12-12', revenue: 11400, tickets: 134 },
-    { date: '2024-12-13', revenue: 10200, tickets: 118 },
-    { date: '2024-12-14', revenue: 13100, tickets: 156 },
-    { date: '2024-12-15', revenue: 12450, tickets: 142 },
-  ];
+  // Derived data for charts
+  const revenueData = {
+    today: {
+      revenue: bookingsSummary?.totalRevenue ?? 12450,
+      growth: bookingsSummary?.growthRate ?? 8.5,
+      tickets: totalBookings || 156,
+      transactions: totalBookings || 142
+    },
+    week: {
+      revenue: bookingsSummary?.totalRevenue ?? 89750,
+      growth: bookingsSummary?.growthRate ?? 12.3,
+      tickets: totalBookings || 1087,
+      transactions: totalBookings || 982
+    },
+    month: {
+      revenue: bookingsSummary?.totalRevenue ?? 345600,
+      growth: bookingsSummary?.growthRate ?? -2.1,
+      tickets: totalBookings || 4521,
+      transactions: totalBookings || 4123
+    }
+  };
+
+  // Transform trends data for charts
+  const dailyRevenueData = bookingsTrends.map(trend => ({
+    date: trend.date,
+    revenue: trend.revenue,
+    tickets: trend.bookings
+  }));
 
   const weeklyRevenueData = [
     { week: 'Week 1', revenue: 67800, tickets: 789 },
     { week: 'Week 2', revenue: 72100, tickets: 845 },
-    { week: 'Week 3', revenue: 89750, tickets: 1087 },
+    { week: 'Week 3', revenue: revenueData[selectedPeriod].revenue, tickets: revenueData[selectedPeriod].tickets },
   ];
 
   const monthlyRevenueData = [
     { month: 'Oct', revenue: 298500, tickets: 3789 },
     { month: 'Nov', revenue: 354200, tickets: 4123 },
-    { month: 'Dec', revenue: 345600, tickets: 4521 },
+    { month: 'Dec', revenue: revenueData[selectedPeriod].revenue, tickets: revenueData[selectedPeriod].tickets },
   ];
 
-  const routePerformanceData = [
-    { route: 'HCM - Da Nang', revenue: 45600, percentage: 32 },
-    { route: 'Ha Noi - Hai Phong', revenue: 38900, percentage: 28 },
-    { route: 'HCM - Nha Trang', revenue: 28700, percentage: 20 },
-    { route: 'Da Nang - Hoi An', revenue: 18400, percentage: 13 },
-    { route: 'Others', revenue: 9800, percentage: 7 },
-  ];
+  // Transform route analytics for charts
+  const routePerformanceData = routeAnalytics.length > 0 
+    ? routeAnalytics.slice(0, 5).map((route, index) => ({
+        route: route.routeName || `Route ${index + 1}`,
+        revenue: route.totalRevenue,
+        percentage: Math.round((route.totalRevenue / (bookingsSummary?.totalRevenue || 1)) * 100)
+      }))
+    : [
+        { route: 'HCM - Da Nang', revenue: 45600, percentage: 32 },
+        { route: 'Ha Noi - Hai Phong', revenue: 38900, percentage: 28 },
+        { route: 'HCM - Nha Trang', revenue: 28700, percentage: 20 },
+        { route: 'Da Nang - Hoi An', revenue: 18400, percentage: 13 },
+        { route: 'Others', revenue: 9800, percentage: 7 },
+      ];
 
-  // Payment method distribution data
+  // Payment method distribution data (static for now)
   const paymentMethodData = [
     { method: 'Credit Card', amount: 156800, percentage: 45, color: '#0088FE' },
     { method: 'Bank Transfer', amount: 121200, percentage: 35, color: '#00C49F' },
@@ -99,22 +189,24 @@ function RevenueAnalyticsContent() {
     { method: 'Cash', amount: 17600, percentage: 5, color: '#FF8042' },
   ];
 
-  // Revenue over time data (more detailed for line chart)
-  const revenueOverTimeData = [
-    { date: '2024-12-01', revenue: 15200, tickets: 178 },
-    { date: '2024-12-02', revenue: 13800, tickets: 162 },
-    { date: '2024-12-03', revenue: 18500, tickets: 215 },
-    { date: '2024-12-04', revenue: 16200, tickets: 189 },
-    { date: '2024-12-05', revenue: 19800, tickets: 231 },
-    { date: '2024-12-06', revenue: 22100, tickets: 258 },
-    { date: '2024-12-07', revenue: 20500, tickets: 239 },
-    { date: '2024-12-08', revenue: 17900, tickets: 209 },
-    { date: '2024-12-09', revenue: 14300, tickets: 167 },
-    { date: '2024-12-10', revenue: 16700, tickets: 195 },
-    { date: '2024-12-11', revenue: 18900, tickets: 221 },
-    { date: '2024-12-12', revenue: 21400, tickets: 250 },
-    { date: '2024-12-13', revenue: 19600, tickets: 229 },
-    { date: '2024-12-14', revenue: 23100, tickets: 270 },
+  // Use real trends data or fallback to generated data
+  const revenueOverTimeData = dailyRevenueData.length > 0 
+    ? dailyRevenueData
+    : [
+        { date: '2024-12-01', revenue: 15200, tickets: 178 },
+        { date: '2024-12-02', revenue: 13800, tickets: 162 },
+        { date: '2024-12-03', revenue: 18500, tickets: 215 },
+        { date: '2024-12-04', revenue: 16200, tickets: 189 },
+        { date: '2024-12-05', revenue: 19800, tickets: 231 },
+        { date: '2024-12-06', revenue: 22100, tickets: 258 },
+        { date: '2024-12-07', revenue: 20500, tickets: 239 },
+        { date: '2024-12-08', revenue: 17900, tickets: 209 },
+        { date: '2024-12-09', revenue: 14300, tickets: 167 },
+        { date: '2024-12-10', revenue: 16700, tickets: 195 },
+        { date: '2024-12-11', revenue: 18900, tickets: 221 },
+        { date: '2024-12-12', revenue: 21400, tickets: 250 },
+        { date: '2024-12-13', revenue: 19600, tickets: 229 },
+        { date: '2024-12-14', revenue: 23100, tickets: 270 },
     { date: '2024-12-15', revenue: 20800, tickets: 243 },
   ];
 

@@ -128,19 +128,28 @@ export default function RouteForm({
       <div>
         <Label className="text-base font-medium">Amenities</Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
-          {availableAmenities.map((amenity) => (
-            <div key={amenity} className="flex items-center space-x-2">
-              <Checkbox
-                id={amenity}
-                checked={(formData.amenities || []).includes(amenity)}
-                onCheckedChange={(checked) => handleAmenitiesChange(amenity, checked as boolean)}
-                className="border-2 border-gray-400 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:shadow-inner"
-              />
-              <Label htmlFor={amenity} className="text-sm font-normal leading-tight">
-                {amenity}
-              </Label>
-            </div>
-          ))}
+          {availableAmenities.map((amenity) => {
+            // Ensure amenities is always an array
+            const amenitiesArray = Array.isArray(formData.amenities) 
+              ? formData.amenities 
+              : typeof formData.amenities === 'string' 
+                ? formData.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                : [];
+                
+            return (
+              <div key={amenity} className="flex items-center space-x-2">
+                <Checkbox
+                  id={amenity}
+                  checked={amenitiesArray.includes(amenity)}
+                  onCheckedChange={(checked) => handleAmenitiesChange(amenity, checked as boolean)}
+                  className="border-2 border-gray-400 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:shadow-inner"
+                />
+                <Label htmlFor={amenity} className="text-sm font-normal leading-tight">
+                  {amenity}
+                </Label>
+              </div>
+            );
+          })}
         </div>
       </div>
 
