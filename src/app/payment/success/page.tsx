@@ -511,7 +511,7 @@ Present this ticket when boarding the bus.
           <CardHeader>
             <CardTitle>Booking Confirmation</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Booking ID: {booking.id}
+              Booking ID: {(booking as any)?.bookingId}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
