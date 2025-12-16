@@ -58,6 +58,7 @@ import {
     formatDateFromBackend,
     TripStatus,
 } from "@/services/trip.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 
 function TripManagementPage() {
     const [trips, setTrips] = useState<Trip[]>([]);
@@ -209,9 +210,23 @@ function TripManagementPage() {
         if (confirm("Are you sure you want to delete this trip?")) {
             try {
                 setIsLoading(true);
+                
+                // Get trip info before deletion for activity log
+                const tripToDelete = trips.find(t => t.id === tripId);
+                
                 await deleteTrip(tripId);
                 setTrips(trips.filter((t) => t.id !== tripId));
                 toast.success("Trip deleted successfully");
+                
+                // Log admin activity
+                if (tripToDelete) {
+                    adminActivityService.addActivity(
+                        'deleted',
+                        'trip',
+                        `${tripToDelete.route?.name || 'Route'} - ${new Date(tripToDelete.departureTime).toLocaleDateString()}`,
+                        `Removed scheduled trip`
+                    );
+                }
             } catch (error) {
                 console.error("Error deleting trip:", error);
                 toast.error("Failed to delete trip");
@@ -239,11 +254,28 @@ function TripManagementPage() {
                 const updatedTrip = await updateTrip(editingTrip.id, tripData as UpdateTripDto);
                 setTrips(trips.map((t) => t.id === editingTrip.id ? updatedTrip : t));
                 toast.success("Trip updated successfully");
+                
+                // Log admin activity
+                adminActivityService.addActivity(
+                    'updated',
+                    'trip',
+                    `${editingTrip.route?.name || 'Route'} - ${new Date(data.departureTime).toLocaleDateString()}`,
+                    `Updated trip details`
+                );
             } else {
                 // Create new trip
                 const newTrip = await createTrip(tripData as CreateTripDto);
                 setTrips([...trips, newTrip]);
                 toast.success("Trip created successfully");
+                
+                // Log admin activity
+                const routeName = routes.find(r => r.id === data.routeId)?.name || 'Route';
+                adminActivityService.addActivity(
+                    'created',
+                    'trip',
+                    `${routeName} - ${new Date(data.departureTime).toLocaleDateString()}`,
+                    `Scheduled new trip`
+                );
             }
 
             setIsDialogOpen(false);

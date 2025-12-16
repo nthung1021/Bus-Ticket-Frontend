@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Edit, Plus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { operatorService, Operator, CreateOperatorDto, UpdateOperatorDto, OperatorStatus } from "@/services/operator.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 import { toast } from "sonner";
 import OperatorForm from "@/components/operator/OperatorForm";
 
@@ -63,6 +64,15 @@ function OperatorsManagement() {
     try {
       await operatorService.create(formData);
       toast.success("Operator created successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'created',
+        'operator',
+        formData.name,
+        `New operator added with status: ${formData.status}`
+      );
+      
       setIsCreateDialogOpen(false);
       setFormData({
         name: "",
@@ -83,6 +93,15 @@ function OperatorsManagement() {
     try {
       await operatorService.update(editingOperator.id, formData as UpdateOperatorDto);
       toast.success("Operator updated successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'updated',
+        'operator',
+        editingOperator.name,
+        `Updated operator details`
+      );
+      
       setIsEditDialogOpen(false);
       setEditingOperator(null);
       setFormData({
@@ -102,8 +121,22 @@ function OperatorsManagement() {
     if (!confirm("Are you sure you want to delete this operator?")) return;
 
     try {
+      // Get operator info before deletion for activity log
+      const operatorToDelete = operators.find(o => o.id === id);
+      
       await operatorService.delete(id);
       toast.success("Operator deleted successfully");
+      
+      // Log admin activity
+      if (operatorToDelete) {
+        adminActivityService.addActivity(
+          'deleted',
+          'operator',
+          operatorToDelete.name,
+          `Removed operator from system`
+        );
+      }
+      
       fetchOperators();
     } catch (error) {
       toast.error("Failed to delete operator");
@@ -113,8 +146,22 @@ function OperatorsManagement() {
 
   const handleApproveOperator = async (id: string) => {
     try {
+      // Get operator info for activity log
+      const operatorToApprove = operators.find(o => o.id === id);
+      
       await operatorService.approve(id);
       toast.success("Operator approved successfully");
+      
+      // Log admin activity
+      if (operatorToApprove) {
+        adminActivityService.addActivity(
+          'approved',
+          'operator',
+          operatorToApprove.name,
+          `Operator approved for service`
+        );
+      }
+      
       fetchOperators();
     } catch (error) {
       toast.error("Failed to approve operator");
@@ -124,8 +171,22 @@ function OperatorsManagement() {
 
   const handleSuspendOperator = async (id: string) => {
     try {
+      // Get operator info for activity log
+      const operatorToSuspend = operators.find(o => o.id === id);
+      
       await operatorService.suspend(id);
       toast.success("Operator suspended successfully");
+      
+      // Log admin activity
+      if (operatorToSuspend) {
+        adminActivityService.addActivity(
+          'suspended',
+          'operator',
+          operatorToSuspend.name,
+          `Operator suspended from service`
+        );
+      }
+      
       fetchOperators();
     } catch (error) {
       toast.error("Failed to suspend operator");

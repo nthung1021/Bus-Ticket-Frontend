@@ -39,6 +39,7 @@ import { analyticsService, BookingsSummary, BookingTrend } from "@/services/anal
 import { routeService } from "@/services/route.service";
 import { operatorService } from "@/services/operator.service";
 import { busService } from "@/services/bus.service";
+import { adminActivityService, AdminActivity } from "@/services/admin-activity.service";
 import { toast } from "sonner";
 
 interface DashboardData {
@@ -52,7 +53,7 @@ interface DashboardData {
   dailyAnalytics: { day: string; value: number }[];
   dailyRevenue: { time: string; value: number }[];
   bookingStatus: { name: string; value: number; fill: string }[];
-  recentBookings: any[];
+  recentActivities: AdminActivity[];
 }
 
 // Initial fallback data
@@ -113,7 +114,7 @@ const fallbackDashboardData: DashboardData = {
     { name: "Cancelled", value: 0, fill: "#92D14F" },
     { name: "Completed", value: 0, fill: "#66A3E0" },
   ],
-  recentBookings: []
+  recentActivities: []
 };
 
 export default function AdminDashboardPage() {
@@ -136,6 +137,18 @@ function Dashboard() {
 
   // Fetch real dashboard data
   useEffect(() => {
+    // Load admin activities from localStorage
+    adminActivityService.loadFromStorage();
+    
+    // Add some demo activities if none exist (for testing)
+    const existingActivities = adminActivityService.getRecentActivities(1);
+    if (existingActivities.length === 0) {
+      adminActivityService.addActivity('created', 'route', 'Ho Chi Minh - Da Nang', 'New route added with 5 stops');
+      adminActivityService.addActivity('updated', 'bus', 'ABC-123', 'Updated bus capacity and amenities');
+      adminActivityService.addActivity('approved', 'operator', 'Green Express', 'Operator approved for service');
+      adminActivityService.addActivity('created', 'trip', 'HCMC-DN Route - Today', 'New trip scheduled for route');
+    }
+    
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
@@ -173,11 +186,9 @@ function Dashboard() {
 
         // Helper function to safely format currency
         const formatCurrency = (amount: number) => {
-          // If amount is suspiciously high (>$100k), it might be in cents
-          const displayAmount = amount > 100000 ? amount / 100 : amount;
-          return displayAmount.toLocaleString(undefined, {
+          return amount.toLocaleString("vi-VN", {
             minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+            maximumFractionDigits: 0,
           });
         };
 
@@ -185,9 +196,7 @@ function Dashboard() {
         const formatAverageBooking = (total: number, count: number) => {
           if (count === 0) return 0;
           const avg = total / count;
-          // If average is suspiciously high, check if total is in cents
-          const displayAvg = avg > 1000 ? (total > 100000 ? total / 100 / count : avg) : avg;
-          return Math.round(displayAvg);
+          return Math.round(avg);
         };
 
         // Transform data for dashboard
@@ -203,14 +212,14 @@ function Dashboard() {
             {
               title: "Total Bookings",
               value: (bookingsSummary?.totalBookings ?? totalBookingsData?.totalBookings ?? 0).toLocaleString(),
-              subtitle: bookingsSummary ? `$${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "Revenue",
+              subtitle: bookingsSummary ? `${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "Revenue",
               icon: <MapPin className="w-6 h-6" />,
               bgColor: "bg-accent",
             },
             {
               title: "Revenue",
-              value: bookingsSummary ? `$${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "$0",
-              subtitle: bookingsSummary ? `Avg: $${formatAverageBooking(bookingsSummary.totalRevenue ?? 0, bookingsSummary.totalBookings ?? 0)}` : "Average",
+              value: bookingsSummary ? `${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "0",
+              subtitle: bookingsSummary ? `Avg: ${formatAverageBooking(bookingsSummary.totalRevenue ?? 0, bookingsSummary.totalBookings ?? 0)}` : "Average",
               icon: <TrendingUp className="w-6 h-6" />,
               bgColor: "bg-secondary",
             },
@@ -240,7 +249,7 @@ function Dashboard() {
             { name: "Completed", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.1), fill: "#92D14F" },
             { name: "Cancelled", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.05), fill: "#FF6B6B" },
           ],
-          recentBookings: [] // You can implement this by fetching recent bookings from the API
+          recentActivities: adminActivityService.getRecentActivities(10)
         };
 
         setDashboardData(newDashboardData);
@@ -395,63 +404,70 @@ function Dashboard() {
                       </div>
                     ))}
                   </div>
-                ) : dashboardData.recentBookings.length > 0 ? (
+                ) : dashboardData.recentActivities.length > 0 ? (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm table-fixed min-w-[600px]">
+                      <colgroup>
+                        <col className="w-[20%]" />
+                        <col className="w-[20%]" />
+                        <col className="w-[40%]" />
+                        <col className="w-[20%]" />
+                      </colgroup>
                       <thead>
                         <tr className="border-b border-border">
                           <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                            Booking
+                            Action
                           </th>
                           <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                            Passenger
+                            Resource
                           </th>
-                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden sm:table-cell">
-                            Route
-                          </th>
-                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden lg:table-cell">
-                            Date
+                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold hidden md:table-cell">
+                            Details
                           </th>
                           <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                            Price
-                          </th>
-                          <th className="text-left py-3 px-2 md:px-4 text-muted-foreground font-semibold">
-                            Status
+                            Time
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {dashboardData.recentBookings.map((booking, index) => (
+                        {dashboardData.recentActivities.map((activity, index) => (
                           <tr
-                            key={booking.id}
+                            key={activity.id}
                             className={`border-b border-border hover:bg-muted transition-colors ${index % 2 === 0 ? "bg-card" : "bg-muted"
                               }`}
                           >
-                            <td className="py-4 px-2 md:px-4 text-foreground font-medium">
-                              {booking.id}
+                            <td className="py-3 px-2 md:px-4 text-foreground">
+                              <div className="flex items-center gap-1 md:gap-2">
+                                <span className="text-base md:text-lg flex-shrink-0">{adminActivityService.getActivityIcon(activity)}</span>
+                                <span className={`text-xs md:text-sm font-medium ${adminActivityService.getActivityColor(activity)} truncate`}>
+                                  {activity.action.charAt(0).toUpperCase() + activity.action.slice(1)}
+                                </span>
+                              </div>
                             </td>
-                            <td className="py-4 px-2 md:px-4 text-foreground">
-                              {booking.passengerId}
+                            <td className="py-3 px-2 md:px-4 text-foreground">
+                              <div className="min-w-0">
+                                <div className="text-xs md:text-sm font-medium truncate">{activity.resource}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {activity.resourceName}
+                                </div>
+                              </div>
                             </td>
-                            <td className="py-4 px-2 md:px-4 text-foreground hidden sm:table-cell">
-                              {booking.route}
+                            <td className="py-3 px-2 md:px-4 text-foreground hidden md:table-cell">
+                              <div className="text-xs text-muted-foreground">
+                                <div className="truncate" title={activity.details || adminActivityService.formatActivity(activity)}>
+                                  {activity.details || adminActivityService.formatActivity(activity)}
+                                </div>
+                              </div>
                             </td>
-                            <td className="py-4 px-2 md:px-4 text-foreground hidden lg:table-cell">
-                              {booking.date}
-                            </td>
-                            <td className="py-4 px-2 md:px-4 text-foreground">
-                              {booking.price}
-                            </td>
-                            <td className="py-4 px-2 md:px-4">
-                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                booking.status === "Confirmed" 
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                  : booking.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                              }`}>
-                                {booking.status}
-                              </span>
+                            <td className="py-3 px-2 md:px-4 text-foreground">
+                              <div className="text-xs text-muted-foreground min-w-0">
+                                <div className="truncate">
+                                  {activity.timestamp.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                <div className="text-xs opacity-75 hidden sm:block truncate">
+                                  {activity.timestamp.toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -460,8 +476,8 @@ function Dashboard() {
                   </div>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
-                    <p>No recent bookings available.</p>
-                    <p className="text-sm mt-2">Check back later for booking activity.</p>
+                    <p>No recent admin activities.</p>
+                    <p className="text-sm mt-2">Admin actions will appear here as you manage the system.</p>
                   </div>
                 )}
               </div>

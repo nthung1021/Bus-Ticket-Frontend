@@ -14,11 +14,12 @@ import {
   useChangeUserRole,
   type AdminUser,
 } from "src/hooks/useAdminUsers";
+import { adminActivityService } from "@/services/admin-activity.service";
 import { useState } from "react";
 
 const ROLES = [
-  { key: "customer", label: "Customer" },
-  { key: "admin", label: "Admin" }
+  { key: "customer", label: "Passenger" },
+  { key: "admin", label: "Admin" },
 ];
 
 export default function ManageUsersPage() {
@@ -175,7 +176,18 @@ function AdminPageContent() {
                           );
                           if (!confirm) return;
                           setChangingUser(u.userId);
+                          
+                          const oldRole = u.role;
                           await changeRole.mutateAsync({ userId: u.userId, role });
+                          
+                          // Log admin activity
+                          adminActivityService.addActivity(
+                            'updated',
+                            'user',
+                            u.name,
+                            `Changed role from ${oldRole} to ${role}`
+                          );
+                          
                           setChangingUser(null);
                         }}
                         disabled={changingUser !== null}

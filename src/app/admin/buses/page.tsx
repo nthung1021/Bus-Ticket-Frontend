@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Plus, Search, Settings } from "lucide-react";
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
 import { operatorService, Operator } from "@/services/operator.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 import { toast } from "sonner";
 import BusForm from "@/components/bus/BusForm";
 import SeatLayoutDialog from "@/components/seat-layout/SeatLayoutDialog";
@@ -91,6 +92,15 @@ function BusesManagement() {
     try {
       await busService.create(formData);
       toast.success("Bus created successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'created',
+        'bus',
+        formData.plateNumber,
+        `Added ${formData.model} with ${formData.seatCapacity} seats`
+      );
+      
       setIsCreateDialogOpen(false);
       setFormData({
         operatorId: "",
@@ -112,6 +122,15 @@ function BusesManagement() {
     try {
       await busService.update(editingBus.id, formData as UpdateBusDto);
       toast.success("Bus updated successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'updated',
+        'bus',
+        editingBus.plateNumber,
+        `Updated bus details`
+      );
+      
       setIsEditDialogOpen(false);
       setEditingBus(null);
       setFormData({
@@ -132,8 +151,22 @@ function BusesManagement() {
     if (!confirm("Are you sure you want to delete this bus?")) return;
 
     try {
+      // Get bus info before deletion for activity log
+      const busToDelete = buses.find(b => b.id === id);
+      
       await busService.delete(id);
       toast.success("Bus deleted successfully");
+      
+      // Log admin activity
+      if (busToDelete) {
+        adminActivityService.addActivity(
+          'deleted',
+          'bus',
+          busToDelete.plateNumber,
+          `Removed ${busToDelete.model} from fleet`
+        );
+      }
+      
       fetchBuses();
     } catch (error) {
       toast.error("Failed to delete bus");

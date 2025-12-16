@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler, ChevronDown, Wifi, Car } from "lucide-react";
 import { routeService, Route, CreateRouteDto, UpdateRouteDto } from "@/services/route.service";
 import { operatorService, Operator } from "@/services/operator.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 import { toast } from "sonner";
 import RouteForm from "@/components/route/RouteForm";
 
@@ -82,8 +83,17 @@ function RoutesManagement() {
 
   const handleCreateRoute = async () => {
     try {
-      await routeService.create(formData);
+      const newRoute = await routeService.create(formData);
       toast.success("Route created successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'created',
+        'route',
+        formData.name || `${formData.origin} - ${formData.destination}`,
+        `New route from ${formData.origin} to ${formData.destination}`
+      );
+      
       setIsCreateDialogOpen(false);
       setFormData({
         operatorId: "",
@@ -124,6 +134,15 @@ function RoutesManagement() {
       console.log('Updating route with cleaned data:', cleanedData);
       await routeService.update(editingRoute.id, cleanedData as UpdateRouteDto);
       toast.success("Route updated successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'updated',
+        'route',
+        editingRoute.name || `${editingRoute.origin} - ${editingRoute.destination}`,
+        `Updated route details`
+      );
+      
       setIsEditDialogOpen(false);
       setEditingRoute(null);
       setFormData({
@@ -148,8 +167,22 @@ function RoutesManagement() {
     if (!confirm("Are you sure you want to delete this route?")) return;
 
     try {
+      // Get route info before deletion for activity log
+      const routeToDelete = routes.find(r => r.id === id);
+      
       await routeService.delete(id);
       toast.success("Route deleted successfully");
+      
+      // Log admin activity
+      if (routeToDelete) {
+        adminActivityService.addActivity(
+          'deleted',
+          'route',
+          routeToDelete.name || `${routeToDelete.origin} - ${routeToDelete.destination}`,
+          `Deleted route from system`
+        );
+      }
+      
       fetchRoutes();
     } catch (error) {
       toast.error("Failed to delete route");
