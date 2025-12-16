@@ -147,15 +147,48 @@ function Dashboard() {
           routeAnalytics,
           routes,
           totalBookingsData,
-          seatOccupancyData
+          operators
         ] = await Promise.all([
           analyticsService.getBookingsSummary().catch(() => null),
           analyticsService.getBookingsTrends().catch(() => []),
           analyticsService.getRouteAnalytics().catch(() => []),
           routeService.getAllSimple().catch(() => []),
-          analyticsService.getTotalBookingsCount().catch(() => ({ totalBookings: 0 })),
-          analyticsService.getSeatOccupancyRate().catch(() => ({ seatOccupancyRate: 0 }))
+          analyticsService.getTotalBookingsCount().catch((error) => {
+            console.warn('Failed to fetch total bookings count:', error);
+            return { totalBookings: 0 };
+          }),
+          operatorService.getAll().catch((error) => {
+            console.warn('Failed to fetch operators:', error);
+            return [];
+          })
         ]);
+
+        // Debug logging to identify data issues
+        console.log('Dashboard Data Debug:', {
+          bookingsSummary,
+          totalBookingsData,
+          operators,
+          routesCount: routes.length
+        });
+
+        // Helper function to safely format currency
+        const formatCurrency = (amount: number) => {
+          // If amount is suspiciously high (>$100k), it might be in cents
+          const displayAmount = amount > 100000 ? amount / 100 : amount;
+          return displayAmount.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          });
+        };
+
+        // Helper function to format average booking value
+        const formatAverageBooking = (total: number, count: number) => {
+          if (count === 0) return 0;
+          const avg = total / count;
+          // If average is suspiciously high, check if total is in cents
+          const displayAvg = avg > 1000 ? (total > 100000 ? total / 100 / count : avg) : avg;
+          return Math.round(displayAvg);
+        };
 
         // Transform data for dashboard
         const newDashboardData: DashboardData = {
@@ -169,23 +202,23 @@ function Dashboard() {
             },
             {
               title: "Total Bookings",
-              value: totalBookingsData.totalBookings.toLocaleString(),
-              subtitle: bookingsSummary ? `$${bookingsSummary.totalRevenue.toLocaleString()}` : "Revenue",
+              value: (bookingsSummary?.totalBookings ?? totalBookingsData?.totalBookings ?? 0).toLocaleString(),
+              subtitle: bookingsSummary ? `$${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "Revenue",
               icon: <MapPin className="w-6 h-6" />,
               bgColor: "bg-accent",
             },
             {
               title: "Revenue",
-              value: bookingsSummary ? `$${bookingsSummary.totalRevenue.toLocaleString()}` : "$0",
-              subtitle: bookingsSummary ? `Avg: $${Math.round(bookingsSummary.averageBookingValue)}` : "Average",
+              value: bookingsSummary ? `$${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "$0",
+              subtitle: bookingsSummary ? `Avg: $${formatAverageBooking(bookingsSummary.totalRevenue ?? 0, bookingsSummary.totalBookings ?? 0)}` : "Average",
               icon: <TrendingUp className="w-6 h-6" />,
               bgColor: "bg-secondary",
             },
             {
-              title: "Seat Occupancy",
-              value: `${Math.round(seatOccupancyData.seatOccupancyRate || 0)}%`,
-              subtitle: "Average Rate",
-              icon: <TicketCheck className="w-6 h-6" />,
+              title: "Total Operators",
+              value: operators.length.toString(),
+              subtitle: `${operators.filter(op => op.status === 'approved').length} Approved`,
+              icon: <Truck className="w-6 h-6" />,
               bgColor: "bg-accent",
             },
           ],

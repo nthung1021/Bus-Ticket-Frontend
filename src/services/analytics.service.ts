@@ -4,30 +4,44 @@ import api from "@/lib/api";
 export interface AnalyticsQueryDto {
   startDate?: string;
   endDate?: string;
-  period?: 'day' | 'week' | 'month' | 'year';
+  timeframe?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 }
 
 export interface BookingsSummary {
   totalBookings: number;
+  paidBookings: number;
+  pendingBookings: number;
+  cancelledBookings: number;
+  expiredBookings: number;
   totalRevenue: number;
   averageBookingValue: number;
   conversionRate: number;
-  growthRate: number;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
 }
 
 export interface BookingTrend {
-  period: string;
+  date: string;
   bookings: number;
   revenue: number;
-  date: string;
+  conversionRate: number;
 }
 
 export interface RouteAnalytics {
-  routeId: string;
-  routeName: string;
+  route: {
+    id: string;
+    name: string;
+    origin: string;
+    destination: string;
+  };
   totalBookings: number;
   totalRevenue: number;
-  averageOccupancy: number;
+  averageBookingValue: number;
+  conversionRate: number;
+  popularityRank: number;
+  revenuePercentage: number;
 }
 
 export interface ConversionAnalytics {
@@ -127,40 +141,63 @@ export class AnalyticsService {
 
   // Admin Analytics Endpoints (new backend integration)
   async getBookingsSummary(params?: AnalyticsQueryDto): Promise<BookingsSummary> {
-    const searchParams = new URLSearchParams();
-    if (params?.startDate) searchParams.append('startDate', params.startDate);
-    if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append('startDate', params.startDate);
+      if (params?.endDate) searchParams.append('endDate', params.endDate);
+      if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
-    const response = await api.get(`/admin/analytics/bookings/summary${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
-    return response.data;
+      console.log('Fetching bookings summary with params:', params);
+      const response = await api.get(`/admin/analytics/bookings/summary${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+      console.log('Bookings summary response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching bookings summary:', error);
+      throw error;
+    }
   }
 
   async getBookingsTrends(params?: AnalyticsQueryDto): Promise<BookingTrend[]> {
-    const searchParams = new URLSearchParams();
-    if (params?.startDate) searchParams.append('startDate', params.startDate);
-    if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append('startDate', params.startDate);
+      if (params?.endDate) searchParams.append('endDate', params.endDate);
+      if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
-    const response = await api.get(`/admin/analytics/bookings/trends${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
-    return response.data;
+      console.log('Fetching bookings trends with params:', params);
+      const response = await api.get(`/admin/analytics/bookings/trends${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+      console.log('Bookings trends response:', response.data);
+      // Backend returns { data: BookingTrend[], ... }, we need the data array
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching bookings trends:', error);
+      throw error;
+    }
   }
 
   async getRouteAnalytics(params?: AnalyticsQueryDto): Promise<RouteAnalytics[]> {
-    const searchParams = new URLSearchParams();
-    if (params?.startDate) searchParams.append('startDate', params.startDate);
-    if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append('startDate', params.startDate);
+      if (params?.endDate) searchParams.append('endDate', params.endDate);
+      if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
-    const response = await api.get(`/admin/analytics/bookings/routes${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
-    return response.data;
+      console.log('Fetching route analytics with params:', params);
+      const response = await api.get(`/admin/analytics/bookings/routes${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+      console.log('Route analytics response:', response.data);
+      // Backend returns { routes: RouteAnalytics[], ... }, we need the routes array
+      return response.data.routes || [];
+    } catch (error) {
+      console.error('Error fetching route analytics:', error);
+      throw error;
+    }
   }
 
   async getConversionAnalytics(params?: AnalyticsQueryDto): Promise<ConversionAnalytics> {
     const searchParams = new URLSearchParams();
     if (params?.startDate) searchParams.append('startDate', params.startDate);
     if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
     const response = await api.get(`/admin/analytics/conversion${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
     return response.data;
@@ -171,7 +208,7 @@ export class AnalyticsService {
     const searchParams = new URLSearchParams();
     if (params?.startDate) searchParams.append('startDate', params.startDate);
     if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
     const response = await api.get(`/admin/analytics/metrics/total-bookings${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
     return response.data;
@@ -181,7 +218,7 @@ export class AnalyticsService {
     const searchParams = new URLSearchParams();
     if (params?.startDate) searchParams.append('startDate', params.startDate);
     if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
     const response = await api.get(`/admin/analytics/metrics/booking-growth${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
     return response.data;
@@ -191,7 +228,7 @@ export class AnalyticsService {
     const searchParams = new URLSearchParams();
     if (params?.startDate) searchParams.append('startDate', params.startDate);
     if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
     const response = await api.get(`/admin/analytics/metrics/popular-routes${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
     return response.data;
@@ -201,9 +238,13 @@ export class AnalyticsService {
     const searchParams = new URLSearchParams();
     if (params?.startDate) searchParams.append('startDate', params.startDate);
     if (params?.endDate) searchParams.append('endDate', params.endDate);
-    if (params?.period) searchParams.append('period', params.period);
+    if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
     const response = await api.get(`/admin/analytics/metrics/seat-occupancy${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+    // Backend may return { overall: { occupancyRate: number } }, transform to match expected interface
+    if (response.data.overall) {
+      return { seatOccupancyRate: response.data.overall.occupancyRate };
+    }
     return response.data;
   }
 

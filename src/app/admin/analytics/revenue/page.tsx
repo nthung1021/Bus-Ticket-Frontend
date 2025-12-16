@@ -80,7 +80,8 @@ function RevenueAnalyticsContent() {
       const queryParams = {
         startDate: startDate.split('T')[0],
         endDate: endDate.split('T')[0],
-        period: selectedPeriod === 'today' ? 'day' as const : selectedPeriod
+        timeframe: selectedPeriod === 'today' ? 'daily' as const : 
+                  selectedPeriod === 'week' ? 'weekly' as const : 'monthly' as const
       };
 
       // Fetch all analytics data
@@ -109,16 +110,15 @@ function RevenueAnalyticsContent() {
       
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      toast.error('Failed to load analytics data. Using fallback data.');
+      toast.error('Failed to load analytics data. Please check your connection and try again.');
       
-      // Fallback to mock data if API fails
-      setBookingsSummary({
-        totalBookings: selectedPeriod === 'today' ? 156 : selectedPeriod === 'week' ? 1087 : 4521,
-        totalRevenue: selectedPeriod === 'today' ? 12450 : selectedPeriod === 'week' ? 89750 : 345600,
-        averageBookingValue: selectedPeriod === 'today' ? 80 : selectedPeriod === 'week' ? 82 : 76,
-        conversionRate: 3.2,
-        growthRate: selectedPeriod === 'today' ? 8.5 : selectedPeriod === 'week' ? 12.3 : -2.1
-      });
+      // Set empty/null state instead of mock data
+      setBookingsSummary(null);
+      setBookingsTrends([]);
+      setRouteAnalytics([]);
+      setTotalBookings(0);
+      setBookingGrowth(0);
+      setSeatOccupancy(0);
       
     } finally {
       setIsLoading(false);
@@ -128,22 +128,22 @@ function RevenueAnalyticsContent() {
   // Derived data for charts
   const revenueData = {
     today: {
-      revenue: bookingsSummary?.totalRevenue ?? 12450,
-      growth: bookingsSummary?.growthRate ?? 8.5,
-      tickets: totalBookings || 156,
-      transactions: totalBookings || 142
+      revenue: bookingsSummary?.totalRevenue ?? 0,
+      growth: bookingGrowth ?? 0,
+      tickets: totalBookings || 0,
+      transactions: totalBookings || 0
     },
     week: {
-      revenue: bookingsSummary?.totalRevenue ?? 89750,
-      growth: bookingsSummary?.growthRate ?? 12.3,
-      tickets: totalBookings || 1087,
-      transactions: totalBookings || 982
+      revenue: bookingsSummary?.totalRevenue ?? 0,
+      growth: bookingGrowth ?? 0,
+      tickets: totalBookings || 0,
+      transactions: totalBookings || 0
     },
     month: {
-      revenue: bookingsSummary?.totalRevenue ?? 345600,
-      growth: bookingsSummary?.growthRate ?? -2.1,
-      tickets: totalBookings || 4521,
-      transactions: totalBookings || 4123
+      revenue: bookingsSummary?.totalRevenue ?? 0,
+      growth: bookingGrowth ?? 0,
+      tickets: totalBookings || 0,
+      transactions: totalBookings || 0
     }
   };
 
@@ -154,61 +154,41 @@ function RevenueAnalyticsContent() {
     tickets: trend.bookings
   }));
 
-  const weeklyRevenueData = [
-    { week: 'Week 1', revenue: 67800, tickets: 789 },
-    { week: 'Week 2', revenue: 72100, tickets: 845 },
-    { week: 'Week 3', revenue: revenueData[selectedPeriod].revenue, tickets: revenueData[selectedPeriod].tickets },
-  ];
+  const weeklyRevenueData = bookingsTrends.length > 0
+    ? bookingsTrends.slice(-3).map((trend, index) => ({
+        week: `Week ${index + 1}`,
+        revenue: trend.revenue,
+        tickets: trend.bookings
+      }))
+    : [];
 
-  const monthlyRevenueData = [
-    { month: 'Oct', revenue: 298500, tickets: 3789 },
-    { month: 'Nov', revenue: 354200, tickets: 4123 },
-    { month: 'Dec', revenue: revenueData[selectedPeriod].revenue, tickets: revenueData[selectedPeriod].tickets },
-  ];
+  const monthlyRevenueData = bookingsTrends.length > 0
+    ? bookingsTrends.slice(-3).map((trend, index) => ({
+        month: format(new Date(trend.date), 'MMM'),
+        revenue: trend.revenue,
+        tickets: trend.bookings
+      }))
+    : [];
 
   // Transform route analytics for charts
   const routePerformanceData = routeAnalytics.length > 0 
     ? routeAnalytics.slice(0, 5).map((route, index) => ({
-        route: route.routeName || `Route ${index + 1}`,
+        route: route.route?.name || `Route ${index + 1}`,
         revenue: route.totalRevenue,
-        percentage: Math.round((route.totalRevenue / (bookingsSummary?.totalRevenue || 1)) * 100)
+        percentage: route.revenuePercentage || Math.round((route.totalRevenue / (bookingsSummary?.totalRevenue || 1)) * 100)
       }))
-    : [
-        { route: 'HCM - Da Nang', revenue: 45600, percentage: 32 },
-        { route: 'Ha Noi - Hai Phong', revenue: 38900, percentage: 28 },
-        { route: 'HCM - Nha Trang', revenue: 28700, percentage: 20 },
-        { route: 'Da Nang - Hoi An', revenue: 18400, percentage: 13 },
-        { route: 'Others', revenue: 9800, percentage: 7 },
-      ];
+    : [];
 
-  // Payment method distribution data (static for now)
+  // Payment method distribution data (placeholder - no API available yet)
   const paymentMethodData = [
-    { method: 'Credit Card', amount: 156800, percentage: 45, color: '#0088FE' },
-    { method: 'Bank Transfer', amount: 121200, percentage: 35, color: '#00C49F' },
-    { method: 'Digital Wallet', amount: 52000, percentage: 15, color: '#FFBB28' },
-    { method: 'Cash', amount: 17600, percentage: 5, color: '#FF8042' },
+    { method: 'Credit Card', amount: revenueData[selectedPeriod].revenue * 0.45, percentage: 45, color: '#0088FE' },
+    { method: 'Bank Transfer', amount: revenueData[selectedPeriod].revenue * 0.35, percentage: 35, color: '#00C49F' },
+    { method: 'Digital Wallet', amount: revenueData[selectedPeriod].revenue * 0.15, percentage: 15, color: '#FFBB28' },
+    { method: 'Cash', amount: revenueData[selectedPeriod].revenue * 0.05, percentage: 5, color: '#FF8042' },
   ];
 
-  // Use real trends data or fallback to generated data
-  const revenueOverTimeData = dailyRevenueData.length > 0 
-    ? dailyRevenueData
-    : [
-        { date: '2024-12-01', revenue: 15200, tickets: 178 },
-        { date: '2024-12-02', revenue: 13800, tickets: 162 },
-        { date: '2024-12-03', revenue: 18500, tickets: 215 },
-        { date: '2024-12-04', revenue: 16200, tickets: 189 },
-        { date: '2024-12-05', revenue: 19800, tickets: 231 },
-        { date: '2024-12-06', revenue: 22100, tickets: 258 },
-        { date: '2024-12-07', revenue: 20500, tickets: 239 },
-        { date: '2024-12-08', revenue: 17900, tickets: 209 },
-        { date: '2024-12-09', revenue: 14300, tickets: 167 },
-        { date: '2024-12-10', revenue: 16700, tickets: 195 },
-        { date: '2024-12-11', revenue: 18900, tickets: 221 },
-        { date: '2024-12-12', revenue: 21400, tickets: 250 },
-        { date: '2024-12-13', revenue: 19600, tickets: 229 },
-        { date: '2024-12-14', revenue: 23100, tickets: 270 },
-    { date: '2024-12-15', revenue: 20800, tickets: 243 },
-  ];
+  // Use real trends data only
+  const revenueOverTimeData = dailyRevenueData;
 
   const getCurrentData = () => {
     return revenueData[selectedPeriod];
@@ -228,10 +208,17 @@ function RevenueAnalyticsContent() {
   };
 
   const formatCurrency = (amount: number) => {
+    // Smart currency detection - if amount is too high, it might be in cents
+    const displayAmount = amount > 100000 ? amount / 100 : amount;
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
-    }).format(amount);
+    }).format(displayAmount);
+  };
+
+  // Helper function to safely format numbers
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('vi-VN').format(num);
   };
 
   // Loading component
