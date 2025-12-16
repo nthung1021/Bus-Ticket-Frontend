@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, use, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useSeatWebSocket } from "@/hooks/useSeatWebSocket";
+import { useBookingWebSocket } from "@/hooks/useBookingWebSocket";
+import { BookingStatus } from "@/services/booking-websocket.service";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -32,8 +34,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/utils/formatCurrency";
 
-const serviceFee = 10000;
-const processingFee = 5000;
+// const serviceFee = 10000;
+// const processingFee = 5000;
 
 interface SelectedSeat {
   id: string;
@@ -95,6 +97,19 @@ function PassengerInfoPageContent() {
       tripId: tripId || "",
       enabled: !!tripId,
     });
+
+  // WebSocket for booking management - only enable when tripId is valid
+  const {
+    isConnected: isBookingConnected,
+    bookings,
+    trackBooking,
+    updateBookingStatus,
+    getBookingStatus,
+  } = useBookingWebSocket({
+    tripId: tripId || "",
+    enabled: !!tripId && tripId.length > 0,
+    userId: currentUser?.id,
+  });
 
   // Lock all selected seats when component mounts
   useEffect(() => {
@@ -458,6 +473,11 @@ function PassengerInfoPageContent() {
     setIsSubmitting(true);
 
     try {
+      // Check if booking WebSocket is connected
+      if (!isBookingConnected) {
+        throw new Error("Booking service is not connected. Please try again.");
+      }
+
       // Create booking data
       const bookingData = {
         tripId,
@@ -480,6 +500,27 @@ function PassengerInfoPageContent() {
 
       const createdBooking = bookingResponse.data.data;
       const bookingId = createdBooking.id;
+
+      // Track the booking using WebSocket for real-time updates
+      const trackResult = await trackBooking(bookingId);
+      if (!trackResult) {
+        console.warn("Failed to track booking for real-time updates");
+      }
+
+      // Update booking status to PENDING using WebSocket
+      const updateResult = await updateBookingStatus(
+        bookingId,
+        BookingStatus.PENDING,
+        {
+          paymentInitiated: true,
+          paymentMethod: "payos",
+          totalPrice: calculateTotalPrice(),
+        }
+      );
+
+      if (!updateResult) {
+        console.warn("Failed to update booking status to PENDING");
+      }
 
       // Store booking data for payment confirmation
       sessionStorage.setItem(
@@ -532,7 +573,7 @@ function PassengerInfoPageContent() {
         error: errorType,
         message: errorMessage,
         details:
-          error.response?.data?.details || "Failed to create payment link",
+          error.response.data?.details || "Failed to create payment link",
         bookingId: "none",
       });
 
@@ -946,7 +987,7 @@ function PassengerInfoPageContent() {
                   </div>
                 </div>
                 {/* Additional Fee */}
-                <div className="flex justify-between items-center">
+                {/* <div className="flex justify-between items-center">
                   <h4 className="font-medium">Service Fee</h4>
                   <span className="space-y-2 font-medium text-sm">
                     {formatCurrency(serviceFee)}
@@ -957,14 +998,15 @@ function PassengerInfoPageContent() {
                   <span className="space-y-2 font-medium text-sm">
                     {formatCurrency(processingFee)}
                   </span>
-                </div>
+                </div> */}
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total Amount</span>
                     <span className="text-primary">
                       {formatCurrency(
-                        calculateTotalPrice() + serviceFee + processingFee
+                        // calculateTotalPrice() + serviceFee + processingFee
+                        calculateTotalPrice()
                       )}
                     </span>
                   </div>
@@ -1116,20 +1158,21 @@ function PassengerInfoPageContent() {
                 <span>Seat charges:</span>
                 <span>{formatCurrency(calculateTotalPrice())}</span>
               </div>
-              <div className="flex justify-between text-xs">
+              {/* <div className="flex justify-between text-xs">
                 <span>Service fee:</span>
                 <span>{formatCurrency(serviceFee)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Processing fee:</span>
                 <span>{formatCurrency(processingFee)}</span>
-              </div>
+              </div> */}
               <Separator className="my-1.5" />
               <div className="flex justify-between font-semibold text-sm">
                 <span>Total Amount:</span>
                 <span className="text-primary">
                   {formatCurrency(
-                    calculateTotalPrice() + serviceFee + processingFee
+                    // calculateTotalPrice() + serviceFee + processingFee
+                    calculateTotalPrice()
                   )}
                 </span>
               </div>

@@ -23,18 +23,20 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useBookingWebSocket } from "@/hooks/useBookingWebSocket";
+import { BookingStatus } from "@/services/booking-websocket.service";
 import UserBookingService, {
   type Booking,
 } from "@/services/userBookingService";
+import { getTripById } from "@/services/trip.service";
 import api from "@/lib/api";
 import { formatCurrency } from "@/utils/formatCurrency";
 
 function PaymentSuccessPageContent() {
+  // console.log("hello world");
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: user } = useCurrentUser();
-
-  const bookingId = searchParams.get("bookingId");
+  const searchParams = useSearchParams();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,99 +45,191 @@ function PaymentSuccessPageContent() {
 
   const bookingService = new UserBookingService();
 
-  // Fetch updated booking details
+  // Get booking ID from URL params or session storage
+  const bookingId =
+    searchParams.get("bookingId") ||
+    (() => {
+      const bookingData = sessionStorage.getItem("bookingData");
+      return bookingData ? JSON.parse(bookingData).bookingId : null;
+    })();
+
+  // Get tripId from session storage for WebSocket connection
+  const getTripIdFromStorage = () => {
+    const bookingData = sessionStorage.getItem("bookingData");
+    if (bookingData) {
+      const parsed = JSON.parse(bookingData);
+      return parsed.tripId || "";
+    }
+    return "";
+  };
+
+  const tripId = getTripIdFromStorage();
+
+  // WebSocket for booking management
+  const {
+    isConnected,
+    bookings,
+    getBookingStatus,
+    updatePaymentStatus,
+    getPaymentStatus,
+  } = useBookingWebSocket({
+    tripId,
+    enabled: !!bookingId && !!tripId,
+    userId: user?.id,
+  });
+
   useEffect(() => {
     const fetchBooking = async () => {
-      if (!bookingId) return;
-
       try {
         setLoading(true);
         setError(null);
 
-        // Check if it's a mock booking ID
-        if (bookingId.startsWith("mock-booking-")) {
-          console.log("Mock booking detected, creating mock booking data");
-          // Create mock booking for success page
-          const mockBooking = {
-            id: bookingId,
-            userId: user?.id ?? "guest",
-            tripId: "mock-trip-123",
-            reference: "MOCK-BK-20241201-12345",
-            totalAmount: 250000,
-            status: "paid" as const,
-            bookedAt: new Date().toISOString(),
-            trip: {
-              id: "mock-trip-123",
-              departureTime: new Date(
-                Date.now() + 24 * 60 * 60 * 1000
-              ).toLocaleString("en-CA", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-              arrivalTime: new Date(
-                Date.now() + 28 * 60 * 60 * 1000
-              ).toLocaleString("en-CA", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-              basePrice: 250000,
-              status: "active",
-              route: {
-                id: "mock-route-123",
-                name: "Mock Route",
-                description: "Test route for development",
-                origin: "Hanoi",
-                destination: "Ho Chi Minh City",
-                distanceKm: 1700,
-                estimatedMinutes: 1200,
-              },
-              bus: {
-                id: "mock-bus-123",
-                plateNumber: "TEST-123",
-                model: "Test Bus Model",
-                seatCapacity: 40,
-              },
-            },
-            passengers: [
-              {
-                id: "mock-passenger-1",
-                fullName: "Nguyen Van Test",
-                documentId: "123456789",
-                seatCode: "A1",
-              },
-            ],
-            seats: [
-              {
-                id: "mock-seat-status-1",
-                seatId: "mock-seat-1",
-                state: "booked",
-                seat: {
-                  id: "mock-seat-1",
-                  seatCode: "A1",
-                  seatType: "normal",
-                  isActive: true,
-                },
-              },
-            ],
-          };
-          setBooking(mockBooking);
-        } else {
-          const bookingData = await bookingService.getBookingById(bookingId);
-          setBooking(bookingData);
+        if (!bookingId) {
+          setError("Booking ID not found. Please check again.");
+          return;
+        }
 
-          // Verify payment status
-          if (bookingData.status !== "paid") {
+        // Get booking data from session storage first for initial display
+        const bookingData = sessionStorage.getItem("bookingData");
+        // console.log("Booking data from session: ", bookingData);
+        let parsedBookingData = null;
+        
+        if (bookingData) {
+          parsedBookingData = JSON.parse(bookingData);
+          
+          // Fetch trip data and attach to booking
+          if (parsedBookingData.tripId) {
+            try {
+              const tripData = await getTripById(parsedBookingData.tripId);
+              // console.log("Raw trip data:", tripData);
+              
+              // Convert Date objects to strings and ensure required properties to match Booking type
+              const formattedTripData = {
+                ...tripData,
+                departureTime: tripData.departureTime instanceof Date 
+                  ? tripData.departureTime.toISOString() 
+                  : new Date(tripData.departureTime).toISOString(),
+                arrivalTime: tripData.arrivalTime instanceof Date 
+                  ? tripData.arrivalTime.toISOString() 
+                  : new Date(tripData.arrivalTime).toISOString(),
+                status: tripData.status.toString(),
+                route: {
+                  id: tripData.route?.id || '',
+                  name: tripData.route?.name || '',
+                  description: tripData.route?.description || '',
+                  origin: (tripData as any).route?.origin || '',
+                  destination: (tripData as any).route?.destination || '',
+                  distanceKm: (tripData as any).route?.distanceKm || 0, // Calculate from route points if available
+                  estimatedMinutes: (tripData as any).route?.estimatedMinutes || 0, // Calculate from route points if available
+                },
+                bus: tripData.bus || {
+                  id: '',
+                  plateNumber: '',
+                  model: '',
+                  seatCapacity: 0,
+                },
+              };
+              parsedBookingData.trip = formattedTripData;
+            } catch (tripError) {
+              console.error("Error fetching trip data:", tripError);
+              // Continue with booking data even if trip fetch fails
+            }
+          }
+          
+          setBooking(parsedBookingData);
+
+          // console.log("Booking after getting info from session storage:", booking)
+        }
+
+        // Get real-time booking status from WebSocket
+        if (isConnected) {
+          // console.log("Bookings: ", bookings)
+          const bookingStatus = getBookingStatus(bookingId);
+          const paymentStatus = getPaymentStatus(bookingId);
+
+          if (!bookingStatus) {
+            setError("Booking not found or not being tracked.");
+            return;
+          }
+
+          // Check if payment was successful
+          if (bookingStatus !== BookingStatus.PAID) {
             setError(
-              "Payment verification failed. Please contact support if you believe this is an error."
+              "Payment not successful. Please try again or contact support."
             );
+            return;
+          }
+
+          // Update booking with real-time data if available
+          if (bookings.has(bookingId)) {
+            const realTimeBooking = bookings.get(bookingId);
+            if (realTimeBooking) {
+              // Fetch trip data if not already present
+              let tripData = parsedBookingData?.trip;
+              if (!tripData && (realTimeBooking as any).tripId) {
+                try {
+                  const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
+                  // Convert Date objects to strings and ensure required properties to match Booking type
+                  tripData = {
+                    ...tripDataRaw,
+                    departureTime: tripDataRaw.departureTime instanceof Date 
+                      ? tripDataRaw.departureTime.toISOString() 
+                      : new Date(tripDataRaw.departureTime).toISOString(),
+                    arrivalTime: tripDataRaw.arrivalTime instanceof Date 
+                      ? tripDataRaw.arrivalTime.toISOString() 
+                      : new Date(tripDataRaw.arrivalTime).toISOString(),
+                    status: tripDataRaw.status.toString(),
+                    route: {
+                      id: tripDataRaw.route?.id || '',
+                      name: tripDataRaw.route?.name || '',
+                      description: tripDataRaw.route?.description || '',
+                      origin: tripDataRaw.route?.points?.[0]?.name || '',
+                      destination: tripDataRaw.route?.points?.[tripDataRaw.route.points.length - 1]?.name || '',
+                      distanceKm: 0, // Calculate from route points if available
+                      estimatedMinutes: 0, // Calculate from route points if available
+                    },
+                    bus: tripDataRaw.bus || {
+                      id: '',
+                      plateNumber: '',
+                      model: '',
+                      seatCapacity: 0,
+                    },
+                  };
+                } catch (tripError) {
+                  console.error("Error fetching trip data:", tripError);
+                }
+              }
+              
+              setBooking((prev: any) =>
+                prev
+                  ? {
+                      ...prev,
+                      ...realTimeBooking,
+                      trip: tripData || prev.trip,
+                      status:
+                        bookingStatus === BookingStatus.PAID
+                          ? "paid"
+                          : bookingStatus,
+                      bookedAt:
+                        typeof realTimeBooking.bookedAt === "string"
+                          ? realTimeBooking.bookedAt
+                          : realTimeBooking.bookedAt?.toISOString() ||
+                            prev.bookedAt,
+                    }
+                  : null
+              );
+            }
+          }
+        } else {
+          // Fallback to session storage data if WebSocket not connected
+          if (!bookingData) {
+            setError("Booking information not found. Please check again.");
+            return;
+          }
+
+          if (parsedBookingData.status !== "paid") {
+            setError("Payment not successful");
+            return;
           }
         }
       } catch (error) {
@@ -143,33 +237,107 @@ function PaymentSuccessPageContent() {
         setError(
           error instanceof Error
             ? error.message
-            : "Failed to load booking details"
+            : "An error occurred while loading booking information"
         );
       } finally {
         setLoading(false);
       }
     };
 
-    if (bookingId) {
-      fetchBooking();
-    }
-  }, [bookingId, user?.id]);
+    fetchBooking();
+  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus]);
 
-  // Automatically trigger e-ticket email sending for real bookings
+  // Add real-time booking updates effect
+  useEffect(() => {
+    if (!bookingId || !isConnected) return;
+
+    // Listen for booking updates in real-time
+    const interval = setInterval(async () => {
+      const bookingStatus = getBookingStatus(bookingId);
+      // console.log("Booking status: ", bookingStatus);
+      const paymentStatus = getPaymentStatus(bookingId);
+
+      if (bookingStatus && bookings.has(bookingId)) {
+        const realTimeBooking = bookings.get(bookingId);
+        // console.log("Real time booking: ", realTimeBooking)
+        if (realTimeBooking) {
+          // Fetch trip data if not already present
+          let tripData = booking?.trip;
+          if (!tripData && (realTimeBooking as any).tripId) {
+            try {
+              const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
+              // console.log("Trip data:", tripDataRaw)
+              // Convert Date objects to strings and ensure required properties to match Booking type
+              tripData = {
+                ...tripDataRaw,
+                departureTime: tripDataRaw.departureTime instanceof Date 
+                  ? tripDataRaw.departureTime.toISOString() 
+                  : new Date(tripDataRaw.departureTime).toISOString(),
+                arrivalTime: tripDataRaw.arrivalTime instanceof Date 
+                  ? tripDataRaw.arrivalTime.toISOString() 
+                  : new Date(tripDataRaw.arrivalTime).toISOString(),
+                status: tripDataRaw.status.toString(),
+                route: {
+                  id: tripDataRaw.route?.id || '',
+                  name: tripDataRaw.route?.name || '',
+                  description: tripDataRaw.route?.description || '',
+                  origin: (tripDataRaw as any).route?.origin || '',
+                  destination: (tripDataRaw as any).route?.destination || '',
+                  distanceKm: (tripDataRaw as any).route?.distanceKm || 0, // Calculate from route points if available
+                  estimatedMinutes: (tripDataRaw as any).route?.estimatedMinutes || 0, // Calculate from route points if available
+                },
+                bus: tripDataRaw.bus || {
+                  id: '',
+                  plateNumber: '',
+                  model: '',
+                  seatCapacity: 0,
+                },
+              };
+            } catch (tripError) {
+              console.error("Error fetching trip data:", tripError);
+            }
+          }
+          console.log("Trip data:", tripData);
+          setBooking((prev: any) => {
+              const updatedBooking = {
+                ...prev,
+                ...realTimeBooking,
+                trip: tripData,
+                status:
+                  bookingStatus === BookingStatus.PAID
+                    ? "paid"
+                    : bookingStatus,
+                bookedAt:
+                  typeof realTimeBooking.bookedAt === "string"
+                    ? realTimeBooking.bookedAt
+                    : realTimeBooking.bookedAt?.toISOString() ||
+                      prev.bookedAt,
+              };
+              
+              return updatedBooking;
+            });
+          console.log("Updated booking: ", booking);
+        }
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus, booking?.trip]);
+
   useEffect(() => {
     const sendEticketEmail = async () => {
-      if (!booking || !booking.id) return;
+      if (!booking || !(booking as any)?.bookingId) return;
 
       // Skip mock bookings
-      if (booking.id.startsWith("mock-booking-")) return;
+      if ((booking as any)?.bookingId.startsWith("mock-booking-")) return;
 
       // Avoid sending multiple times if state changes
       if (emailTriggered) return;
 
       try {
-        await api.post(`/bookings/${booking.id}/eticket/email`, {});
+        await api.post(`/bookings/${(booking as any)?.bookingId}/eticket/email`, {});
         setEmailTriggered(true);
-        console.log("E-ticket email triggered for booking", booking.id);
+        console.log("E-ticket email triggered for booking", (booking as any)?.bookingId);
       } catch (err) {
         console.error("Failed to send e-ticket email:", err);
       }
@@ -181,34 +349,36 @@ function PaymentSuccessPageContent() {
   // Clear payment retry state when payment is successful
   useEffect(() => {
     if (booking && booking.status === "paid") {
+      setError(null);
       // Clear retry state from sessionStorage
       sessionStorage.removeItem("paymentRetryState");
       console.log("Payment successful, cleared retry state");
     }
   }, [booking]);
 
-  // Auto-redirect if no booking ID
+  // Redirect to bookings page if no booking data
   useEffect(() => {
-    if (!bookingId) {
+    if (!booking && !loading) {
       router.push("/user/bookings");
     }
-  }, [bookingId, router]);
+    // console.log(booking);
+  }, [booking, loading, router]);
 
   // Download e-ticket
   const handleDownloadTicket = async () => {
     if (!booking) return;
 
     // For mock bookings, keep existing simple text-based ticket behavior
-    if (booking.id.startsWith("mock-booking-")) {
+    if ((booking as any)?.bookingId.startsWith("mock-booking-")) {
       const ticketContent = `
 === BUS TICKET ===
-Booking ID: ${booking.id}
+Booking ID: ${(booking as any)?.bookingId}
 Status: PAID
 Route: ${booking.trip?.route?.origin} → ${booking.trip?.route?.destination}
 Date: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), "PPP") : "N/A"}
 Time: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), "p") : "N/A"}
 Bus: ${booking.trip?.bus?.plateNumber || "N/A"}
-Passengers: ${booking.passengers?.map((p) => `${p.fullName} (Seat ${p.seatCode})`).join(", ")}
+Passengers: ${booking.passengers?.map((p: any) => `${p.fullName} (Seat ${p.seatCode})`).join(", ")}
 Total Amount: ${formatCurrency(booking.totalAmount)}
 Booked At: ${format(new Date(booking.bookedAt), "PPp")}
 
@@ -220,7 +390,7 @@ Present this ticket when boarding the bus.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ticket-${booking.id}.txt`;
+      a.download = `ticket-${(booking as any)?.bookingId}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -229,7 +399,7 @@ Present this ticket when boarding the bus.
     }
 
     try {
-      const response = await api.get(`/bookings/${booking.id}/eticket`, {
+      const response = await api.get(`/bookings/${(booking as any)?.bookingId}/eticket`, {
         responseType: "blob",
       });
 
@@ -237,7 +407,7 @@ Present this ticket when boarding the bus.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Bus-eTicket-${booking.reference}.pdf`;
+      a.download = `Bus-eTicket-${(booking as any)?.bookingReference}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -288,7 +458,7 @@ Present this ticket when boarding the bus.
       </div>
     );
   }
-
+  // return null;
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4 max-w-2xl">
@@ -341,7 +511,7 @@ Present this ticket when boarding the bus.
           <CardHeader>
             <CardTitle>Booking Confirmation</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Booking ID: {booking.id}
+              Booking ID: {(booking as any)?.bookingId}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -397,7 +567,7 @@ Present this ticket when boarding the bus.
             <div>
               <h4 className="font-medium mb-3">Passenger Details</h4>
               <div className="space-y-2">
-                {booking.passengers?.map((passenger, index) => (
+                {booking.passengers?.map((passenger: any, index: any) => (
                   <div
                     key={passenger.id}
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
