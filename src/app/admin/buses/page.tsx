@@ -32,6 +32,11 @@ function BusesManagement() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [operatorFilter, setOperatorFilter] = useState<string>("all");
+  const [capacityFilter, setCapacityFilter] = useState<string>("all");
+  const [amenityFilter, setAmenityFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("plateNumber");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBus, setEditingBus] = useState<Bus | null>(null);
@@ -177,11 +182,47 @@ function BusesManagement() {
     }));
   };
 
-  const filteredBuses = buses.filter(
-    (bus) =>
-      bus.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bus.model.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredBuses = buses.filter((bus) => {
+    const matchesSearch = 
+      bus.plateNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bus.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bus.operator?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesOperator = operatorFilter === "all" || bus.operatorId === operatorFilter;
+    
+    const matchesCapacity = capacityFilter === "all" ||
+      (capacityFilter === "small" && bus.seatCapacity <= 20) ||
+      (capacityFilter === "medium" && bus.seatCapacity > 20 && bus.seatCapacity <= 40) ||
+      (capacityFilter === "large" && bus.seatCapacity > 40);
+    
+    const busAmenities = Array.isArray(bus.amenities) 
+      ? bus.amenities 
+      : typeof bus.amenities === 'string' 
+        ? (bus.amenities as string).split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+        : [];
+    const matchesAmenity = amenityFilter === "all" || busAmenities.includes(amenityFilter);
+    
+    return matchesSearch && matchesOperator && matchesCapacity && matchesAmenity;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case "plateNumber":
+        comparison = (a.plateNumber || "").localeCompare(b.plateNumber || "");
+        break;
+      case "model":
+        comparison = (a.model || "").localeCompare(b.model || "");
+        break;
+      case "capacity":
+        comparison = (a.seatCapacity || 0) - (b.seatCapacity || 0);
+        break;
+      case "operator":
+        comparison = (a.operator?.name || "").localeCompare(b.operator?.name || "");
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
 
   return (
     <div className="flex bg-background">
@@ -192,37 +233,90 @@ function BusesManagement() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Bus Management</CardTitle>
-                <div className="flex space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search buses..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Bus
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Bus</DialogTitle>
+                    </DialogHeader>
+                    <BusForm
+                      formData={formData}
+                      setFormData={setFormData}
+                      onCancel={() => setIsCreateDialogOpen(false)}
+                      onSubmit={handleCreateBus}
+                      operators={operators}
                     />
-                  </div>
-                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Bus
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create New Bus</DialogTitle>
-                      </DialogHeader>
-                      <BusForm
-                        formData={formData}
-                        setFormData={setFormData}
-                        onCancel={() => setIsCreateDialogOpen(false)}
-                        onSubmit={handleCreateBus}
-                        operators={operators}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
+              {/* Enhanced Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search buses, models, operators..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
+                
+                <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Operators" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Operators</SelectItem>
+                    {operators.map((operator) => (
+                      <SelectItem key={operator.id} value={operator.id}>
+                        {operator.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={capacityFilter} onValueChange={setCapacityFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Sizes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sizes</SelectItem>
+                    <SelectItem value="small">Small (≤20 seats)</SelectItem>
+                    <SelectItem value="medium">Medium (21-40 seats)</SelectItem>
+                    <SelectItem value="large">Large (&gt;40 seats)</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="plateNumber">Plate Number</SelectItem>
+                    <SelectItem value="model">Model</SelectItem>
+                    <SelectItem value="capacity">Capacity</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Results count and sort order */}
+              <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
+                <span>Showing {filteredBuses.length} of {buses.length} buses</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="h-8"
+                >
+                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -260,9 +354,9 @@ function BusesManagement() {
                                 const amenitiesArray = Array.isArray(bus.amenities) 
                                   ? bus.amenities 
                                   : typeof bus.amenities === 'string' 
-                                    ? bus.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                                    ? (bus.amenities as string).split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
                                     : [];
-                                return amenitiesArray.map((amenity, index) => (
+                                return amenitiesArray.map((amenity: string, index: number) => (
                                   <Badge key={index} variant="secondary" className="text-xs">
                                     {amenity}
                                   </Badge>

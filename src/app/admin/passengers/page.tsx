@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search } from "lucide-react";
 import {
   useAdminUsers,
   useChangeUserRole,
@@ -14,9 +17,8 @@ import {
 import { useState } from "react";
 
 const ROLES = [
-  { key: "customer", label: "Passenger" },
-  { key: "admin", label: "Admin" },
-  { key: "operator", label: "Operator" },
+  { key: "customer", label: "Customer" },
+  { key: "admin", label: "Admin" }
 ];
 
 export default function ManageUsersPage() {
@@ -33,6 +35,39 @@ function AdminPageContent() {
   console.log("admin users raw:", users);
   const changeRole = useChangeUserRole();
   const [changingUser, setChangingUser] = useState<string | null>(null);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Filter and sort users
+  const filteredUsers = users?.filter((user) => {
+    const matchesSearch = 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    
+    return matchesSearch && matchesRole;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case "name":
+        comparison = a.name.localeCompare(b.name);
+        break;
+      case "email":
+        comparison = a.email.localeCompare(b.email);
+        break;
+      case "role":
+        comparison = a.role.localeCompare(b.role);
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
+  }) || [];
 
   if (isLoading) {
     return (
@@ -68,7 +103,55 @@ function AdminPageContent() {
         <main className="flex-1 pt-10 px-6 pb-6 overflow-auto">
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Passenger Management</CardTitle>
+              <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">User Management</CardTitle>
+              
+              {/* Enhanced Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search users by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="customer">Customer</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="role">Role</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Results count and sort order */}
+              <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
+                <span>Showing {filteredUsers.length} of {users?.length || 0} users</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="h-8"
+                >
+                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto px-4">
@@ -82,7 +165,7 @@ function AdminPageContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users?.map((u) => (
+                    {filteredUsers?.map((u) => (
                       <UserRow
                         key={u.userId}
                         user={u}
@@ -135,7 +218,7 @@ function UserRow({
       </TableCell>
       <TableCell>
         <Badge
-          variant={user.role === "admin" ? "destructive" : user.role === "operator" ? "default" : "secondary"}
+          variant={user.role === "admin" ? "destructive" : "secondary"}
         >
           {user.role.toUpperCase()}
         </Badge>

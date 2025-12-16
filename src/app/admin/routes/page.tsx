@@ -30,6 +30,11 @@ function RoutesManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [operatorFilter, setOperatorFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [distanceFilter, setDistanceFilter] = useState<string>("all");
+  const [amenityFilter, setAmenityFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
@@ -65,7 +70,7 @@ function RoutesManagement() {
     try {
       setLoading(true);
       const data = await routeService.getAll();
-      setRoutes(data);
+      setRoutes(Array.isArray(data) ? data : data.routes || []);
       console.log(data);
     } catch (error) {
       toast.error("Failed to fetch routes");
@@ -189,7 +194,38 @@ function RoutesManagement() {
     
     const matchesOperator = operatorFilter === "all" || route.operatorId === operatorFilter;
     
-    return matchesSearch && matchesOperator;
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && route.isActive) ||
+      (statusFilter === "inactive" && !route.isActive);
+    
+    const matchesDistance = distanceFilter === "all" ||
+      (distanceFilter === "short" && (route.distanceKm || 0) <= 100) ||
+      (distanceFilter === "medium" && (route.distanceKm || 0) > 100 && (route.distanceKm || 0) <= 300) ||
+      (distanceFilter === "long" && (route.distanceKm || 0) > 300);
+    
+    const matchesAmenity = amenityFilter === "all" ||
+      (route.amenities?.includes(amenityFilter));
+    
+    return matchesSearch && matchesOperator && matchesStatus && matchesDistance && matchesAmenity;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case "name":
+        comparison = (a.name || "").localeCompare(b.name || "");
+        break;
+      case "distance":
+        comparison = (a.distanceKm || 0) - (b.distanceKm || 0);
+        break;
+      case "duration":
+        comparison = (a.estimatedMinutes || 0) - (b.estimatedMinutes || 0);
+        break;
+      case "operator":
+        comparison = (a.operator?.name || "").localeCompare(b.operator?.name || "");
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   return (
@@ -202,28 +238,6 @@ function RoutesManagement() {
               <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
                 <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Route Management</CardTitle>
                 <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search routes..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-full sm:w-64"
-                    />
-                  </div>
-                  <Select value={operatorFilter} onValueChange={setOperatorFilter}>
-                    <SelectTrigger className="w-full sm:w-48">
-                      <SelectValue placeholder="Filter by operator" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Operators</SelectItem>
-                      {operators.map((operator) => (
-                        <SelectItem key={operator.id} value={operator.id}>
-                          {operator.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogTrigger asChild>
                       <Button>
@@ -245,6 +259,81 @@ function RoutesManagement() {
                     </DialogContent>
                   </Dialog>
                 </div>
+              </div>
+              
+              {/* Enhanced Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-4">
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search routes, origins, destinations..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Operators" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Operators</SelectItem>
+                    {operators.map((operator) => (
+                      <SelectItem key={operator.id} value={operator.id}>
+                        {operator.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={distanceFilter} onValueChange={setDistanceFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Distances" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Distances</SelectItem>
+                    <SelectItem value="short">Short (≤100km)</SelectItem>
+                    <SelectItem value="medium">Medium (100-300km)</SelectItem>
+                    <SelectItem value="long">Long (&gt;300km)</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="distance">Distance</SelectItem>
+                    <SelectItem value="duration">Duration</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Results count and sort order */}
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <span>Showing {filteredRoutes.length} of {routes.length} routes</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="h-8"
+                >
+                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -277,7 +366,7 @@ function RoutesManagement() {
                         <TableRow key={route.id}>
                           <TableCell className="font-medium">
                             <div className="max-w-[180px]">
-                              <div className="font-semibold truncate">{route.name}</div>
+                              <div className="font-bold truncate">{route.name}</div>
                               <div className="text-sm text-muted-foreground mt-1 truncate">
                                 {route.description}
                               </div>
@@ -349,9 +438,9 @@ function RoutesManagement() {
                                 const amenitiesArray = Array.isArray(route.amenities) 
                                   ? route.amenities 
                                   : typeof route.amenities === 'string' 
-                                    ? route.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                                    ? (route.amenities as string).split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
                                     : [];
-                                return amenitiesArray.slice(0, 2).map((amenity) => (
+                                return amenitiesArray.slice(0, 2).map((amenity: string) => (
                                   <Badge key={amenity} variant="outline" className="text-xs truncate">
                                     {amenity}
                                   </Badge>
@@ -361,7 +450,7 @@ function RoutesManagement() {
                                 const amenitiesArray = Array.isArray(route.amenities) 
                                   ? route.amenities 
                                   : typeof route.amenities === 'string' 
-                                    ? route.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+                                    ? (route.amenities as string).split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
                                     : [];
                                 return amenitiesArray.length > 2 && (
                                   <Badge variant="secondary" className="text-xs">
