@@ -254,7 +254,7 @@ function PaymentSuccessPageContent() {
     // Listen for booking updates in real-time
     const interval = setInterval(async () => {
       const bookingStatus = getBookingStatus(bookingId);
-      console.log("Booking status: ", bookingStatus);
+      // console.log("Booking status: ", bookingStatus);
       const paymentStatus = getPaymentStatus(bookingId);
 
       if (bookingStatus && bookings.has(bookingId)) {
@@ -265,6 +265,7 @@ function PaymentSuccessPageContent() {
           if (!tripData && (realTimeBooking as any).tripId) {
             try {
               const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
+              console.log("Trip data:", tripDataRaw)
               // Convert Date objects to strings and ensure required properties to match Booking type
               tripData = {
                 ...tripDataRaw,
@@ -279,10 +280,10 @@ function PaymentSuccessPageContent() {
                   id: tripDataRaw.route?.id || '',
                   name: tripDataRaw.route?.name || '',
                   description: tripDataRaw.route?.description || '',
-                  origin: tripDataRaw.route?.points?.[0]?.name || '',
-                  destination: tripDataRaw.route?.points?.[tripDataRaw.route.points.length - 1]?.name || '',
-                  distanceKm: 0, // Calculate from route points if available
-                  estimatedMinutes: 0, // Calculate from route points if available
+                  origin: (tripDataRaw as any).route?.origin || '',
+                  destination: (tripDataRaw as any).route?.destination || '',
+                  distanceKm: (tripDataRaw as any).route?.distanceKm || 0, // Calculate from route points if available
+                  estimatedMinutes: (tripDataRaw as any).route?.estimatedMinutes || 0, // Calculate from route points if available
                 },
                 bus: tripDataRaw.bus || {
                   id: '',
@@ -314,8 +315,7 @@ function PaymentSuccessPageContent() {
             
             return updatedBooking;
           });
-          // console.log("Updated booking: ", booking);
-          // setError(null);
+          console.log("Updated booking: ", booking);
         }
       }
     }, 2000); // Check every 2 seconds
