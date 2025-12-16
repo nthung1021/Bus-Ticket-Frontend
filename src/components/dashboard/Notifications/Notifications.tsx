@@ -49,6 +49,17 @@ export function Notifications() {
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    try {
+      await NotificationService.markAllAsRead();
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, isRead: true }))
+      );
+    } catch (err) {
+      console.error("Failed to mark all as read", err);
+    }
+  };
+
   const getIcon = (type: Notification['type']) => {
     switch (type) {
       case 'booking':
@@ -66,10 +77,21 @@ export function Notifications() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Notifications</h1>
-        <span className="text-sm text-gray-500">
-          {notifications.filter(n => !n.isRead).length} unread
-        </span>
+        <div>
+          <h1 className="text-2xl font-bold">Notifications</h1>
+          <span className="text-sm text-gray-500">
+            {notifications.filter(n => !n.isRead).length} unread
+          </span>
+        </div>
+        
+        {notifications.some(n => !n.isRead) && (
+          <button
+            onClick={handleMarkAllAsRead}
+            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            Mark all as read
+          </button>
+        )}
       </div>
 
       {loading ? (
