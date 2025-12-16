@@ -326,18 +326,18 @@ function PaymentSuccessPageContent() {
 
   useEffect(() => {
     const sendEticketEmail = async () => {
-      if (!booking || !booking.id) return;
+      if (!booking || !(booking as any)?.bookingId) return;
 
       // Skip mock bookings
-      if (booking.id.startsWith("mock-booking-")) return;
+      if ((booking as any)?.bookingId.startsWith("mock-booking-")) return;
 
       // Avoid sending multiple times if state changes
       if (emailTriggered) return;
 
       try {
-        await api.post(`/bookings/${booking.id}/eticket/email`, {});
+        await api.post(`/bookings/${(booking as any)?.bookingId}/eticket/email`, {});
         setEmailTriggered(true);
-        console.log("E-ticket email triggered for booking", booking.id);
+        console.log("E-ticket email triggered for booking", (booking as any)?.bookingId);
       } catch (err) {
         console.error("Failed to send e-ticket email:", err);
       }
@@ -369,7 +369,7 @@ function PaymentSuccessPageContent() {
     if (!booking) return;
 
     // For mock bookings, keep existing simple text-based ticket behavior
-    if (booking.id.startsWith("mock-booking-")) {
+    if ((booking as any)?.bookingId.startsWith("mock-booking-")) {
       const ticketContent = `
 === BUS TICKET ===
 Booking ID: ${(booking as any)?.bookingId}
@@ -390,7 +390,7 @@ Present this ticket when boarding the bus.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ticket-${booking.id}.txt`;
+      a.download = `ticket-${(booking as any)?.bookingId}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -399,7 +399,7 @@ Present this ticket when boarding the bus.
     }
 
     try {
-      const response = await api.get(`/bookings/${booking.id}/eticket`, {
+      const response = await api.get(`/bookings/${(booking as any)?.bookingId}/eticket`, {
         responseType: "blob",
       });
 
@@ -407,7 +407,7 @@ Present this ticket when boarding the bus.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Bus-eTicket-${booking.reference}.pdf`;
+      a.download = `Bus-eTicket-${(booking as any)?.bookingReference}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
