@@ -454,7 +454,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               Amenities
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {trip.amenities.map((amenity, index) => (
+              {(trip.amenities || []).map((amenity, index) => (
                 <div key={index} className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 text-center group hover:from-primary/5 hover:to-primary/10 hover:border-primary/20 transition-all duration-200 cursor-pointer">
                   <div className="w-8 h-8 mx-auto mb-2 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -43,8 +43,13 @@ export default function Navbar() {
               </Link>
             </li>
             <li>
-              <Link href="/search" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/routes" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                 Routes
+              </Link>
+            </li>
+            <li>
+              <Link href="/search" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Search Trips
               </Link>
             </li>
             <li>
@@ -188,8 +193,13 @@ export default function Navbar() {
                 </Link>
               </li>
               <li>
-                <Link href="/search" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                <Link href="/routes" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
                   Routes
+                </Link>
+              </li>
+              <li>
+                <Link href="/search" className="block text-body text-muted-foreground hover:text-foreground transition-colors py-2">
+                  Search Trips
                 </Link>
               </li>
               <li>

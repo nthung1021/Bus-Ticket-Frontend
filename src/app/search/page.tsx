@@ -8,8 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import api from "@/lib/api";
-import { Route } from "@/services/route.service";
-import { routeService } from "@/services/route.service";
 import { formatCurrency, getCurrencySymbol } from "@/utils/formatCurrency";
 
 // Search filters interface
@@ -18,12 +16,13 @@ interface SearchFilters {
   tripType: string[];
   minPrice: number;
   maxPrice: number;
-  location: string;
+  from: string;
+  to: string;
   category: string[];
   sortBy: string;
 }
 
-// Search result data based on Route
+// Search result data for trips
 interface SearchResult {
   id: string;
   title: string;
@@ -49,22 +48,7 @@ const sortOptions = [
   { value: "rating", label: "Highest Rated" },
 ];
 
-// Convert Route to SearchResult
-const convertRouteToSearchResult = (route: Route): SearchResult => ({
-  id: route.id,
-  title: route.name || `${route.origin} → ${route.destination}`,
-  origin: route.origin || 'Unknown',
-  destination: route.destination || 'Unknown',
-  departure: route.origin || 'Unknown',
-  arrival: route.destination || 'Unknown',
-  price: Math.floor((route.distanceKm || 100) * 1000), // Estimate price based on distance
-  duration: String(route.estimatedMinutes || 180),
-  distance: route.distanceKm || 100,
-  image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
-  description: route.description || `Route from ${route.origin} to ${route.destination}`,
-  category: route.distanceKm && route.distanceKm > 300 ? "Premium" : "Standard",
-  rating: 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
-});
+
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
@@ -74,14 +58,14 @@ function SearchPageContent() {
     tripType: [],
     minPrice: 0,
     maxPrice: 500000,
-    location: "",
+    from: "",
+    to: "",
     category: [],
     sortBy: "newest",
   });
 
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -96,45 +80,12 @@ function SearchPageContent() {
   const passengers = searchParams.get("passengers") || "";
 
   useEffect(() => {
-    // If no search params, load all routes instead of trips
+    // Require search parameters for trip searches
     if (!origin || !destination || !date) {
-      console.log('🔍 No search parameters, loading all routes');
-      setIsLoading(true);
-      setError(null);
-      
-      routeService.getAllSimple()
-        .then((routesData) => {
-          console.log('✅ Loaded routes:', routesData.length);
-          
-          // Convert routes to SearchResult format
-          const mapped: SearchResult[] = routesData.map((route: Route) => ({
-            id: route.id,
-            title: route.name,
-            origin: route.origin,
-            destination: route.destination,
-            departure: route.origin,
-            arrival: route.destination,
-            price: 0, // Routes don't have direct prices, shows in trips
-            duration: `${Math.floor(route.estimatedMinutes / 60)}h${route.estimatedMinutes % 60 ? ` ${route.estimatedMinutes % 60}m` : ''}`,
-            distance: route.distanceKm,
-            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
-            description: route.description || `${route.distanceKm} km • ${Math.floor(route.estimatedMinutes / 60)}h${route.estimatedMinutes % 60 ? ` ${route.estimatedMinutes % 60}m` : ''}`,
-            category: route.amenities?.length > 0 ? "Premium" : "Standard",
-            rating: route.operator?.rating ?? 4.0,
-            location: `${route.origin} → ${route.destination}`,
-          }));
-          
-          setAllResults(mapped);
-        })
-        .catch((err) => {
-          setError(
-            err?.response?.data?.message ||
-            "Failed to load routes. Please try again.",
-          );
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      console.log('❌ Missing search parameters. Redirecting to home or routes page.');
+      setAllResults([]);
+      setIsLoading(false);
+      setError("Please provide origin, destination and date to search for trips.");
       return;
     }
 
@@ -250,10 +201,15 @@ function SearchPageContent() {
       result.price >= filters.minPrice && result.price <= filters.maxPrice
     );
 
-    if (filters.location) {
+    if (filters.from) {
       filteredResults = filteredResults.filter((result) =>
-        result.departure.toLowerCase().includes(filters.location.toLowerCase()) ||
-        result.arrival.toLowerCase().includes(filters.location.toLowerCase())
+        result.departure.toLowerCase().includes(filters.from.toLowerCase())
+      );
+    }
+
+    if (filters.to) {
+      filteredResults = filteredResults.filter((result) =>
+        result.arrival.toLowerCase().includes(filters.to.toLowerCase())
       );
     }
 
@@ -319,7 +275,7 @@ function SearchPageContent() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <Input
-                placeholder="Search destinations, routes, or cities..."
+                placeholder="Search destinations, cities, or operators..."
                 value={filters.query}
                 onChange={(e) => handleFilterChange("query", e.target.value)}
                 className="h-12 text-body bg-background/90 dark:bg-black/95 border-border/70 dark:border-border/50 focus:border-primary dark:focus:border-primary transition-colors"
@@ -489,7 +445,7 @@ function SearchPageContent() {
                 </div>
               </div>
 
-              {/* Location */}
+              {/* From/To Locations */}
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
                   <svg
@@ -511,15 +467,31 @@ function SearchPageContent() {
                       d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                  Location
+                  Locations
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
-                  <Input
-                    placeholder="Enter departure or destination..."
-                    value={filters.location}
-                    onChange={(e) => handleFilterChange("location", e.target.value)}
-                    className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
-                  />
+                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1.5 block">
+                      From
+                    </label>
+                    <Input
+                      placeholder="Departure city..."
+                      value={filters.from}
+                      onChange={(e) => handleFilterChange("from", e.target.value)}
+                      className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1.5 block">
+                      To
+                    </label>
+                    <Input
+                      placeholder="Destination city..."
+                      value={filters.to}
+                      onChange={(e) => handleFilterChange("to", e.target.value)}
+                      className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -574,7 +546,8 @@ function SearchPageContent() {
                       tripType: [],
                       minPrice: 0,
                       maxPrice: 500000,
-                      location: "",
+                      from: "",
+                      to: "",
                       category: [],
                       sortBy: "price-asc",
                     });
@@ -624,12 +597,9 @@ function SearchPageContent() {
                     )}
                   </>
                 ) : (
-                  <>
-                    Found {results.length} available routes
-                    {filters.query && (
-                      <span> for "{filters.query}"</span>
-                    )}
-                  </>
+                  <span className="text-destructive">
+                    Please search with origin, destination, and date to find trips.
+                  </span>
                 )}
               </div>
 
@@ -657,7 +627,39 @@ function SearchPageContent() {
               </Card>
             )}
 
-            {!isLoading && currentResults.length > 0 ? (
+            {!isLoading && (!origin || !destination || !date) ? (
+              <Card className="bg-card border border-border rounded-xl p-12 text-center">
+                <div className="space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-h4 font-semibold text-foreground">Search for Trips</h3>
+                  <p className="text-body text-muted-foreground max-w-md mx-auto">
+                    Enter your origin, destination, and travel date to find available trips.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                    <Link href="/">
+                      <Button className="cursor-pointer">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        Go to Home
+                      </Button>
+                    </Link>
+                    <Link href="/routes">
+                      <Button variant="outline" className="cursor-pointer">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Browse Routes
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            ) : !isLoading && currentResults.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {currentResults.map((result) => (
@@ -722,30 +724,17 @@ function SearchPageContent() {
                             </p>
                           </div>
                           <div className="flex items-center justify-between pt-2">
-                            {/* Show price for trips, distance for routes */}
-                            {result.price > 0 ? (
-                              <span className="text-h5 font-bold text-primary">
-                                {formatCurrency(result.price)}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">
-                                {result.distance} km • {result.duration}
-                              </span>
-                            )}
-                            {/* Different actions for trips vs routes */}
-                            {result.price > 0 ? (
-                              <Link href={`/trips/${result.id}`}>
-                                <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
-                                  View Details
-                                </Button>
-                              </Link>
-                            ) : (
-                              <Link href={`/search?origin=${encodeURIComponent(result.origin)}&destination=${encodeURIComponent(result.destination)}`}>
-                                <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
-                                  View Trips
-                                </Button>
-                              </Link>
-                            )}
+                            {/* Show price for trips only */}
+                            <span className="text-h5 font-bold text-primary">
+                              {formatCurrency(result.price)}
+                            </span>
+                            
+                            {/* Trip details link */}
+                            <Link href={`/trips/${result.id}`}>
+                              <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
+                                View Details
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       </CardContent>
@@ -837,10 +826,10 @@ function SearchPageContent() {
                     </svg>
                   </div>
                   <h3 className="text-h4 font-semibold text-foreground">
-                    No routes found
+                    No trips found
                   </h3>
                   <p className="text-body text-muted-foreground max-w-md mx-auto">
-                    Try adjusting your filters or search terms to find more results.
+                    Try adjusting your search criteria or check different dates.
                   </p>
                   <Button
                     onClick={() => setFilters({
@@ -848,7 +837,8 @@ function SearchPageContent() {
                       tripType: [],
                       minPrice: 0,
                       maxPrice: 500000,
-                      location: "",
+                      from: "",
+                      to: "",
                       category: [],
                       sortBy: "newest"
                     })}
@@ -881,10 +871,10 @@ function SearchPageContent() {
                     </svg>
                   </div>
                   <h3 className="text-h4 font-semibold text-foreground">
-                    Loading routes...
+                    Loading trips...
                   </h3>
                   <p className="text-body text-muted-foreground max-w-md mx-auto">
-                    Please wait while we find suitable trip for you.
+                    Please wait while we find suitable trips for you.
                   </p>
                 </div>
               </Card>
