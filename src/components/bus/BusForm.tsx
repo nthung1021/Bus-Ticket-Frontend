@@ -72,10 +72,11 @@ export default function BusForm({
         <Input
           id="amenities"
           value={(() => {
-            const amenitiesArray = Array.isArray(formData.amenities) 
-              ? formData.amenities 
-              : typeof formData.amenities === 'string' 
-                ? formData.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+            const val = formData.amenities as any;
+            const amenitiesArray = Array.isArray(val) 
+              ? val 
+              : typeof val === 'string' 
+                ? val.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
                 : [];
             return amenitiesArray.join(", ");
           })()}
