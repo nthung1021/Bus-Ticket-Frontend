@@ -80,7 +80,7 @@ export default function Home() {
       try {
         setRoutesLoading(true);
         console.log('🔍 Fetching routes from API...');
-        const routes = await routeService.getAll();
+        const { routes } = await routeService.getAll();
         console.log('✅ Routes fetched successfully:', routes);
         console.log('📊 Number of routes:', routes.length);
         
@@ -367,7 +367,7 @@ export default function Home() {
                         </div>
                       )}
                       {showFromSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[104] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-104 mt-1 max-h-48 overflow-y-auto">
                           {fromSuggestions.map((city, index) => (
                             <div
                               key={index}
@@ -421,7 +421,7 @@ export default function Home() {
                         </div>
                       )}
                       {showToSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[104] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-104 mt-1 max-h-48 overflow-y-auto">
                           {toSuggestions.map((city, index) => (
                             <div
                               key={index}
@@ -547,13 +547,13 @@ export default function Home() {
               >
                 <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&date=${route.searchDate}&passengers=1`} className="block h-full">
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
-                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                    <div className="aspect-4/3 bg-muted relative overflow-hidden">
                       <img
                         src={route.image}
                         alt={`${route.from} to ${route.to}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent z-10" />
                       <div className="absolute bottom-4 left-4 z-20 text-white">
                         <p className="text-sm font-medium bg-black/30 px-2 py-1 rounded">{route.duration} journey</p>
                       </div>
