@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Bus } from "lucide-react";
-import { getUserBookings, modifyPassengerDetails, changeSeats } from "@/services/userBookingService";
+import UserBookingService, { modifyPassengerDetails, changeSeats } from "@/services/userBookingService";
 import { BookingEditForm } from "@/components/booking/BookingEditForm";
 import { SeatSelectionForEdit } from "@/components/booking/SeatSelectionForEdit";
 import { ConfirmChangesModal } from "@/components/booking/ConfirmChangesModal";
@@ -83,7 +83,8 @@ export default function BookingEditPage() {
   const loadBookingDetails = async () => {
     try {
       setLoading(true);
-      const bookings = await getUserBookings();
+      const userBookingService = new UserBookingService();
+      const bookings = await userBookingService.getUserBookings();
       const foundBooking = bookings.find(b => b.id === bookingId);
       
       if (!foundBooking) {
@@ -103,7 +104,8 @@ export default function BookingEditPage() {
 
   const refreshBookingDetails = async () => {
     try {
-      const bookings = await getUserBookings();
+      const userBookingService = new UserBookingService();
+      const bookings = await userBookingService.getUserBookings();
       const foundBooking = bookings.find(b => b.id === bookingId);
       if (foundBooking) {
         setBooking(foundBooking);
@@ -256,8 +258,9 @@ export default function BookingEditPage() {
               ? `Additional cost: ${formatCurrency(seatResult.data.totalPriceDifference)}`
               : `Refund: ${formatCurrency(Math.abs(seatResult.data.totalPriceDifference))}`;
             
-            toast.info(priceMessage, {
-              duration: 4000
+            toast(priceMessage, {
+              duration: 4000,
+              icon: 'ℹ️',
             });
           }
           
@@ -276,9 +279,9 @@ export default function BookingEditPage() {
             );
             
             // Partial success scenario
-            toast.info(
+            toast(
               "Your passenger information has been saved. You can try changing seats again later.",
-              { duration: 5000 }
+              { duration: 5000, icon: 'ℹ️' }
             );
           } else {
             toast.error(

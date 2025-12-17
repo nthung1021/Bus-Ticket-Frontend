@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Armchair, Users, RotateCcw } from "lucide-react";
-import { getSeatLayout, SeatLayoutConfig } from "@/services/seat-layout.service";
-import { getSeatStatusForTrip } from "@/services/seat-status.service";
+import { seatLayoutService, SeatLayout } from "@/services/seat-layout.service";
+import { getSeatStatusForTrip, SeatStatus as ServiceSeatStatus } from "@/services/seat-status.service";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -39,7 +39,7 @@ export function SeatSelectionForEdit({
   onSeatChange,
   disabled = false
 }: SeatSelectionForEditProps) {
-  const [seatLayout, setSeatLayout] = useState<SeatLayoutConfig | null>(null);
+  const [seatLayout, setSeatLayout] = useState<SeatLayout | null>(null);
   const [seatStatuses, setSeatStatuses] = useState<SeatStatus[]>([]);
   const [selectedPassenger, setSelectedPassenger] = useState<string | null>(null);
   const [newSeatSelections, setNewSeatSelections] = useState<Record<string, string>>({});
@@ -52,13 +52,20 @@ export function SeatSelectionForEdit({
   const loadSeatData = async () => {
     try {
       setLoading(true);
-      const [layoutResponse, statusResponse] = await Promise.all([
-        getSeatLayout(busId),
+      const [layoutResponse, statusesResponse] = await Promise.all([
+        seatLayoutService.getByBusId(busId),
         getSeatStatusForTrip(tripId)
       ]);
       
-      setSeatLayout(layoutResponse.data);
-      setSeatStatuses(statusResponse.data);
+      setSeatLayout(layoutResponse);
+      
+      // Transform service status to local simple status
+      const formattedStatuses: SeatStatus[] = (statusesResponse as any[]).map((s) => ({
+        seatCode: s.seat.seatCode,
+        state: s.state,
+        lockedUntil: s.lockedUntil
+      }));
+      setSeatStatuses(formattedStatuses);
     } catch (error) {
       console.error('Error loading seat data:', error);
       toast.error('Failed to load seat information');
@@ -66,6 +73,36 @@ export function SeatSelectionForEdit({
       setLoading(false);
     }
   };
+
+  const processedRows = useMemo(() => {
+    if (!seatLayout?.layoutConfig?.seats) return [];
+
+    const seatsByRow: Record<number, { code: string; col: number }[]> = {};
+    
+    // Group seats by row
+    seatLayout.layoutConfig.seats.forEach(seat => {
+      const row = seat.position.row;
+      if (!seatsByRow[row]) seatsByRow[row] = [];
+      seatsByRow[row].push({ code: seat.code, col: seat.position.position });
+    });
+
+    // Determines where the aisle is (e.g. after column 2)
+    // If aisles array is present, use first value, otherwise default to 2
+    const aisleIndex = seatLayout.layoutConfig.aisles?.[0] ?? 2; 
+
+    return Object.entries(seatsByRow)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([_, seats]) => {
+        // Sort seats in the row by position
+        seats.sort((a, b) => a.col - b.col);
+        
+        // Split into left and right based on aisle index
+        const leftSeats = seats.filter((_, idx) => idx < aisleIndex).map(s => s.code);
+        const rightSeats = seats.filter((_, idx) => idx >= aisleIndex).map(s => s.code);
+        
+        return { leftSeats, rightSeats };
+      });
+  }, [seatLayout]);
 
   const getSeatState = (seatCode: string) => {
     // Check if it's currently selected by this booking
@@ -114,7 +151,7 @@ export function SeatSelectionForEdit({
     if (seatState === 'current') {
       const passenger = passengers.find(p => p.id === selectedPassenger);
       if (passenger && passenger.seatCode === seatCode) {
-        toast.info('This is the passenger\'s current seat');
+        toast.success('This is the passenger\'s current seat');
         return;
       }
     }
@@ -144,7 +181,7 @@ export function SeatSelectionForEdit({
     const passenger = passengers.find(p => p.id === passengerId);
     if (passenger) {
       onSeatChange(passengerId, passenger.seatCode, passenger.seatCode);
-      toast.info(`Reset seat selection for ${passenger.fullName}`);
+      toast.success(`Reset seat selection for ${passenger.fullName}`);
     }
   };
 
@@ -281,7 +318,7 @@ export function SeatSelectionForEdit({
           
           {/* Seat grid */}
           <div className="space-y-2">
-            {seatLayout.rows.map((row, rowIndex) => (
+            {processedRows.map((row, rowIndex) => (
               <div key={rowIndex} className="flex items-center justify-center gap-1">
                 {/* Left seats */}
                 <div className="flex gap-1">
