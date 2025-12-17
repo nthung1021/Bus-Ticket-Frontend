@@ -130,10 +130,11 @@ export default function RouteForm({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
           {availableAmenities.map((amenity) => {
             // Ensure amenities is always an array
-            const amenitiesArray = Array.isArray(formData.amenities) 
-              ? formData.amenities 
-              : typeof formData.amenities === 'string' 
-                ? formData.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
+            const val = formData.amenities as any;
+            const amenitiesArray = Array.isArray(val) 
+              ? val 
+              : typeof val === 'string' 
+                ? val.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
                 : [];
                 
             return (
@@ -159,7 +160,7 @@ export default function RouteForm({
       />
       </div>
       
-      <div className="flex-shrink-0 flex justify-end space-x-2 pt-4 border-t bg-background">
+      <div className="shrink-0 flex justify-end space-x-2 pt-4 border-t bg-background">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
