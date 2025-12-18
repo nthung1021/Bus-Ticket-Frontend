@@ -78,43 +78,46 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
         <div className="space-y-2">
           {routePoints.map((point, index) => (
             <Card key={index} className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+                  <div className="space-y-3">
                     <div>
-                      <Label className="text-sm">Point Name</Label>
+                      <Label className="text-sm font-medium">Point Name</Label>
                       <Input
                         value={point.name}
                         onChange={(e) => updateRoutePoint(index, 'name', e.target.value)}
                         placeholder="e.g., Central Station"
+                        className="w-full"
                       />
                     </div>
-                    <div className="flex space-x-2">
-                      <div className="flex-1">
-                        <Label className="text-sm">Latitude</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm font-medium">Latitude</Label>
                         <Input
                           type="number"
                           step="any"
                           value={point.latitude}
                           onChange={(e) => updateRoutePoint(index, 'latitude', parseFloat(e.target.value) || 0)}
                           placeholder="10.762622"
+                          className="w-full"
                         />
                       </div>
-                      <div className="flex-1">
-                        <Label className="text-sm">Longitude</Label>
+                      <div>
+                        <Label className="text-sm font-medium">Longitude</Label>
                         <Input
                           type="number"
                           step="any"
                           value={point.longitude}
                           onChange={(e) => updateRoutePoint(index, 'longitude', parseFloat(e.target.value) || 0)}
                           placeholder="106.660172"
+                          className="w-full"
                         />
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div>
-                      <Label className="text-sm">Type</Label>
+                      <Label className="text-sm font-medium">Type</Label>
                       <Select value={point.type} onValueChange={(value: 'pickup' | 'dropoff' | 'both') => updateRoutePoint(index, 'type', value)}>
                         <SelectTrigger>
                           <SelectValue />
@@ -126,32 +129,34 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex space-x-2">
-                      <div className="flex-1">
-                        <Label className="text-sm">Distance (m)</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm font-medium">Distance (m)</Label>
                         <Input
                           type="number"
                           value={point.distanceFromStart || ''}
                           onChange={(e) => updateRoutePoint(index, 'distanceFromStart', parseInt(e.target.value) || undefined)}
                           placeholder="Optional"
+                          className="w-full"
                         />
                       </div>
-                      <div className="flex-1">
-                        <Label className="text-sm">Time (min)</Label>
+                      <div>
+                        <Label className="text-sm font-medium">Time (min)</Label>
                         <Input
                           type="number"
                           value={point.estimatedTimeFromStart || ''}
                           onChange={(e) => updateRoutePoint(index, 'estimatedTimeFromStart', parseInt(e.target.value) || undefined)}
                           placeholder="Optional"
+                          className="w-full"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 ml-4">
-                  <div className="flex flex-col items-center">
+                <div className="flex items-start space-x-3 ml-4 flex-shrink-0">
+                  <div className="flex flex-col items-center min-w-[60px]">
                     <span className="text-xs font-medium text-muted-foreground">#{point.order}</span>
-                    <div className={`px-2 py-1 rounded text-xs font-medium ${getPointTypeColor(point.type)}`}>
+                    <div className={`px-2 py-1 rounded text-xs font-medium text-center mt-1 ${getPointTypeColor(point.type)}`}>
                       {point.type}
                     </div>
                   </div>
@@ -159,7 +164,7 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                     variant="outline"
                     size="sm"
                     onClick={() => removeRoutePoint(index)}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive flex-shrink-0"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -179,17 +184,18 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm">Point Name</Label>
+              <Label className="text-sm font-medium">Point Name</Label>
               <Input
                 value={newPoint.name}
                 onChange={(e) => setNewPoint({ ...newPoint, name: e.target.value })}
                 placeholder="e.g., Central Station"
+                className="w-full"
               />
             </div>
             <div>
-              <Label className="text-sm">Type</Label>
+              <Label className="text-sm font-medium">Type</Label>
               <Select value={newPoint.type} onValueChange={(value: 'pickup' | 'dropoff' | 'both') => setNewPoint({ ...newPoint, type: value })}>
                 <SelectTrigger>
                   <SelectValue />
@@ -202,45 +208,49 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm">Latitude</Label>
+              <Label className="text-sm font-medium">Latitude</Label>
               <Input
                 type="number"
                 step="any"
                 value={newPoint.latitude}
                 onChange={(e) => setNewPoint({ ...newPoint, latitude: parseFloat(e.target.value) || 0 })}
                 placeholder="10.762622"
+                className="w-full"
               />
             </div>
             <div>
-              <Label className="text-sm">Longitude</Label>
+              <Label className="text-sm font-medium">Longitude</Label>
               <Input
                 type="number"
                 step="any"
                 value={newPoint.longitude}
                 onChange={(e) => setNewPoint({ ...newPoint, longitude: parseFloat(e.target.value) || 0 })}
                 placeholder="106.660172"
+                className="w-full"
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm">Distance from Start (meters)</Label>
+              <Label className="text-sm font-medium">Distance from Start (meters)</Label>
               <Input
                 type="number"
                 value={newPoint.distanceFromStart || ''}
                 onChange={(e) => setNewPoint({ ...newPoint, distanceFromStart: parseInt(e.target.value) || undefined })}
                 placeholder="Optional"
+                className="w-full"
               />
             </div>
             <div>
-              <Label className="text-sm">Estimated Time from Start (min)</Label>
+              <Label className="text-sm font-medium">Estimated Time from Start (min)</Label>
               <Input
                 type="number"
                 value={newPoint.estimatedTimeFromStart || ''}
                 onChange={(e) => setNewPoint({ ...newPoint, estimatedTimeFromStart: parseInt(e.target.value) || undefined })}
                 placeholder="Optional"
+                className="w-full"
               />
             </div>
           </div>

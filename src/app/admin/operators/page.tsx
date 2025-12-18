@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
-import { Header } from "@/components/dashboard/Header/Header";
 import ProtectedRole from "@/components/ProtectedRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Edit, Plus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { operatorService, Operator, CreateOperatorDto, UpdateOperatorDto, OperatorStatus } from "@/services/operator.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 import { toast } from "sonner";
 import OperatorForm from "@/components/operator/OperatorForm";
 
@@ -30,6 +30,9 @@ function OperatorsManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OperatorStatus | "all">("all");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
@@ -61,6 +64,15 @@ function OperatorsManagement() {
     try {
       await operatorService.create(formData);
       toast.success("Operator created successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'created',
+        'operator',
+        formData.name,
+        `New operator added with status: ${formData.status}`
+      );
+      
       setIsCreateDialogOpen(false);
       setFormData({
         name: "",
@@ -81,6 +93,15 @@ function OperatorsManagement() {
     try {
       await operatorService.update(editingOperator.id, formData as UpdateOperatorDto);
       toast.success("Operator updated successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'updated',
+        'operator',
+        editingOperator.name,
+        `Updated operator details`
+      );
+      
       setIsEditDialogOpen(false);
       setEditingOperator(null);
       setFormData({
@@ -100,8 +121,22 @@ function OperatorsManagement() {
     if (!confirm("Are you sure you want to delete this operator?")) return;
 
     try {
+      // Get operator info before deletion for activity log
+      const operatorToDelete = operators.find(o => o.id === id);
+      
       await operatorService.delete(id);
       toast.success("Operator deleted successfully");
+      
+      // Log admin activity
+      if (operatorToDelete) {
+        adminActivityService.addActivity(
+          'deleted',
+          'operator',
+          operatorToDelete.name,
+          `Removed operator from system`
+        );
+      }
+      
       fetchOperators();
     } catch (error) {
       toast.error("Failed to delete operator");
@@ -111,8 +146,22 @@ function OperatorsManagement() {
 
   const handleApproveOperator = async (id: string) => {
     try {
+      // Get operator info for activity log
+      const operatorToApprove = operators.find(o => o.id === id);
+      
       await operatorService.approve(id);
       toast.success("Operator approved successfully");
+      
+      // Log admin activity
+      if (operatorToApprove) {
+        adminActivityService.addActivity(
+          'approved',
+          'operator',
+          operatorToApprove.name,
+          `Operator approved for service`
+        );
+      }
+      
       fetchOperators();
     } catch (error) {
       toast.error("Failed to approve operator");
@@ -122,8 +171,22 @@ function OperatorsManagement() {
 
   const handleSuspendOperator = async (id: string) => {
     try {
+      // Get operator info for activity log
+      const operatorToSuspend = operators.find(o => o.id === id);
+      
       await operatorService.suspend(id);
       toast.success("Operator suspended successfully");
+      
+      // Log admin activity
+      if (operatorToSuspend) {
+        adminActivityService.addActivity(
+          'suspended',
+          'operator',
+          operatorToSuspend.name,
+          `Operator suspended from service`
+        );
+      }
+      
       fetchOperators();
     } catch (error) {
       toast.error("Failed to suspend operator");
@@ -150,7 +213,35 @@ function OperatorsManagement() {
     
     const matchesStatus = statusFilter === "all" || operator.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    const matchesDate = dateFilter === "all" ||
+      (dateFilter === "recent" && operator.approvedAt && new Date(operator.approvedAt) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) ||
+      (dateFilter === "thisMonth" && operator.approvedAt && new Date(operator.approvedAt) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case "name":
+        comparison = a.name.localeCompare(b.name);
+        break;
+      case "email":
+        comparison = a.contactEmail.localeCompare(b.contactEmail);
+        break;
+      case "status":
+        comparison = a.status.localeCompare(b.status);
+        break;
+      case "approved":
+        const aDate = a.approvedAt ? new Date(a.approvedAt).getTime() : 0;
+        const bDate = b.approvedAt ? new Date(b.approvedAt).getTime() : 0;
+        comparison = aDate - bDate;
+        break;
+      case "busCount":
+        comparison = (a.buses?.length || 0) - (b.buses?.length || 0);
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   const getStatusBadge = (status: OperatorStatus) => {
@@ -170,53 +261,92 @@ function OperatorsManagement() {
     <div className="flex bg-background">
       <Sidebar />
       <div className="flex-1 ml-64 flex flex-col">
-        <Header />
-        <main className="flex-1 pt-4 px-4 pb-4">
+        <main className="flex-1 pt-10 px-4 pb-4">
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Operator Management</CardTitle>
-                <div className="flex space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search operators..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
+                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Operator Management</CardTitle>
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Operator
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Operator</DialogTitle>
+                    </DialogHeader>
+                    <OperatorForm
+                      formData={formData}
+                      setFormData={setFormData}
+                      onCancel={() => setIsCreateDialogOpen(false)}
+                      onSubmit={handleCreateOperator}
                     />
-                  </div>
-                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as OperatorStatus | "all")}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
-                      <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
-                      <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Operator
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create New Operator</DialogTitle>
-                      </DialogHeader>
-                      <OperatorForm
-                        formData={formData}
-                        setFormData={setFormData}
-                        onCancel={() => setIsCreateDialogOpen(false)}
-                        onSubmit={handleCreateOperator}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
+              {/* Enhanced Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search operators, emails, phones..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
+                
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as OperatorStatus | "all")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
+                    <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
+                    <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="recent">Last 7 days</SelectItem>
+                    <SelectItem value="thisMonth">This month</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="approved">Approved Date</SelectItem>
+                    <SelectItem value="busCount">Bus Count</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Results count and sort order */}
+              <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
+                <span>Showing {filteredOperators.length} of {operators.length} operators</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="h-8"
+                >
+                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
               </div>
             </CardHeader>
             <CardContent>

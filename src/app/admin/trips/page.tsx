@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
-import { Header } from "@/components/dashboard/Header/Header";
 import { TripForm } from "@/components/dashboard/TripForm/TripForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +58,7 @@ import {
     formatDateFromBackend,
     TripStatus,
 } from "@/services/trip.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 
 function TripManagementPage() {
     const [trips, setTrips] = useState<Trip[]>([]);
@@ -69,6 +69,11 @@ function TripManagementPage() {
     const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [routeFilter, setRouteFilter] = useState<string>("all");
+    const [dateFilter, setDateFilter] = useState<string>("all");
+    const [priceFilter, setPriceFilter] = useState<string>("all");
+    const [sortBy, setSortBy] = useState<string>("departureTime");
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -97,7 +102,7 @@ function TripManagementPage() {
         fetchData();
     }, []);
 
-    // Filter trips based on search and status
+    // Filter trips based on search and multiple filters
     useEffect(() => {
         let filtered = trips;
 
@@ -105,8 +110,8 @@ function TripManagementPage() {
         if (searchQuery) {
             filtered = filtered.filter(
                 (trip) =>
-                    trip.route?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    trip.bus?.plateNumber.toLowerCase().includes(searchQuery.toLowerCase())
+                    trip.route?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    trip.bus?.plateNumber?.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
@@ -114,9 +119,82 @@ function TripManagementPage() {
         if (statusFilter !== "all") {
             filtered = filtered.filter((trip) => trip.status === statusFilter);
         }
+        
+        // Filter by route
+        if (routeFilter !== "all") {
+            filtered = filtered.filter((trip) => trip.routeId === routeFilter);
+        }
+        
+        // Filter by date
+        if (dateFilter !== "all") {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+            const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+            
+            filtered = filtered.filter((trip) => {
+                const tripDate = new Date(trip.departureTime);
+                switch (dateFilter) {
+                    case "today":
+                        return tripDate >= today && tripDate < tomorrow;
+                    case "tomorrow":
+                        return tripDate >= tomorrow && tripDate < new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
+                    case "thisWeek":
+                        return tripDate >= today && tripDate < nextWeek;
+                    case "upcoming":
+                        return tripDate >= today;
+                    case "past":
+                        return tripDate < today;
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        // Filter by price range
+        if (priceFilter !== "all") {
+            filtered = filtered.filter((trip) => {
+                const price = trip.basePrice || 0;
+                switch (priceFilter) {
+                    case "low":
+                        return price <= 500000; // ≤500k VND
+                    case "medium":
+                        return price > 500000 && price <= 1000000; // 500k-1M VND
+                    case "high":
+                        return price > 1000000; // >1M VND
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        // Sort filtered results
+        filtered.sort((a, b) => {
+            let comparison = 0;
+            switch (sortBy) {
+                case "departureTime":
+                    comparison = new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime();
+                    break;
+                case "route":
+                    comparison = (a.route?.name || "").localeCompare(b.route?.name || "");
+                    break;
+                case "price":
+                    comparison = (a.basePrice || 0) - (b.basePrice || 0);
+                    break;
+                case "status":
+                    comparison = a.status.localeCompare(b.status);
+                    break;
+                case "bus":
+                    comparison = (a.bus?.plateNumber || "").localeCompare(b.bus?.plateNumber || "");
+                    break;
+                default:
+                    comparison = 0;
+            }
+            return sortOrder === "asc" ? comparison : -comparison;
+        });
 
         setFilteredTrips(filtered);
-    }, [searchQuery, statusFilter, trips]);
+    }, [searchQuery, statusFilter, routeFilter, dateFilter, priceFilter, sortBy, sortOrder, trips]);
 
     const handleCreateTrip = () => {
         setEditingTrip(null);
@@ -132,9 +210,23 @@ function TripManagementPage() {
         if (confirm("Are you sure you want to delete this trip?")) {
             try {
                 setIsLoading(true);
+                
+                // Get trip info before deletion for activity log
+                const tripToDelete = trips.find(t => t.id === tripId);
+                
                 await deleteTrip(tripId);
                 setTrips(trips.filter((t) => t.id !== tripId));
                 toast.success("Trip deleted successfully");
+                
+                // Log admin activity
+                if (tripToDelete) {
+                    adminActivityService.addActivity(
+                        'deleted',
+                        'trip',
+                        `${tripToDelete.route?.name || 'Route'} - ${new Date(tripToDelete.departureTime).toLocaleDateString()}`,
+                        `Removed scheduled trip`
+                    );
+                }
             } catch (error) {
                 console.error("Error deleting trip:", error);
                 toast.error("Failed to delete trip");
@@ -162,11 +254,28 @@ function TripManagementPage() {
                 const updatedTrip = await updateTrip(editingTrip.id, tripData as UpdateTripDto);
                 setTrips(trips.map((t) => t.id === editingTrip.id ? updatedTrip : t));
                 toast.success("Trip updated successfully");
+                
+                // Log admin activity
+                adminActivityService.addActivity(
+                    'updated',
+                    'trip',
+                    `${editingTrip.route?.name || 'Route'} - ${new Date(data.departureTime).toLocaleDateString()}`,
+                    `Updated trip details`
+                );
             } else {
                 // Create new trip
                 const newTrip = await createTrip(tripData as CreateTripDto);
                 setTrips([...trips, newTrip]);
                 toast.success("Trip created successfully");
+                
+                // Log admin activity
+                const routeName = routes.find(r => r.id === data.routeId)?.name || 'Route';
+                adminActivityService.addActivity(
+                    'created',
+                    'trip',
+                    `${routeName} - ${new Date(data.departureTime).toLocaleDateString()}`,
+                    `Scheduled new trip`
+                );
             }
 
             setIsDialogOpen(false);
@@ -221,14 +330,11 @@ function TripManagementPage() {
 
             {/* Main Content */}
             <div className="flex-1 ml-64 flex flex-col">
-                {/* Header */}
-                <Header />
-
                 {/* Content Area */}
-                <main className="flex-1 p-6">
+                <main className="flex-1 pt-10 px-6 pb-6">
                     {/* Page Header */}
                     <div className="mb-6">
-                        <h1 className="text-3xl font-bold text-foreground mb-2">
+                        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                             Trip Management
                         </h1>
                         <p className="text-muted-foreground">
@@ -236,26 +342,32 @@ function TripManagementPage() {
                         </p>
                     </div>
 
-                    {/* Filters and Actions */}
+                    {/* Enhanced Filters and Actions */}
                     <div className="bg-card rounded-lg p-4 mb-6 shadow-sm border border-border">
-                        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                            <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full md:w-auto">
-                                {/* Search */}
+                        <div className="flex flex-col gap-4">
+                            {/* First row: Search and Create button */}
+                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                                 <div className="relative flex-1 min-w-[200px]">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search routes, buses..."
+                                        placeholder="Search routes, buses, origins, destinations..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="pl-10"
                                     />
                                 </div>
-
-                                {/* Status Filter */}
+                                
+                                <Button onClick={handleCreateTrip} className="w-full md:w-auto">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create Trip
+                                </Button>
+                            </div>
+                            
+                            {/* Second row: All filters */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="w-full sm:w-[180px]">
-                                        <Filter className="h-4 w-4 mr-2" />
-                                        <SelectValue placeholder="Filter by status" />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Status" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All Status</SelectItem>
@@ -266,13 +378,73 @@ function TripManagementPage() {
                                         <SelectItem value="delayed">Delayed</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                
+                                <Select value={routeFilter} onValueChange={setRouteFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Routes" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Routes</SelectItem>
+                                        {routes.map((route) => (
+                                            <SelectItem key={route.id} value={route.id}>
+                                                {route.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={dateFilter} onValueChange={setDateFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Dates" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Dates</SelectItem>
+                                        <SelectItem value="today">Today</SelectItem>
+                                        <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                                        <SelectItem value="thisWeek">This Week</SelectItem>
+                                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                                        <SelectItem value="past">Past</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={priceFilter} onValueChange={setPriceFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Prices" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Prices</SelectItem>
+                                        <SelectItem value="low">Low (≤500k VND)</SelectItem>
+                                        <SelectItem value="medium">Medium (500k-1M VND)</SelectItem>
+                                        <SelectItem value="high">High (&gt;1M VND)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={sortBy} onValueChange={setSortBy}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="departureTime">Departure Time</SelectItem>
+                                        <SelectItem value="route">Route</SelectItem>
+                                        <SelectItem value="price">Price</SelectItem>
+                                        <SelectItem value="status">Status</SelectItem>
+                                        <SelectItem value="bus">Bus</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
-
-                            {/* Create Button */}
-                            <Button onClick={handleCreateTrip} className="w-full md:w-auto">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Trip
-                            </Button>
+                            
+                            {/* Results count and sort order */}
+                            <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                <span>Showing {filteredTrips.length} of {trips.length} trips</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    className="h-8"
+                                >
+                                    Sort {sortOrder === 'asc' ? '↑' : '↓'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 

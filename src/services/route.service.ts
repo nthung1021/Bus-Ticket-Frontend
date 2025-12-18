@@ -65,9 +65,52 @@ export interface UpdateRouteDto {
 }
 
 export const routeService = {
-  getAll: async (): Promise<Route[]> => {
-    const response = await api.get("/routes");
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    origin?: string;
+    destination?: string;
+    isActive?: boolean;
+  }): Promise<{
+    routes: Route[];
+    total: number;
+    totalPages: number;
+    currentPage: number;
+  }> => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.search) searchParams.append("search", params.search);
+    if (params?.origin) searchParams.append("origin", params.origin);
+    if (params?.destination)
+      searchParams.append("destination", params.destination);
+    if (params?.isActive !== undefined)
+      searchParams.append("isActive", params.isActive.toString());
+
+    const response = await api.get(
+      `/routes${searchParams.toString() ? "?" + searchParams.toString() : ""}`,
+    );
+
+    // Check if the response is an array (direct list) or an object (paginated)
+    if (Array.isArray(response.data)) {
+      return {
+        routes: response.data,
+        total: response.data.length,
+        totalPages: 1,
+        currentPage: 1,
+      };
+    }
+
     return response.data;
+  },
+
+  getAllSimple: async (): Promise<Route[]> => {
+    const response = await api.get("/routes");
+    return Array.isArray(response.data)
+      ? response.data
+      : response.data.routes || [];
   },
 
   getById: async (id: string): Promise<Route> => {

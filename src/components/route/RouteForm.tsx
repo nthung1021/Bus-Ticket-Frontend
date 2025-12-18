@@ -40,8 +40,9 @@ export default function RouteForm({
   ];
 
   return (
-    <div className="space-y-6 overflow-y-auto">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto space-y-6 px-1 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <Label htmlFor="operatorId">Operator</Label>
           <Select value={formData.operatorId} onValueChange={(value) => setFormData({ ...formData, operatorId: value })}>
@@ -68,7 +69,7 @@ export default function RouteForm({
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="origin">Origin</Label>
           <Input
@@ -89,7 +90,7 @@ export default function RouteForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="distanceKm">Distance (km)</Label>
           <Input
@@ -126,19 +127,30 @@ export default function RouteForm({
 
       <div>
         <Label className="text-base font-medium">Amenities</Label>
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          {availableAmenities.map((amenity) => (
-            <div key={amenity} className="flex items-center space-x-2">
-              <Checkbox
-                id={amenity}
-                checked={(formData.amenities || []).includes(amenity)}
-                onCheckedChange={(checked) => handleAmenitiesChange(amenity, checked as boolean)}
-              />
-              <Label htmlFor={amenity} className="text-sm font-normal">
-                {amenity}
-              </Label>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
+          {availableAmenities.map((amenity) => {
+            // Ensure amenities is always an array
+            const val = formData.amenities as any;
+            const amenitiesArray = Array.isArray(val) 
+              ? val 
+              : typeof val === 'string' 
+                ? val.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+                : [];
+                
+            return (
+              <div key={amenity} className="flex items-center space-x-2">
+                <Checkbox
+                  id={amenity}
+                  checked={amenitiesArray.includes(amenity)}
+                  onCheckedChange={(checked) => handleAmenitiesChange(amenity, checked as boolean)}
+                  className="border-2 border-gray-400 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:shadow-inner"
+                />
+                <Label htmlFor={amenity} className="text-sm font-normal leading-tight">
+                  {amenity}
+                </Label>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -146,8 +158,9 @@ export default function RouteForm({
         routePoints={formData.points || []}
         setRoutePoints={(points) => setFormData({ ...formData, points })}
       />
-
-      <div className="flex justify-end space-x-2 pt-4">
+      </div>
+      
+      <div className="shrink-0 flex justify-end space-x-2 pt-4 border-t bg-background">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>

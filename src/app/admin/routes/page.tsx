@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
-import { Header } from "@/components/dashboard/Header/Header";
 import ProtectedRole from "@/components/ProtectedRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler, ChevronDown, Wifi, Car } from "lucide-react";
 import { routeService, Route, CreateRouteDto, UpdateRouteDto } from "@/services/route.service";
 import { operatorService, Operator } from "@/services/operator.service";
+import { adminActivityService } from "@/services/admin-activity.service";
 import { toast } from "sonner";
 import RouteForm from "@/components/route/RouteForm";
 
@@ -31,6 +31,11 @@ function RoutesManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [operatorFilter, setOperatorFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [distanceFilter, setDistanceFilter] = useState<string>("all");
+  const [amenityFilter, setAmenityFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
@@ -66,7 +71,7 @@ function RoutesManagement() {
     try {
       setLoading(true);
       const data = await routeService.getAll();
-      setRoutes(data);
+      setRoutes(Array.isArray(data) ? data : data.routes || []);
       console.log(data);
     } catch (error) {
       toast.error("Failed to fetch routes");
@@ -78,8 +83,17 @@ function RoutesManagement() {
 
   const handleCreateRoute = async () => {
     try {
-      await routeService.create(formData);
+      const newRoute = await routeService.create(formData);
       toast.success("Route created successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'created',
+        'route',
+        formData.name || `${formData.origin} - ${formData.destination}`,
+        `New route from ${formData.origin} to ${formData.destination}`
+      );
+      
       setIsCreateDialogOpen(false);
       setFormData({
         operatorId: "",
@@ -120,6 +134,15 @@ function RoutesManagement() {
       console.log('Updating route with cleaned data:', cleanedData);
       await routeService.update(editingRoute.id, cleanedData as UpdateRouteDto);
       toast.success("Route updated successfully");
+      
+      // Log admin activity
+      adminActivityService.addActivity(
+        'updated',
+        'route',
+        editingRoute.name || `${editingRoute.origin} - ${editingRoute.destination}`,
+        `Updated route details`
+      );
+      
       setIsEditDialogOpen(false);
       setEditingRoute(null);
       setFormData({
@@ -144,8 +167,22 @@ function RoutesManagement() {
     if (!confirm("Are you sure you want to delete this route?")) return;
 
     try {
+      // Get route info before deletion for activity log
+      const routeToDelete = routes.find(r => r.id === id);
+      
       await routeService.delete(id);
       toast.success("Route deleted successfully");
+      
+      // Log admin activity
+      if (routeToDelete) {
+        adminActivityService.addActivity(
+          'deleted',
+          'route',
+          routeToDelete.name || `${routeToDelete.origin} - ${routeToDelete.destination}`,
+          `Deleted route from system`
+        );
+      }
+      
       fetchRoutes();
     } catch (error) {
       toast.error("Failed to delete route");
@@ -190,42 +227,50 @@ function RoutesManagement() {
     
     const matchesOperator = operatorFilter === "all" || route.operatorId === operatorFilter;
     
-    return matchesSearch && matchesOperator;
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && route.isActive) ||
+      (statusFilter === "inactive" && !route.isActive);
+    
+    const matchesDistance = distanceFilter === "all" ||
+      (distanceFilter === "short" && (route.distanceKm || 0) <= 100) ||
+      (distanceFilter === "medium" && (route.distanceKm || 0) > 100 && (route.distanceKm || 0) <= 300) ||
+      (distanceFilter === "long" && (route.distanceKm || 0) > 300);
+    
+    const matchesAmenity = amenityFilter === "all" ||
+      (route.amenities?.includes(amenityFilter));
+    
+    return matchesSearch && matchesOperator && matchesStatus && matchesDistance && matchesAmenity;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case "name":
+        comparison = (a.name || "").localeCompare(b.name || "");
+        break;
+      case "distance":
+        comparison = (a.distanceKm || 0) - (b.distanceKm || 0);
+        break;
+      case "duration":
+        comparison = (a.estimatedMinutes || 0) - (b.estimatedMinutes || 0);
+        break;
+      case "operator":
+        comparison = (a.operator?.name || "").localeCompare(b.operator?.name || "");
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   return (
-    <div className="flex bg-background">
+    <div className="flex bg-background min-h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <Header />
-        <main className="flex-1 pt-4 px-4 pb-4">
-          <Card>
+      <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
+        <main className="flex-1 pt-10 px-4 pb-4 overflow-auto">
+          <Card className="min-w-0">
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Route Management</CardTitle>
-                <div className="flex space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search routes..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
-                    />
-                  </div>
-                  <Select value={operatorFilter} onValueChange={setOperatorFilter}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by operator" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Operators</SelectItem>
-                      {operators.map((operator) => (
-                        <SelectItem key={operator.id} value={operator.id}>
-                          {operator.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
+                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Route Management</CardTitle>
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                   <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogTrigger asChild>
                       <Button>
@@ -233,8 +278,8 @@ function RoutesManagement() {
                         Add Route
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
+                    <DialogContent className="max-w-5xl max-h-[95vh] w-[98vw] sm:w-full flex flex-col">
+                      <DialogHeader className="flex-shrink-0">
                         <DialogTitle>Create New Route</DialogTitle>
                       </DialogHeader>
                       <RouteForm
@@ -248,28 +293,104 @@ function RoutesManagement() {
                   </Dialog>
                 </div>
               </div>
+              
+              {/* Enhanced Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-4">
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search routes, origins, destinations..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Operators" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Operators</SelectItem>
+                    {operators.map((operator) => (
+                      <SelectItem key={operator.id} value={operator.id}>
+                        {operator.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={distanceFilter} onValueChange={setDistanceFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Distances" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Distances</SelectItem>
+                    <SelectItem value="short">Short (≤100km)</SelectItem>
+                    <SelectItem value="medium">Medium (100-300km)</SelectItem>
+                    <SelectItem value="long">Long (&gt;300km)</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="distance">Distance</SelectItem>
+                    <SelectItem value="duration">Duration</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Results count and sort order */}
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <span>Showing {filteredRoutes.length} of {routes.length} routes</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="h-8"
+                >
+                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {loading ? (
-                <div className="text-center py-8">Loading routes...</div>
+                <div className="text-center py-8 px-6">Loading routes...</div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Route</TableHead>
-                      <TableHead>Origin → Destination</TableHead>
-                      <TableHead>Distance/Duration</TableHead>
-                      <TableHead>Operator</TableHead>
-                      <TableHead>Points</TableHead>
-                      <TableHead>Amenities</TableHead>
-                      <TableHead>Trips</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                <div className="overflow-x-auto px-4">
+                  <Table className="min-w-[800px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[200px]">Route</TableHead>
+                        <TableHead className="w-[200px]">Origin → Destination</TableHead>
+                        <TableHead className="hidden md:table-cell w-[150px]">Distance/Duration</TableHead>
+                        <TableHead className="hidden lg:table-cell w-[120px]">Operator</TableHead>
+                        <TableHead className="hidden lg:table-cell w-[100px]">Points</TableHead>
+                        <TableHead className="hidden xl:table-cell w-[150px]">Amenities</TableHead>
+                        <TableHead className="hidden xl:table-cell w-[80px]">Trips</TableHead>
+                        <TableHead className="text-right w-[120px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {filteredRoutes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8 px-6">
                           No routes found
                         </TableCell>
                       </TableRow>
@@ -277,23 +398,23 @@ function RoutesManagement() {
                       filteredRoutes.map((route) => (
                         <TableRow key={route.id}>
                           <TableCell className="font-medium">
-                            <div>
-                              <div className="font-semibold">{route.name}</div>
-                              <div className="text-sm text-muted-foreground mt-1">
+                            <div className="max-w-[180px]">
+                              <div className="font-bold truncate">{route.name}</div>
+                              <div className="text-sm text-muted-foreground mt-1 truncate">
                                 {route.description}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{route.origin || 'Unknown'}</div>
-                                <div className="text-sm text-muted-foreground">→ {route.destination || 'Unknown'}</div>
+                            <div className="flex items-center space-x-2 max-w-[180px]">
+                              <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium truncate">{route.origin || 'Unknown'}</div>
+                                <div className="text-sm text-muted-foreground truncate">→ {route.destination || 'Unknown'}</div>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             <div className="space-y-1">
                               {route.distanceKm && (
                                 <div className="flex items-center space-x-1 text-sm">
@@ -309,12 +430,12 @@ function RoutesManagement() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden lg:table-cell">
                             <Badge variant="outline">
                               {route.operator?.name || route.operatorId}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden lg:table-cell">
                             <div>
                               <button 
                                 onClick={() => toggleRouteExpansion(route.id)}
@@ -344,21 +465,35 @@ function RoutesManagement() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {route.amenities?.slice(0, 2).map((amenity) => (
-                                <Badge key={amenity} variant="outline" className="text-xs">
-                                  {amenity}
-                                </Badge>
-                              ))}
-                              {route.amenities && route.amenities.length > 2 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{route.amenities.length - 2}
-                                </Badge>
-                              )}
+                          <TableCell className="hidden xl:table-cell">
+                            <div className="flex flex-wrap gap-1 max-w-[130px]">
+                              {(() => {
+                                const amenitiesArray = Array.isArray(route.amenities) 
+                                  ? route.amenities 
+                                  : typeof route.amenities === 'string' 
+                                    ? (route.amenities as string).split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+                                    : [];
+                                return amenitiesArray.slice(0, 2).map((amenity: string) => (
+                                  <Badge key={amenity} variant="outline" className="text-xs truncate">
+                                    {amenity}
+                                  </Badge>
+                                ));
+                              })()}
+                              {(() => {
+                                const amenitiesArray = Array.isArray(route.amenities) 
+                                  ? route.amenities 
+                                  : typeof route.amenities === 'string' 
+                                    ? (route.amenities as string).split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+                                    : [];
+                                return amenitiesArray.length > 2 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{amenitiesArray.length - 2}
+                                  </Badge>
+                                );
+                              })()}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden xl:table-cell">
                             <Badge variant="secondary">
                               {route.trips?.length || 0} trips
                             </Badge>
@@ -387,13 +522,14 @@ function RoutesManagement() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="max-w-5xl max-h-[95vh] w-[98vw] sm:w-full flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Edit Route</DialogTitle>
               </DialogHeader>
               <RouteForm

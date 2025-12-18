@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCcw,
-  ExternalLink
+  ExternalLink,
+  Edit
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -327,6 +328,14 @@ export function MyBookings({
                           View Details
                         </Link>
                       </Button>
+                      {(booking.status === 'pending' || booking.status === 'paid') && (
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/my-bookings/${booking.id}/edit`}>
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

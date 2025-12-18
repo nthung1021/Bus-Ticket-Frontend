@@ -71,7 +71,15 @@ export default function BusForm({
         <Label htmlFor="amenities">Amenities (comma-separated)</Label>
         <Input
           id="amenities"
-          value={formData.amenities.join(", ")}
+          value={(() => {
+            const val = formData.amenities as any;
+            const amenitiesArray = Array.isArray(val) 
+              ? val 
+              : typeof val === 'string' 
+                ? val.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+                : [];
+            return amenitiesArray.join(", ");
+          })()}
           onChange={(e) => setFormData({ ...formData, amenities: e.target.value.split(",").map(a => a.trim()).filter(a => a) })}
           placeholder="WiFi, AC, TV, USB"
         />

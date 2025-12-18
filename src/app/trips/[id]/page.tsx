@@ -58,6 +58,8 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [selectedSeats, setSelectedSeats] = useState<SeatInfo[]>([]);
   const [seatDialogOpen, setSeatDialogOpen] = useState(false);
   const [busId, setBusId] = useState<string | null>(null);
+  const [relatedTrips, setRelatedTrips] = useState<Trip[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
 
   const handleSeatSelection = (selectedSeats: SeatInfo[]) => {
     // Map seats to include price so downstream pages don't break when formatting
@@ -81,12 +83,19 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   };
 
   const handleBookNow = () => {
+    console.log('🎫 Book Now clicked - busId:', busId, 'seatLayout:', !!seatLayout);
+    
     if (seatLayout) {
+      console.log('✅ Opening seat selection dialog');
       setSeatDialogOpen(true);
     } else if (busId) {
+      console.log('🔄 Fetching seat layout for busId:', busId);
       fetchSeatLayout();
     } else {
-      toast.error("Seat selection not available. Please try again later.");
+      console.warn('❌ No busId available for seat selection');
+      // Try to proceed without seat selection for now
+      toast.success('Proceeding to passenger information...');
+      router.push(`/passenger-info?tripId=${resolvedParams.id}`);
     }
   };
 
@@ -107,12 +116,28 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         const departureCity = trip.route?.origin ?? "";
         const arrivalCity = trip.route?.destination ?? "";
 
-        const durationMinutes = trip.schedule?.duration ?? null;
-        const durationLabel =
-          durationMinutes != null
-            ? `${Math.floor(durationMinutes / 60)}h${durationMinutes % 60 ? ` ${durationMinutes % 60}m` : ""
-            }`
-            : "";
+        // Calculate duration from departure and arrival times if available
+        let durationLabel = "";
+        if (trip.schedule?.departureTime && trip.schedule?.arrivalTime) {
+          const departure = new Date(trip.schedule.departureTime);
+          const arrival = new Date(trip.schedule.arrivalTime);
+          const durationMs = arrival.getTime() - departure.getTime();
+          
+          if (durationMs > 0) {
+            const durationMinutes = Math.floor(durationMs / (1000 * 60));
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+            durationLabel = `${hours}h${minutes > 0 ? ` ${minutes}m` : ""}`;
+          }
+        } else if (trip.schedule?.duration != null) {
+          // Fallback to provided duration if it's a positive number
+          const durationMinutes = Number(trip.schedule.duration);
+          if (durationMinutes > 0) {
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+            durationLabel = `${hours}h${minutes > 0 ? ` ${minutes}m` : ""}`;
+          }
+        }
 
         const price =
           trip.pricing?.basePrice != null
@@ -152,7 +177,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           departure: departureCity,
           arrival: arrivalCity,
           busType: trip.bus?.model || "Standard bus",
-          amenities: trip.bus?.amenities || [],
+          amenities: Array.isArray(trip.bus?.amenities) 
+            ? trip.bus.amenities 
+            : typeof trip.bus?.amenities === 'string' 
+              ? trip.bus.amenities.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0)
+              : [],
           departureTime: trip.schedule?.departureTime
             ? new Date(trip.schedule.departureTime).toLocaleString()
             : "",
@@ -164,8 +193,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         setTrip(mappedTrip);
         // Store bus ID for seat layout fetching
         if (trip.bus?.busId) {
-          console.log(trip.bus?.busId)
+          console.log('🚌 Setting busId:', trip.bus.busId);
           setBusId(trip.bus.busId);
+        } else {
+          console.warn('⚠️ No busId found in trip data:', trip.bus);
         }
       } catch (error) {
         console.error("Failed to load trip details", error);
@@ -178,20 +209,68 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     fetchTrip();
   }, [resolvedParams.id]);
 
+  // Fetch related trips based on same route (origin/destination)
+  useEffect(() => {
+    const fetchRelatedTrips = async () => {
+      if (!trip?.departure || !trip?.arrival) return;
+      
+      try {
+        setLoadingRelated(true);
+        const response = await api.get("/trips/search", {
+          params: {
+            origin: trip.departure,
+            destination: trip.arrival,
+          },
+        });
+
+        const trips = response.data?.data || [];
+        const relevantTrips = trips
+          .filter((t: any) => t.tripId !== trip.id) // Exclude current trip
+          .slice(0, 3) // Limit to 3 related trips
+          .map((t: any) => ({
+            id: t.tripId,
+            name: `${t.operator?.name || "Bus"} ${t.route?.origin} - ${t.route?.destination}`,
+            category: "Bus Route",
+            price: t.pricing?.basePrice || 0,
+            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            departure: t.route?.origin || "",
+            arrival: t.route?.destination || "",
+            duration: t.schedule?.duration ? `${Math.floor(t.schedule.duration / 60)}h${t.schedule.duration % 60 ? ` ${t.schedule.duration % 60}m` : ""}` : "N/A",
+          }));
+
+        setRelatedTrips(relevantTrips);
+      } catch (error) {
+        console.error("Failed to load related trips", error);
+        setRelatedTrips([]);
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+
+    if (trip) {
+      fetchRelatedTrips();
+    }
+  }, [trip]);
+
   const fetchSeatLayout = async () => {
     if (!busId) {
+      console.error('❌ fetchSeatLayout: No busId available');
       toast.error("Bus information not available");
       return;
     }
 
     try {
+      console.log('🔄 Fetching seat layout for busId:', busId);
       setLoadingSeatLayout(true);
       const layout = await seatLayoutService.getByBusId(busId);
+      console.log('✅ Seat layout loaded:', layout);
       setSeatLayout(layout);
       setSeatDialogOpen(true);
     } catch (error) {
       console.error("Failed to load seat layout", error);
-      toast.error("Seat layout not available for this bus");
+      toast.error("Seat layout not available for this bus. Proceeding to passenger info...");
+      // Fallback: proceed to passenger info without seat selection
+      router.push(`/passenger-info?tripId=${resolvedParams.id}`);
     } finally {
       setLoadingSeatLayout(false);
     }
@@ -251,10 +330,6 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
       </div>
     );
   }
-
-  const relatedTrips = Object.values(mockTrips)
-    .filter(p => p.id !== trip.id)
-    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">
@@ -454,16 +529,22 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               Amenities
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {trip.amenities.map((amenity, index) => (
-                <div key={index} className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 text-center group hover:from-primary/5 hover:to-primary/10 hover:border-primary/20 transition-all duration-200 cursor-pointer">
-                  <div className="w-8 h-8 mx-auto mb-2 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+              {Array.isArray(trip.amenities) && trip.amenities.length > 0 ? (
+                trip.amenities.map((amenity, index) => (
+                  <div key={index} className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 text-center group hover:from-primary/5 hover:to-primary/10 hover:border-primary/20 transition-all duration-200 cursor-pointer">
+                    <div className="w-8 h-8 mx-auto mb-2 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-body text-foreground font-medium">{amenity}</span>
                   </div>
-                  <span className="text-body text-foreground font-medium">{amenity}</span>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-muted-foreground">No amenities listed for this trip.</p>
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         </section>
@@ -473,61 +554,80 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           <div className="text-center space-y-4">
             <h2 className="text-h3 text-foreground flex items-center justify-center gap-3">
               <div className="w-2 h-8 bg-primary rounded-full"></div>
-              Other Popular Routes
+              Relevant Routes
               <div className="w-2 h-8 bg-primary rounded-full"></div>
             </h2>
             <p className="text-body text-muted-foreground max-w-2xl mx-auto">
-              Discover more amazing destinations with our comfortable bus services
+              Other trips on the same route with similar schedules
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {relatedTrips.map((relatedTrip) => (
-              <Link key={relatedTrip.id} href={`/trips/${relatedTrip.id}`} className="group cursor-pointer">
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] h-full">
-                  <div className="aspect-4/3 bg-muted relative overflow-hidden">
-                    <img
-                      src={relatedTrip.image}
-                      alt={relatedTrip.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <p className="text-caption font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                        {relatedTrip.duration}
-                      </p>
-                    </div>
-                    <div className="absolute top-4 right-4">
-                      <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+            {loadingRelated ? (
+              // Loading skeletons
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="bg-card rounded-2xl p-6 animate-pulse">
+                  <div className="aspect-4/3 bg-muted rounded-xl mb-4"></div>
+                  <div className="h-6 bg-muted rounded mb-2"></div>
+                  <div className="h-4 bg-muted rounded mb-4 w-2/3"></div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-6 bg-muted rounded w-1/3"></div>
+                    <div className="h-8 bg-muted rounded w-20"></div>
+                  </div>
+                </div>
+              ))
+            ) : relatedTrips.length > 0 ? (
+              relatedTrips.map((relatedTrip) => (
+                <Link key={relatedTrip.id} href={`/trips/${relatedTrip.id}`} className="group cursor-pointer">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] h-full">
+                    <div className="aspect-4/3 bg-muted relative overflow-hidden">
+                      <img
+                        src={relatedTrip.image}
+                        alt={relatedTrip.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute bottom-4 left-4 text-white">
+                        <p className="text-caption font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                          {relatedTrip.duration}
+                        </p>
+                      </div>
+                      <div className="absolute top-4 right-4">
+                        <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="text-h5 font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                        {relatedTrip.name}
-                      </h3>
-                      <p className="text-caption text-muted-foreground flex items-center gap-2">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        </svg>
-                        {relatedTrip.departure} → {relatedTrip.arrival}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-h6 font-bold text-primary">
-                        {formatCurrency(relatedTrip.price)}
-                      </span>
-                      <Button size="sm" className="group-hover:bg-primary/90 text-caption cursor-pointer px-4 py-2">
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    <CardContent className="p-6 space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="text-h5 font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                          {relatedTrip.name}
+                        </h3>
+                        <p className="text-caption text-muted-foreground flex items-center gap-2">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          </svg>
+                          {relatedTrip.departure} → {relatedTrip.arrival}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-h6 font-bold text-primary">
+                          {formatCurrency(relatedTrip.price)}
+                        </span>
+                        <Button size="sm" className="group-hover:bg-primary/90 text-caption cursor-pointer px-4 py-2">
+                          View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">No similar routes available at this time.</p>
+              </div>
+            )}
           </div>
         </section>
 

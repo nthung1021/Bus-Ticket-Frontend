@@ -50,7 +50,7 @@ const Footer = () => {
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/60 dark:bg-black/70" />
         {/* Theme-aware gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-background/90 via-background/50 to-transparent" />
       </div>
 
       {/* Footer Content */}
@@ -113,12 +113,12 @@ const Footer = () => {
                     </Link>
                   </li>
                   <li>
-                    <Link href="/about" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                    <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                       About Us
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                    <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                       Contact Support
                     </Link>
                   </li>
@@ -130,28 +130,28 @@ const Footer = () => {
                 <h4 className="text-h5 font-semibold text-foreground">Services</h4>
                 <ul className="space-y-3">
                   <li>
-                    <Link href="/bus-booking" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Bus Booking
+                    <Link href="/user" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      Overview
                     </Link>
                   </li>
                   <li>
-                    <Link href="/schedule" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Bus Schedule
+                    <Link href="/my-bookings" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      My Bookings
                     </Link>
                   </li>
                   <li>
-                    <Link href="/tracking" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Live Tracking
+                    <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      Profile
                     </Link>
                   </li>
                   <li>
-                    <Link href="/cancellation" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Cancellation
+                    <Link href="/notifications" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      Notifications
                     </Link>
                   </li>
                   <li>
-                    <Link href="/refund" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Refund Policy
+                    <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      Help & Support
                     </Link>
                   </li>
                 </ul>

@@ -210,4 +210,11 @@ class SeatStatusService {
 }
 
 export const seatStatusService = new SeatStatusService();
+
+// Standalone function for getting seat status for a trip
+export async function getSeatStatusForTrip(tripId: string) {
+  const response = await api.get(`/seat-status/trip/${tripId}`);
+  return response.data;
+}
+
 export default seatStatusService;

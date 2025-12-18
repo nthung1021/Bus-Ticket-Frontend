@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { routeService, Route } from "@/services/route.service";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { removeDiacritics, getCitySuggestions } from "@/utils/vietnameseSearch";
 
 export default function Home() {
   const router = useRouter();
@@ -79,16 +80,17 @@ export default function Home() {
       try {
         setRoutesLoading(true);
         console.log('🔍 Fetching routes from API...');
-        const routes = await routeService.getAll();
+        const result = await routeService.getAll();
+        const routes = result?.routes || [];
         console.log('✅ Routes fetched successfully:', routes);
-        console.log('📊 Number of routes:', routes.length);
+        console.log('📊 Number of routes:', routes?.length || 0);
         
         // Filter routes that have trips and match them with actual trip dates
         const routesWithTrips = [
-          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Nha Trang'), date: '2025-12-05' },
-          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Da Lat'), date: '2025-12-06' },
-          { route: routes.find(r => r.origin === 'Ha Noi' && r.destination === 'Hai Phong'), date: '2025-12-07' },
-          { route: routes.find(r => r.origin === 'Da Nang' && r.destination === 'Hue'), date: '2025-12-08' }
+          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Nha Trang') },
+          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Đà Lạt')},
+          { route: routes.find(r => r.origin === 'Hà Nội' && r.destination === 'Hải Phòng') },
+          { route: routes.find(r => r.origin === 'Cần Thơ' && r.destination === 'Đà Nẵng') }
         ].filter(item => item.route); // Remove undefined routes
         
         // Transform routes to include pricing and images
@@ -112,7 +114,6 @@ export default function Home() {
             image: images[index % images.length],
             distanceKm: typeof route.distanceKm === 'string' ? parseFloat(route.distanceKm) : route.distanceKm,
             routeData: route,
-            searchDate: item.date
           };
         });
         
@@ -202,16 +203,6 @@ export default function Home() {
 
   const isVisible = (id: string) => visibleElements.has(id);
 
-  // Function to remove Vietnamese diacritics for better search
-  const removeDiacritics = (str: string): string => {
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .toLowerCase();
-  };
-
   const toUnsignedName = (str: string): string => {
     const normalized = removeDiacritics(str || '').trim();
     if (!normalized) return '';
@@ -225,15 +216,8 @@ export default function Home() {
   // Filter cities based on input with diacritic-insensitive search
   const filterCities = (input: string): string[] => {
     if (!input.trim()) return [];
-    const normalizedInput = removeDiacritics(input);
-
-    return popularCities
-      .filter(city => {
-        const normalizedCity = removeDiacritics(city);
-        return normalizedCity.includes(normalizedInput) ||
-          city.toLowerCase().includes(input.toLowerCase());
-      })
-      .slice(0, 5);
+    
+    return getCitySuggestions(input, 5);
   };
 
   // Handle from city input
@@ -297,8 +281,8 @@ export default function Home() {
     // If all fields are valid, proceed with search
     if (!errors.from && !errors.to && !errors.date) {
       const query = new URLSearchParams({
-        origin: toUnsignedName(searchData.from),
-        destination: toUnsignedName(searchData.to),
+        origin: searchData.from.trim(),
+        destination: searchData.to.trim(),
         date: searchData.date,
         passengers: String(searchData.passengers ?? 1),
       });
@@ -383,7 +367,7 @@ export default function Home() {
                         </div>
                       )}
                       {showFromSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[104] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-104 mt-1 max-h-48 overflow-y-auto">
                           {fromSuggestions.map((city, index) => (
                             <div
                               key={index}
@@ -437,7 +421,7 @@ export default function Home() {
                         </div>
                       )}
                       {showToSuggestions && (
-                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-[104] mt-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 bg-white dark:bg-black/95 border border-border dark:border-border/40 rounded-md shadow-xl z-104 mt-1 max-h-48 overflow-y-auto">
                           {toSuggestions.map((city, index) => (
                             <div
                               key={index}
@@ -561,15 +545,15 @@ export default function Home() {
                   transitionDelay: `${index * 150}ms`
                 }}
               >
-                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&date=${route.searchDate}&passengers=1`} className="block h-full">
+                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&passengers=1`} className="block h-full">
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
-                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                    <div className="aspect-4/3 bg-muted relative overflow-hidden">
                       <img
                         src={route.image}
                         alt={`${route.from} to ${route.to}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent z-10" />
                       <div className="absolute bottom-4 left-4 z-20 text-white">
                         <p className="text-sm font-medium bg-black/30 px-2 py-1 rounded">{route.duration} journey</p>
                       </div>
@@ -663,14 +647,14 @@ export default function Home() {
             Join thousands of travelers who trust us for comfortable and reliable bus journeys across the country
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Link href="/products/1">
+            <Link href="/routes">
               <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
                 Explore All Routes
               </Button>
             </Link>
-            <Link href="/products/2">
+            <Link href="/tickets">
               <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
-                Book Popular Route
+                Check My Bookings
               </Button>
             </Link>
           </div>
