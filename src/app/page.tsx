@@ -87,10 +87,10 @@ export default function Home() {
         
         // Filter routes that have trips and match them with actual trip dates
         const routesWithTrips = [
-          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Nha Trang'), date: '2025-12-05' },
-          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Da Lat'), date: '2025-12-06' },
-          { route: routes.find(r => r.origin === 'Ha Noi' && r.destination === 'Hai Phong'), date: '2025-12-07' },
-          { route: routes.find(r => r.origin === 'Da Nang' && r.destination === 'Hue'), date: '2025-12-08' }
+          { route: routes.find(r => r.origin === 'Mỹ Tho' && r.destination === 'Nha Trang') },
+          { route: routes.find(r => r.origin === 'Thủ Dầu Một' && r.destination === 'Đà Lạt')},
+          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Thái Nguyên') },
+          { route: routes.find(r => r.origin === 'Vũng Tàu' && r.destination === 'Hội An') }
         ].filter(item => item.route); // Remove undefined routes
         
         // Transform routes to include pricing and images
@@ -114,7 +114,6 @@ export default function Home() {
             image: images[index % images.length],
             distanceKm: typeof route.distanceKm === 'string' ? parseFloat(route.distanceKm) : route.distanceKm,
             routeData: route,
-            searchDate: item.date
           };
         });
         
