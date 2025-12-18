@@ -281,8 +281,8 @@ export default function Home() {
     // If all fields are valid, proceed with search
     if (!errors.from && !errors.to && !errors.date) {
       const query = new URLSearchParams({
-        origin: toUnsignedName(searchData.from),
-        destination: toUnsignedName(searchData.to),
+        origin: searchData.from.trim(),
+        destination: searchData.to.trim(),
         date: searchData.date,
         passengers: String(searchData.passengers ?? 1),
       });
@@ -545,7 +545,7 @@ export default function Home() {
                   transitionDelay: `${index * 150}ms`
                 }}
               >
-                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&date=${route.searchDate}&passengers=1`} className="block h-full">
+                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&passengers=1`} className="block h-full">
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
                     <div className="aspect-4/3 bg-muted relative overflow-hidden">
                       <img
