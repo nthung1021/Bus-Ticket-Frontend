@@ -87,10 +87,10 @@ export default function Home() {
         
         // Filter routes that have trips and match them with actual trip dates
         const routesWithTrips = [
-          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Nha Trang'), date: '2025-12-05' },
-          { route: routes.find(r => r.origin === 'Ho Chi Minh' && r.destination === 'Da Lat'), date: '2025-12-06' },
-          { route: routes.find(r => r.origin === 'Ha Noi' && r.destination === 'Hai Phong'), date: '2025-12-07' },
-          { route: routes.find(r => r.origin === 'Da Nang' && r.destination === 'Hue'), date: '2025-12-08' }
+          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Nha Trang') },
+          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Đà Lạt')},
+          { route: routes.find(r => r.origin === 'Hà Nội' && r.destination === 'Hải Phòng') },
+          { route: routes.find(r => r.origin === 'Cần Thơ' && r.destination === 'Đà Nẵng') }
         ].filter(item => item.route); // Remove undefined routes
         
         // Transform routes to include pricing and images
@@ -114,7 +114,6 @@ export default function Home() {
             image: images[index % images.length],
             distanceKm: typeof route.distanceKm === 'string' ? parseFloat(route.distanceKm) : route.distanceKm,
             routeData: route,
-            searchDate: item.date
           };
         });
         
@@ -282,8 +281,8 @@ export default function Home() {
     // If all fields are valid, proceed with search
     if (!errors.from && !errors.to && !errors.date) {
       const query = new URLSearchParams({
-        origin: toUnsignedName(searchData.from),
-        destination: toUnsignedName(searchData.to),
+        origin: searchData.from.trim(),
+        destination: searchData.to.trim(),
         date: searchData.date,
         passengers: String(searchData.passengers ?? 1),
       });
@@ -546,7 +545,7 @@ export default function Home() {
                   transitionDelay: `${index * 150}ms`
                 }}
               >
-                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&date=${route.searchDate}&passengers=1`} className="block h-full">
+                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&passengers=1`} className="block h-full">
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
                     <div className="aspect-4/3 bg-muted relative overflow-hidden">
                       <img

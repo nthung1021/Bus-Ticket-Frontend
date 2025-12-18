@@ -125,37 +125,37 @@ const Footer = () => {
                 </ul>
               </div>
 
-              {/* Services
+              {/* Services */}
               <div className="space-y-6">
                 <h4 className="text-h5 font-semibold text-foreground">Services</h4>
                 <ul className="space-y-3">
                   <li>
+                    <Link href="/user" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      Overview
+                    </Link>
+                  </li>
+                  <li>
                     <Link href="/my-bookings" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Bus Booking
+                      My Bookings
                     </Link>
                   </li>
                   <li>
                     <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Bus Schedule
+                      Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/notifications" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                      Notifications
                     </Link>
                   </li>
                   <li>
                     <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Live Tracking
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Cancellation
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="text-body text-muted-foreground hover:text-foreground transition-colors">
-                      Refund Policy
+                      Help & Support
                     </Link>
                   </li>
                 </ul>
-              </div> */}
+              </div>
 
               {/* Newsletter */}
               <div className="space-y-6">
