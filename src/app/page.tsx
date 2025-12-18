@@ -80,9 +80,10 @@ export default function Home() {
       try {
         setRoutesLoading(true);
         console.log('🔍 Fetching routes from API...');
-        const { routes } = await routeService.getAll();
+        const result = await routeService.getAll();
+        const routes = result?.routes || [];
         console.log('✅ Routes fetched successfully:', routes);
-        console.log('📊 Number of routes:', routes.length);
+        console.log('📊 Number of routes:', routes?.length || 0);
         
         // Filter routes that have trips and match them with actual trip dates
         const routesWithTrips = [
@@ -647,14 +648,14 @@ export default function Home() {
             Join thousands of travelers who trust us for comfortable and reliable bus journeys across the country
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Link href="/products/1">
+            <Link href="/routes">
               <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
                 Explore All Routes
               </Button>
             </Link>
-            <Link href="/products/2">
+            <Link href="/tickets">
               <Button size="lg" variant="secondary" className="text-base px-8 py-3 cursor-pointer">
-                Book Popular Route
+                Check My Bookings
               </Button>
             </Link>
           </div>
