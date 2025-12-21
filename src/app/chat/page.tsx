@@ -27,7 +27,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+      scrollRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [messages]);
 
