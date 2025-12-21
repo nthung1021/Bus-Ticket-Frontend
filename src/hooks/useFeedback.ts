@@ -160,7 +160,7 @@ export const useDeleteFeedback = () => {
   });
 };
 
-// Hook for trip reviews with pagination
+// C3: Hook for trip reviews with pagination
 export const useTripReviews = (tripId: string, params: Omit<ReviewsListParams, 'tripId'> = {}) => {
   return useQuery({
     queryKey: ["tripReviews", tripId, params],
@@ -171,6 +171,16 @@ export const useTripReviews = (tripId: string, params: Omit<ReviewsListParams, '
 };
 
 // Hook for route reviews with pagination
+// C3: Hook for trip review statistics (average rating, total count)
+export const useTripReviewStats = (tripId: string) => {
+  return useQuery({
+    queryKey: ["tripReviewStats", tripId],
+    queryFn: () => feedbackService.getReviewStats(tripId, 'trip'),
+    enabled: !!tripId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
 export const useRouteReviews = (routeId: string, params: ReviewsListParams = {}) => {
   return useQuery({
     queryKey: ["routeReviews", routeId, params],

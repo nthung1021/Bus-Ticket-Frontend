@@ -25,15 +25,14 @@ export interface ExistingFeedback {
   submittedAt: string; // Keep for backwards compatibility
 }
 
+// C1 API Contract: Review with user info for listing
 export interface ReviewWithUser {
   id: string;
   rating: number;
   comment: string | null;
-  submittedAt: string;
+  createdAt: string; // ISO string from C1 API
   user: {
-    id: string;
-    fullName: string;
-    email: string;
+    name: string; // Simplified user info from C1 API
   };
 }
 
@@ -120,7 +119,7 @@ export const feedbackService = {
     }
   },
 
-  // Get reviews for a specific trip with pagination and sorting
+  // C3: Get reviews for a specific trip with pagination and sorting
   async getTripReviews(params: ReviewsListParams & { tripId: string }): Promise<ReviewsListResponse> {
     const { tripId, page = 1, limit = 10, sortBy = 'newest', ...otherParams } = params;
     
@@ -134,7 +133,8 @@ export const feedbackService = {
       }, {} as Record<string, string>)
     });
 
-    const response = await api.get(`/api/feedback/trip/${tripId}/reviews?${queryParams}`);
+    // C1 API Contract: Use /reviews endpoint
+    const response = await api.get(`/reviews?tripId=${tripId}&${queryParams}`);
     return response.data;
   },
 
@@ -152,7 +152,8 @@ export const feedbackService = {
       }, {} as Record<string, string>)
     });
 
-    const response = await api.get(`/api/feedback/route/${routeId}/reviews?${queryParams}`);
+    // C1 API Contract: Use /reviews endpoint with routeId filter
+    const response = await api.get(`/reviews?routeId=${routeId}&${queryParams}`);
     return response.data;
   },
 
@@ -180,7 +181,9 @@ export const feedbackService = {
     totalReviews: number;
     ratingDistribution: { [key: number]: number };
   }> {
-    const response = await api.get(`/reviews/${type}/${id}/stats`);
+    // Use the correct endpoint format from backend
+    const endpoint = type === 'trip' ? `/reviews/stats?tripId=${id}` : `/reviews/stats?routeId=${id}`;
+    const response = await api.get(endpoint);
     
     // Transform ratingDistribution from array to object format
     const rawData = response.data;

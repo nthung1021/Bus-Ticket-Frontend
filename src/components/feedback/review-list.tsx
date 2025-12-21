@@ -20,7 +20,8 @@ import {
   useRouteReviews, 
   useAllReviews,
   useInfiniteTripReviews,
-  useInfiniteRouteReviews
+  useInfiniteRouteReviews,
+  useTripReviewStats
 } from "@/hooks/useFeedback";
 import { cn } from "@/lib/utils";
 import { 
@@ -66,7 +67,7 @@ function ReviewCard({ review, className }: ReviewCardProps) {
           {/* User Avatar */}
           <Avatar className="h-10 w-10 border">
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {getUserInitials(review.user.fullName)}
+              {getUserInitials(review.user.name)}
             </AvatarFallback>
           </Avatar>
 
@@ -75,7 +76,7 @@ function ReviewCard({ review, className }: ReviewCardProps) {
             {/* Header: User & Rating */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h4 className="font-semibold text-sm">{review.user.fullName}</h4>
+                <h4 className="font-semibold text-sm">{review.user.name}</h4>
                 <div className="flex items-center gap-2 mt-1">
                   <RatingStars 
                     rating={review.rating} 
@@ -90,7 +91,7 @@ function ReviewCard({ review, className }: ReviewCardProps) {
               
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {formatDate(review.submittedAt)}
+                {formatDate(review.createdAt)}
               </div>
             </div>
 
@@ -111,7 +112,7 @@ function ReviewCard({ review, className }: ReviewCardProps) {
               </div>
               
               <div className="text-xs text-muted-foreground">
-                {new Date(review.submittedAt).toLocaleDateString()}
+                {new Date(review.createdAt).toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -125,6 +126,47 @@ interface SortControlsProps {
   sortBy: SortBy;
   onSortChange: (sortBy: SortBy) => void;
   totalCount?: number;
+}
+
+interface ReviewStatsHeaderProps {
+  averageRating?: number;
+  totalCount?: number;
+  isLoading?: boolean;
+}
+
+function ReviewStatsHeader({ averageRating, totalCount, isLoading }: ReviewStatsHeaderProps) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-6 p-4 bg-muted/50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+        <div className="h-6 w-px bg-border" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+    );
+  }
+
+  if (totalCount === 0 || !averageRating) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center gap-6 p-4 bg-muted/50 rounded-lg">
+      <div className="flex items-center gap-2">
+        <RatingStars rating={Math.round(averageRating)} readonly size="sm" />
+        <span className="text-sm font-medium">{averageRating.toFixed(1)}</span>
+        <Badge variant="secondary" className="text-xs">
+          {averageRating.toFixed(1)}
+        </Badge>
+      </div>
+      <div className="h-6 w-px bg-border" />
+      <span className="text-sm text-muted-foreground">
+        Based on {totalCount} review{totalCount !== 1 ? "s" : ""}
+      </span>
+    </div>
+  );
 }
 
 function SortControls({ sortBy, onSortChange, totalCount }: SortControlsProps) {
@@ -279,6 +321,9 @@ export function ReviewList({
 
   const queryParams = { page: currentPage, limit, sortBy };
 
+  // Get review statistics for trips (only when tripId is provided)
+  const tripStats = useTripReviewStats(tripId || "");
+
   // Choose the appropriate hook based on data source
   const tripReviews = useTripReviews(
     tripId!,
@@ -390,6 +435,15 @@ export function ReviewList({
               <Star className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-semibold">{title}</h3>
             </div>
+          )}
+          
+          {/* Review Statistics */}
+          {tripId && (
+            <ReviewStatsHeader
+              averageRating={tripStats.data?.averageRating}
+              totalCount={tripStats.data?.totalReviews}
+              isLoading={tripStats.isLoading}
+            />
           )}
           
           {/* Sort Controls */}
