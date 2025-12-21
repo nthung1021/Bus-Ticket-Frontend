@@ -25,7 +25,8 @@ import {
 import { 
   useFeedbackForTrip, 
   useCanLeaveFeedback, 
-  useSubmitFeedback 
+  useSubmitFeedback,
+  useCompletedBookingForTrip
 } from "@/hooks/useFeedback";
 import { cn } from "@/lib/utils";
 import { 
@@ -38,6 +39,7 @@ import {
   User
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 
 const reviewFormSchema = z.object({
   rating: z
@@ -77,7 +79,11 @@ export function AuthenticatedReviewForm({
   const { data: user, isLoading: isLoadingUser } = useCurrentUser();
   const { data: existingFeedback, isLoading: isLoadingFeedback } = useFeedbackForTrip(tripId);
   const { data: canReviewData, isLoading: isCheckingEligibility } = useCanLeaveFeedback(tripId);
+  const { data: completedBooking, isLoading: isLoadingBooking } = useCompletedBookingForTrip(tripId);
   const submitFeedback = useSubmitFeedback();
+  
+  // C2: Loading and error states
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<ReviewFormData>({
     resolver: zodResolver(
@@ -102,12 +108,28 @@ export function AuthenticatedReviewForm({
   const commentLength = watchedComment?.length || 0;
   const remainingChars = maxCommentLength - commentLength;
 
-  const isLoading = isLoadingUser || isLoadingFeedback || isCheckingEligibility;
-  const isSubmitting = submitFeedback.isPending;
+  const isLoading = isLoadingUser || isLoadingFeedback || isCheckingEligibility || isLoadingBooking;
+  const isFormSubmitting = submitFeedback.isPending || isSubmitting;
 
+  // C2: Form submission handler with all requirements
   const handleFormSubmit = async (data: ReviewFormData) => {
+    if (!completedBooking) {
+      toast.error("No completed booking found for this trip");
+      return;
+    }
+
+    // C2: Disable submit when rating not selected
+    if (!data.rating || data.rating < 1) {
+      toast.error("Please select a rating");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
     try {
+      // C2: Call POST /reviews with JWT/cookie authentication
       await submitFeedback.mutateAsync({
+        bookingId: completedBooking.id,
         tripId,
         feedbackData: {
           rating: data.rating,
@@ -115,11 +137,19 @@ export function AuthenticatedReviewForm({
         },
       });
       
+      // C2: Reset form after successful submission
       reset();
+      
+      // C2: Show success toast
+      toast.success("Review submitted successfully!");
+      
+      // C2: Refresh review list via onSuccess callback
       onSuccess?.();
     } catch (error) {
-      // Error is handled in the mutation
+      // C2: Error handling - errors are handled in the mutation
       console.error("Failed to submit review:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -329,7 +359,7 @@ export function AuthenticatedReviewForm({
                       placeholder="Tell us about your experience..."
                       className="min-h-32 resize-none"
                       maxLength={maxCommentLength}
-                      disabled={isSubmitting}
+                      disabled={isFormSubmitting}
                     />
                   </FormControl>
                   <div className="flex justify-between items-center">
@@ -357,10 +387,17 @@ export function AuthenticatedReviewForm({
             <div className="flex gap-3 pt-2">
               <Button
                 type="submit"
-                disabled={isSubmitting || !watchedRating || watchedRating === 0}
+                disabled={
+                  // C2: Disable submit when no rating selected or submitting
+                  isFormSubmitting || 
+                  !watchedRating || 
+                  watchedRating === 0 || 
+                  !completedBooking
+                }
                 className="min-w-32"
               >
-                {isSubmitting ? (
+                {/* C2: Loading state during submission */}
+                {isFormSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Submitting...
@@ -374,17 +411,27 @@ export function AuthenticatedReviewForm({
                 type="button"
                 variant="outline"
                 onClick={() => reset()}
-                disabled={isSubmitting}
+                disabled={isFormSubmitting}
               >
                 Clear
               </Button>
             </div>
 
+            {/* C2: Validation messages */}
             {!watchedRating || watchedRating === 0 ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   Please select a rating to submit your review
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            
+            {!completedBooking && !isLoading ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No completed booking found for this trip
                 </AlertDescription>
               </Alert>
             ) : null}

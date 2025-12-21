@@ -1,24 +1,28 @@
 import api from "@/lib/api";
 
 export interface FeedbackData {
+  bookingId: string; // C1 API Contract: Required field
+  tripId: string;    // C1 API Contract: Required field
   rating: number;
   comment?: string;
 }
 
+// C1 API Contract: Simplified response format
 export interface FeedbackResponse {
   id: string;
-  userId: string;
-  tripId: string;
   rating: number;
   comment: string | null;
-  submittedAt: string;
+  createdAt: string;  // ISO string format
+  user: {
+    name: string;
+  };
 }
 
 export interface ExistingFeedback {
   id: string;
   rating: number;
   comment: string | null;
-  submittedAt: string;
+  submittedAt: string; // Keep for backwards compatibility
 }
 
 export interface ReviewWithUser {
@@ -56,11 +60,13 @@ export interface ReviewsListParams {
 }
 
 export const feedbackService = {
-  // Submit new feedback for a trip
-  async submitFeedback(tripId: string, feedbackData: FeedbackData): Promise<FeedbackResponse> {
-    const response = await api.post(`/api/feedback`, {
+  // C1 API Contract: Submit new review for a booking
+  async submitFeedback(bookingId: string, tripId: string, feedbackData: Omit<FeedbackData, 'bookingId' | 'tripId'>): Promise<FeedbackResponse> {
+    const response = await api.post(`/reviews`, {
+      bookingId,
       tripId,
-      ...feedbackData,
+      rating: feedbackData.rating,
+      comment: feedbackData.comment || undefined,
     });
     return response.data;
   },
@@ -97,7 +103,6 @@ export const feedbackService = {
   },
 
   // Check if user can leave feedback for a trip
-  // (trip must be completed and user must have a paid booking)
   async canLeaveFeedback(tripId: string): Promise<{
     canReview: boolean;
     reason?: string;
@@ -151,7 +156,7 @@ export const feedbackService = {
     return response.data;
   },
 
-  // Get all reviews with pagination and sorting (admin/public view)
+  // Get all reviews with pagination and sorting (public endpoint)
   async getAllReviews(params: ReviewsListParams = {}): Promise<ReviewsListResponse> {
     const { page = 1, limit = 10, sortBy = 'newest', ...otherParams } = params;
     
@@ -165,17 +170,32 @@ export const feedbackService = {
       }, {} as Record<string, string>)
     });
 
-    const response = await api.get(`/api/feedback/reviews?${queryParams}`);
+    const response = await api.get(`/reviews?${queryParams}`);
     return response.data;
   },
 
-  // Get review statistics for a trip or route
+  // Get review statistics for trip or route
   async getReviewStats(id: string, type: 'trip' | 'route'): Promise<{
-    totalReviews: number;
     averageRating: number;
+    totalReviews: number;
     ratingDistribution: { [key: number]: number };
   }> {
-    const response = await api.get(`/api/feedback/${type}/${id}/stats`);
-    return response.data;
+    const response = await api.get(`/reviews/${type}/${id}/stats`);
+    
+    // Transform ratingDistribution from array to object format
+    const rawData = response.data;
+    const ratingDistribution: { [key: number]: number } = {};
+    
+    if (rawData.ratingDistribution && Array.isArray(rawData.ratingDistribution)) {
+      rawData.ratingDistribution.forEach((item: { rating: number; count: number }) => {
+        ratingDistribution[item.rating] = item.count;
+      });
+    }
+    
+    return {
+      averageRating: rawData.averageRating || 0,
+      totalReviews: rawData.totalReviews || 0,
+      ratingDistribution,
+    };
   },
 };

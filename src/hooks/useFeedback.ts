@@ -5,8 +5,21 @@ import {
   type ReviewsListParams,
   type SortBy 
 } from "@/services/feedback.service";
+import { userBookingService } from "@/services/userBookingService";
 import { useCurrentUser } from "./useAuth";
 import { toast } from "react-hot-toast";
+
+export const useCompletedBookingForTrip = (tripId: string) => {
+  const { data: user } = useCurrentUser();
+
+  return useQuery({
+    queryKey: ["completedBookingForTrip", tripId],
+    queryFn: () => userBookingService.getCompletedBookingForTrip(tripId),
+    enabled: !!user && !!tripId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+};
 
 export const useFeedbackForTrip = (tripId: string) => {
   const { data: user } = useCurrentUser();
@@ -35,26 +48,53 @@ export const useSubmitFeedback = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ tripId, feedbackData }: { tripId: string; feedbackData: FeedbackData }) =>
-      feedbackService.submitFeedback(tripId, feedbackData),
+    mutationFn: ({ 
+      bookingId, 
+      tripId, 
+      feedbackData 
+    }: { 
+      bookingId: string;
+      tripId: string; 
+      feedbackData: Omit<FeedbackData, 'bookingId' | 'tripId'>;
+    }) => feedbackService.submitFeedback(bookingId, tripId, feedbackData),
     onSuccess: (data, variables) => {
-      // Update the feedback cache
+      // Update the feedback cache with C1 API format
       queryClient.setQueryData(["feedback", variables.tripId], {
         id: data.id,
         rating: data.rating,
         comment: data.comment,
-        submittedAt: data.submittedAt,
+        submittedAt: data.createdAt, // Map createdAt to submittedAt for compatibility
       });
 
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["canLeaveFeedback", variables.tripId] });
       queryClient.invalidateQueries({ queryKey: ["userFeedback"] });
+      queryClient.invalidateQueries({ queryKey: ["reviews", variables.tripId] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
 
       toast.success("Thank you for your feedback!");
     },
     onError: (error: any) => {
+      // C1 API Contract: Handle standardized error responses
       const errorMessage = error.response?.data?.message || "Failed to submit feedback";
-      toast.error(errorMessage);
+      const errorCode = error.response?.status;
+      
+      switch (errorCode) {
+        case 401:
+          toast.error("Please log in to submit a review");
+          break;
+        case 403:
+          toast.error("You can only review completed bookings that belong to you");
+          break;
+        case 409:
+          toast.error("You have already reviewed this booking");
+          break;
+        case 400:
+          toast.error(Array.isArray(errorMessage) ? errorMessage.join(", ") : errorMessage);
+          break;
+        default:
+          toast.error(errorMessage);
+      }
     },
   });
 };
@@ -74,7 +114,7 @@ export const useUpdateFeedback = () => {
         id: data.id,
         rating: data.rating,
         comment: data.comment,
-        submittedAt: data.submittedAt,
+        submittedAt: data.createdAt, // Map createdAt to submittedAt for compatibility
       });
 
       toast.success("Feedback updated successfully!");
@@ -156,7 +196,7 @@ export const useInfiniteTripReviews = (
 ) => {
   return useInfiniteQuery({
     queryKey: ["infiniteTripReviews", tripId, params],
-    initialPageParam: 1, // ✅ BẮT BUỘC trong v5
+    initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       feedbackService.getTripReviews({
         tripId,
@@ -165,22 +205,18 @@ export const useInfiniteTripReviews = (
       }),
     enabled: !!tripId,
     getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasNext
-        ? lastPage.pagination.page + 1
-        : undefined,
+      lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined,
     staleTime: 2 * 60 * 1000,
   });
 };
 
-
-// Hook for infinite scroll loading of route reviews  
 export const useInfiniteRouteReviews = (
   routeId: string,
   params: Omit<ReviewsListParams, 'routeId' | 'page'> = {}
 ) => {
   return useInfiniteQuery({
     queryKey: ["infiniteRouteReviews", routeId, params],
-    initialPageParam: 1, // ✅ bắt buộc với TanStack Query v5
+    initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       feedbackService.getRouteReviews({
         routeId,
@@ -189,10 +225,8 @@ export const useInfiniteRouteReviews = (
       }),
     enabled: !!routeId,
     getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasNext
-        ? lastPage.pagination.page + 1
-        : undefined,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+      lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined,
+    staleTime: 2 * 60 * 1000,
   });
 };
 
