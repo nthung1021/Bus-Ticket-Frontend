@@ -1,5 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { feedbackService, type FeedbackData } from "@/services/feedback.service";
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { 
+  feedbackService, 
+  type FeedbackData, 
+  type ReviewsListParams,
+  type SortBy 
+} from "@/services/feedback.service";
 import { useCurrentUser } from "./useAuth";
 import { toast } from "react-hot-toast";
 
@@ -112,5 +117,91 @@ export const useDeleteFeedback = () => {
       const errorMessage = error.response?.data?.message || "Failed to delete feedback";
       toast.error(errorMessage);
     },
+  });
+};
+
+// Hook for trip reviews with pagination
+export const useTripReviews = (tripId: string, params: Omit<ReviewsListParams, 'tripId'> = {}) => {
+  return useQuery({
+    queryKey: ["tripReviews", tripId, params],
+    queryFn: () => feedbackService.getTripReviews({ tripId, ...params }),
+    enabled: !!tripId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Hook for route reviews with pagination
+export const useRouteReviews = (routeId: string, params: ReviewsListParams = {}) => {
+  return useQuery({
+    queryKey: ["routeReviews", routeId, params],
+    queryFn: () => feedbackService.getRouteReviews({ routeId, ...params }),
+    enabled: !!routeId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Hook for all reviews with pagination (admin/public view)
+export const useAllReviews = (params: ReviewsListParams = {}) => {
+  return useQuery({
+    queryKey: ["allReviews", params],
+    queryFn: () => feedbackService.getAllReviews(params),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Hook for infinite scroll loading of reviews
+export const useInfiniteTripReviews = (
+  tripId: string,
+  params: Omit<ReviewsListParams, 'tripId' | 'page'> = {}
+) => {
+  return useInfiniteQuery({
+    queryKey: ["infiniteTripReviews", tripId, params],
+    initialPageParam: 1, // ✅ BẮT BUỘC trong v5
+    queryFn: ({ pageParam }) =>
+      feedbackService.getTripReviews({
+        tripId,
+        ...params,
+        page: pageParam as number,
+      }),
+    enabled: !!tripId,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasNext
+        ? lastPage.pagination.page + 1
+        : undefined,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+
+// Hook for infinite scroll loading of route reviews  
+export const useInfiniteRouteReviews = (
+  routeId: string,
+  params: Omit<ReviewsListParams, 'routeId' | 'page'> = {}
+) => {
+  return useInfiniteQuery({
+    queryKey: ["infiniteRouteReviews", routeId, params],
+    initialPageParam: 1, // ✅ bắt buộc với TanStack Query v5
+    queryFn: ({ pageParam }) =>
+      feedbackService.getRouteReviews({
+        routeId,
+        ...params,
+        page: pageParam as number,
+      }),
+    enabled: !!routeId,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasNext
+        ? lastPage.pagination.page + 1
+        : undefined,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Hook for review statistics
+export const useReviewStats = (id: string, type: 'trip' | 'route') => {
+  return useQuery({
+    queryKey: ["reviewStats", type, id],
+    queryFn: () => feedbackService.getReviewStats(id, type),
+    enabled: !!id && !!type,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

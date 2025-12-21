@@ -10,6 +10,9 @@ import {
   UserReviewInterface,
   AuthenticatedReviewForm,
   FeedbackPage,
+  ReviewList,
+  ReviewStats,
+  ReviewsPage,
   type ReviewFormData 
 } from "@/components/feedback";
 
@@ -17,7 +20,7 @@ import {
 export function FeedbackDemo() {
   const [rating, setRating] = React.useState<number>(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [activeDemo, setActiveDemo] = React.useState<'components' | 'auth-form' | 'full-page'>('components');
+  const [activeDemo, setActiveDemo] = React.useState<'components' | 'auth-form' | 'review-list' | 'full-page'>('components');
 
   const handleReviewSubmit = async (data: ReviewFormData) => {
     setIsSubmitting(true);
@@ -81,7 +84,7 @@ export function FeedbackDemo() {
         </p>
 
         {/* Demo Navigation */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-8 flex-wrap">
           <Button
             variant={activeDemo === 'components' ? 'default' : 'outline'}
             onClick={() => setActiveDemo('components')}
@@ -93,6 +96,12 @@ export function FeedbackDemo() {
             onClick={() => setActiveDemo('auth-form')}
           >
             Authenticated Form
+          </Button>
+          <Button
+            variant={activeDemo === 'review-list' ? 'default' : 'outline'}
+            onClick={() => setActiveDemo('review-list')}
+          >
+            Reviews List
           </Button>
           <Button
             variant={activeDemo === 'full-page' ? 'default' : 'outline'}
@@ -201,6 +210,66 @@ export function FeedbackDemo() {
           </div>
         )}
 
+        {/* Review List Demo */}
+        {activeDemo === 'review-list' && (
+          <div className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>📝 Review List with Sorting & Pagination</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Display user reviews with names, ratings, comments, dates, and sorting options.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Mock Reviews List */}
+                  <ReviewList
+                    tripId="demo-trip-123"
+                    title="Customer Reviews"
+                    showHeader
+                    showSortControls
+                    showPagination
+                    initialLimit={5}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 Review Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ReviewStats
+                  id="demo-trip-123"
+                  type="trip"
+                  title="Rating Overview"
+                  showDistribution
+                />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>🎯 Complete Reviews Page</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ReviewsPage
+                  tripId="demo-trip-456"
+                  contextData={{
+                    title: "Ho Chi Minh City → Da Nang",
+                    subtitle: "December 22, 2025 • Phuong Trang",
+                    description: "View all passenger reviews for this trip route. Your feedback helps other travelers make informed decisions."
+                  }}
+                  showStats
+                  allowNewReviews
+                  layout="stacked"
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Full Page Demo */}
         {activeDemo === 'full-page' && (
           <div className="space-y-8">
@@ -235,7 +304,11 @@ export function FeedbackDemo() {
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Authentication Check:</strong> Verifies user is logged in before showing form</li>
                 <li><strong>Booking Status Validation:</strong> Only shows form if booking is PAID and trip is COMPLETED</li>
-                <li><strong>Loading States:</strong> Shows loading spinner during form submission</li>
+                <li><strong>Review List Display:</strong> Shows user names, ratings, comments, and dates</li>
+                <li><strong>Sorting Options:</strong> Sort by newest, oldest, highest/lowest rating</li>
+                <li><strong>Pagination:</strong> Standard pagination or infinite scroll loading</li>
+                <li><strong>Review Statistics:</strong> Average rating, total reviews, rating distribution</li>
+                <li><strong>Loading States:</strong> Shows loading spinner during form submission and data fetching</li>
                 <li><strong>Success/Error Messages:</strong> Toast notifications and alert components</li>
                 <li><strong>Form Validation:</strong> Rating required, character limits, real-time feedback</li>
                 <li><strong>State Management:</strong> React Query for caching and optimistic updates</li>
@@ -263,22 +336,37 @@ export function FeedbackDemo() {
             <Separator />
 
             <div>
-              <h4 className="font-semibold mb-2 text-purple-600">🛠️ Usage Example:</h4>
+              <h4 className="font-semibold mb-2 text-purple-600">🛠️ Usage Examples:</h4>
               <pre className="bg-muted p-4 rounded-md text-xs overflow-x-auto">
-{`// In your booking history or trip details page
-import { FeedbackPage } from "@/components/feedback";
+{`// Display reviews for a trip
+import { ReviewList, ReviewStats, ReviewsPage } from "@/components/feedback";
 
-export function TripDetailsPage({ tripId, bookingId }) {
-  return (
-    <FeedbackPage
-      tripId={tripId}
-      bookingId={bookingId}
-      tripData={tripData}
-      bookingData={bookingData}
-      onBack={() => router.back()}
-    />
-  );
-}`}
+// Simple review list
+<ReviewList
+  tripId={tripId}
+  title="Customer Reviews"
+  showSortControls
+  showPagination
+  initialLimit={10}
+/>
+
+// With statistics
+<ReviewStats
+  id={tripId}
+  type="trip"
+  showDistribution
+/>
+
+// Complete reviews page
+<ReviewsPage
+  tripId={tripId}
+  contextData={{
+    title: "Route Name",
+    subtitle: "Date • Operator"
+  }}
+  showStats
+  allowNewReviews
+/>`}
               </pre>
             </div>
           </CardContent>
