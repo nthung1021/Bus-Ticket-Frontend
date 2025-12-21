@@ -18,6 +18,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { ReviewList, ReviewStats } from "@/components/feedback";
+import { feedbackService } from "@/services/feedback.service";
+import { Star, MessageSquare } from "lucide-react";
 
 interface TripParams {
   id: string;
@@ -60,6 +63,14 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [busId, setBusId] = useState<string | null>(null);
   const [relatedTrips, setRelatedTrips] = useState<Trip[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
+  
+  // Review state
+  const [reviewStats, setReviewStats] = useState<{
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: { [key: number]: number };
+  } | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const handleSeatSelection = (selectedSeats: SeatInfo[]) => {
     // Map seats to include price so downstream pages don't break when formatting
@@ -210,6 +221,26 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   }, [resolvedParams.id]);
 
   // Fetch related trips based on same route (origin/destination)
+  // Fetch review statistics
+  useEffect(() => {
+    const fetchReviewStats = async () => {
+      if (!resolvedParams.id) return;
+      
+      try {
+        setLoadingReviews(true);
+        const stats = await feedbackService.getReviewStats(resolvedParams.id, 'trip');
+        setReviewStats(stats);
+      } catch (error) {
+        console.error('Failed to load review stats:', error);
+        setReviewStats(null);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchReviewStats();
+  }, [resolvedParams.id]);
+
   useEffect(() => {
     const fetchRelatedTrips = async () => {
       if (!trip?.departure || !trip?.arrival) return;
@@ -364,17 +395,38 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           <div className="bg-card border border-border rounded-2xl p-6 h-full flex flex-col">
             {/* Header Info */}
             <div className="space-y-4 mb-6">
-              <div className="inline-block">
-                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-caption font-medium">
-                  {trip.category}
-                </span>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="inline-block mb-3">
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-caption font-medium">
+                      {trip.category}
+                    </span>
+                  </div>
+                  <h1 className="text-h2 text-foreground leading-tight">{trip.name}</h1>
+                </div>
+                
+                {/* Quick Rating Display */}
+                {reviewStats && reviewStats.totalReviews > 0 && (
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                        <span className="text-h5 font-bold text-foreground">
+                          {reviewStats.averageRating.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-caption text-muted-foreground">
+                      {reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
               </div>
-              <h1 className="text-h2 text-foreground leading-tight">{trip.name}</h1>
             </div>
 
-            {/* Price */}
+            {/* Price & Rating */}
             <div className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between gap-4 mb-3">
                 <span className="text-h4 text-primary font-bold">
                   {formatCurrency(trip.price)}
                 </span>
@@ -389,6 +441,33 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                   </div>
                 )}
               </div>
+              
+              {/* Rating Summary */}
+              {reviewStats && reviewStats.totalReviews > 0 && (
+                <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <span className="text-body font-semibold text-foreground">
+                      {reviewStats.averageRating.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <MessageSquare className="h-3 w-3" />
+                    <span className="text-caption">
+                      {reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {loadingReviews && (
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span className="text-caption">Loading reviews...</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Route Details */}
@@ -547,6 +626,46 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               )}
             </div>
           </Card>
+        </section>
+
+        {/* Customer Reviews Section */}
+        <section className="space-y-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-h3 text-foreground flex items-center justify-center gap-3">
+              <div className="w-2 h-8 bg-primary rounded-full"></div>
+              Customer Reviews
+              <div className="w-2 h-8 bg-primary rounded-full"></div>
+            </h2>
+            <p className="text-body text-muted-foreground max-w-2xl mx-auto">
+              See what other passengers are saying about this route
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Review Statistics */}
+            <div className="lg:col-span-1">
+              <ReviewStats 
+                id={resolvedParams.id}
+                type="trip"
+                title="Rating Overview"
+                showDistribution
+                className="sticky top-4"
+              />
+            </div>
+            
+            {/* Review List */}
+            <div className="lg:col-span-3">
+              <ReviewList
+                tripId={resolvedParams.id}
+                title="Recent Reviews"
+                showHeader
+                showSortControls
+                showPagination
+                useInfiniteScroll={false}
+                initialLimit={5}
+              />
+            </div>
+          </div>
         </section>
 
         {/* Related Routes */}
