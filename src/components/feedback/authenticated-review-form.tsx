@@ -26,7 +26,8 @@ import {
   useFeedbackForTrip, 
   useCanLeaveFeedback, 
   useSubmitFeedback,
-  useCompletedBookingForTrip
+  useCompletedBookingForTrip,
+  useHasUserReviewed
 } from "@/hooks/useFeedback";
 import { cn } from "@/lib/utils";
 import { 
@@ -80,7 +81,10 @@ export function AuthenticatedReviewForm({
   const { data: existingFeedback, isLoading: isLoadingFeedback } = useFeedbackForTrip(tripId);
   const { data: canReviewData, isLoading: isCheckingEligibility } = useCanLeaveFeedback(tripId);
   const { data: completedBooking, isLoading: isLoadingBooking } = useCompletedBookingForTrip(tripId);
+  
+  // C4: Enhanced hooks for duplicate prevention and review existence check
   const submitFeedback = useSubmitFeedback();
+  const { data: hasUserReviewed, isLoading: isCheckingReviewed } = useHasUserReviewed(tripId);
   
   // C2: Loading and error states
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -108,13 +112,19 @@ export function AuthenticatedReviewForm({
   const commentLength = watchedComment?.length || 0;
   const remainingChars = maxCommentLength - commentLength;
 
-  const isLoading = isLoadingUser || isLoadingFeedback || isCheckingEligibility || isLoadingBooking;
+  const isLoading = isLoadingUser || isLoadingFeedback || isCheckingEligibility || isLoadingBooking || isCheckingReviewed;
   const isFormSubmitting = submitFeedback.isPending || isSubmitting;
 
-  // C2: Form submission handler with all requirements
+  // C4: Enhanced form submission handler with duplicate prevention
   const handleFormSubmit = async (data: ReviewFormData) => {
     if (!completedBooking) {
       toast.error("No completed booking found for this trip");
+      return;
+    }
+
+    // C4: Check if user has already reviewed
+    if (hasUserReviewed) {
+      toast.error("You have already reviewed this trip");
       return;
     }
 
@@ -127,7 +137,7 @@ export function AuthenticatedReviewForm({
     setIsSubmitting(true);
     
     try {
-      // C2: Call POST /reviews with JWT/cookie authentication
+      // C4: Use enhanced submit with optimistic updates and error handling
       await submitFeedback.mutateAsync({
         bookingId: completedBooking.id,
         tripId,
@@ -140,13 +150,13 @@ export function AuthenticatedReviewForm({
       // C2: Reset form after successful submission
       reset();
       
-      // C2: Show success toast
-      toast.success("Review submitted successfully!");
+      // C2: Show success toast (handled by the hook)
+      // C4: Form will be hidden automatically due to hasUserReviewed becoming true
       
       // C2: Refresh review list via onSuccess callback
       onSuccess?.();
     } catch (error) {
-      // C2: Error handling - errors are handled in the mutation
+      // C4: Error handling - errors are handled in the enhanced mutation hook
       console.error("Failed to submit review:", error);
     } finally {
       setIsSubmitting(false);
@@ -195,14 +205,14 @@ export function AuthenticatedReviewForm({
     );
   }
 
-  // User already has feedback
-  if (existingFeedback) {
+  // C4: User already has feedback (either existing feedback or detected through hasUserReviewed)
+  if (existingFeedback || hasUserReviewed) {
     return (
       <Card className={cn("w-full max-w-2xl", className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
-            Your Review
+            Review Submitted
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -218,37 +228,50 @@ export function AuthenticatedReviewForm({
           )}
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Your Rating:</span>
-              <RatingStars 
-                rating={existingFeedback.rating} 
-                readonly
-                size="default"
-                showLabel
-              />
-            </div>
-
-            {existingFeedback.comment && (
-              <div className="space-y-2">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Your Feedback:
-                </span>
-                <div className="bg-muted/50 rounded-md p-3">
-                  <p className="text-sm leading-relaxed">{existingFeedback.comment}</p>
+            {existingFeedback ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Your Rating:</span>
+                  <RatingStars 
+                    rating={existingFeedback.rating} 
+                    readonly
+                    size="default"
+                    showLabel
+                  />
                 </div>
-              </div>
+
+                {existingFeedback.comment && (
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Your Feedback:
+                    </span>
+                    <div className="bg-muted/50 rounded-md p-3">
+                      <p className="text-sm leading-relaxed">{existingFeedback.comment}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Thank you for your review! Your feedback has been submitted and will appear in the reviews section shortly.
+                </AlertDescription>
+              </Alert>
             )}
 
-            <div className="flex items-center justify-between pt-2 border-t">
-              <span className="text-xs text-muted-foreground">
-                Submitted on {new Date(existingFeedback.submittedAt).toLocaleDateString()}
-              </span>
-              <Badge variant="secondary" className="text-xs">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Review Complete
-              </Badge>
-            </div>
+            {existingFeedback && (
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-xs text-muted-foreground">
+                  Submitted on {new Date(existingFeedback.submittedAt).toLocaleDateString()}
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Completed
+                </Badge>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
