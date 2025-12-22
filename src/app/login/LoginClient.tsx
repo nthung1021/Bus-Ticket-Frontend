@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useLogin } from "src/hooks/useAuth";
 import GoogleSignInButton from "./GoogleSignInButton";
 import FacebookSignInButton from "./FacebookSignInButton";
+import PhoneSignInButton from "./PhoneSignInButton";
 
 type LoginFormData = {
   email: string;
@@ -205,6 +206,7 @@ export default function LoginClient() {
             </button>
             <GoogleSignInButton />
             <FacebookSignInButton />
+            <PhoneSignInButton />
           </div>
         </form>
       </div>

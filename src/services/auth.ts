@@ -32,6 +32,39 @@ interface RegisterResponse {
   createdAt: string;
 }
 
+interface SendOtpRequest {
+  phone: string;
+}
+
+interface SendOtpResponse {
+  success: boolean;
+  message: string;
+  data: {
+    phone: string;
+    expiresAt: string;
+    otp?: string; // DEV mode only
+  };
+}
+
+interface VerifyOtpRequest {
+  phone: string;
+  otp: string;
+}
+
+interface VerifyOtpResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: {
+      userId: string;
+      phone: string;
+      fullName: string;
+      email?: string;
+      role: string;
+    };
+  };
+}
+
 export const authService = {
   register: async (data: RegisterData): Promise<RegisterResponse> => {
     const response = await api.post("/auth/register", data);
@@ -46,6 +79,17 @@ export const authService = {
   logout: async () => {
     // Call logout endpoint to clear cookies on server
     await api.post("/auth/logout");
+  },
+
+  // Phone/OTP Authentication - DEV/DEMO Mode
+  sendOtp: async (data: SendOtpRequest): Promise<SendOtpResponse> => {
+    const response = await api.post("/auth/phone/send-otp", data);
+    return response.data;
+  },
+
+  verifyOtp: async (data: VerifyOtpRequest): Promise<VerifyOtpResponse> => {
+    const response = await api.post("/auth/phone/verify-otp", data);
+    return response.data;
   },
 
   getCurrentUser: async () => {
