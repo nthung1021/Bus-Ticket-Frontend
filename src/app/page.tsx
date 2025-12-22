@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,33 +12,10 @@ import { removeDiacritics, getCitySuggestions } from "@/utils/vietnameseSearch";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import OAuthCallbackHandler from "./OAuthCallbackHandler";
 
 export default function Home() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
-  const { data: user, refetch: refetchUser } = useCurrentUser();
-
-  // Handle Google OAuth callback - CRITICAL: Frontend compatibility for OAuth flow
-  useEffect(() => {
-    const error = searchParams.get('error');
-    
-    if (error === 'auth_failed') {
-      toast.error('Google authentication failed. Please try again.');
-      // Clean URL without causing navigation
-      const url = new URL(window.location.href);
-      url.searchParams.delete('error');
-      window.history.replaceState({}, '', url.toString());
-    }
-    
-    // If user just returned from OAuth, refresh auth state
-    const urlHasAuthParams = searchParams.has('error') || window.location.search.includes('auth');
-    if (urlHasAuthParams && !user) {
-      // Force refresh user data after OAuth redirect
-      refetchUser();
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-    }
-  }, [searchParams, user, refetchUser, queryClient]);
 
   const [searchData, setSearchData] = useState({
     from: "",
@@ -321,6 +298,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <Suspense fallback={<div>Loading...</div>}>
+        <OAuthCallbackHandler />
+      </Suspense>
+      
       {/* Hero Section */}
       <section className="relative h-screen overflow-hidden">
         {/* Background Images with Transitions */}
