@@ -282,29 +282,9 @@ function TripManagementPage() {
             setEditingTrip(null);
         } catch (error: any) {
             console.error("Error saving trip:", error);
-            
-            // Extract detailed error message
-            let errorMessage = "Failed to save trip";
-            
-            if (error.response) {
-                // Server responded with error status
-                const serverError = error.response.data;
-                if (serverError.message) {
-                    errorMessage = serverError.message;
-                } else if (serverError.error) {
-                    errorMessage = serverError.error;
-                } else if (Array.isArray(serverError.message)) {
-                    errorMessage = serverError.message.join(', ');
-                }
-            } else if (error.request) {
-                // Request was made but no response received
-                errorMessage = "Network error. Please check your connection.";
-            } else if (error.message) {
-                // Client-side error
-                errorMessage = error.message;
-            }
-            
-            toast.error(errorMessage);
+            // Prefer server-provided message when available (axios error.response.data.message)
+            const serverMessage = error?.response?.data?.message;
+            toast.error(serverMessage || error?.message || "Failed to save trip");
         } finally {
             setIsLoading(false);
         }
