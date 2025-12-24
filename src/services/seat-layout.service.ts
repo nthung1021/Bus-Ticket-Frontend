@@ -118,8 +118,9 @@ class SeatLayoutService {
     return response.data;
   }
 
-  async getByBusId(busId: string): Promise<SeatLayout> {
-    const response = await api.get(`/seat-layouts/bus/${busId}`);
+  async getByBusId(busId: string, tripId?: string): Promise<SeatLayout> {
+    const url = tripId ? `/seat-layouts/bus/${busId}?tripId=${tripId}` : `/seat-layouts/bus/${busId}`;
+    const response = await api.get(url);
     return response.data;
   }
 

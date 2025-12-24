@@ -33,6 +33,7 @@ import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { seatLayoutService } from "@/services/seat-layout.service";
 
 // const serviceFee = 10000;
 // const processingFee = 5000;
@@ -77,6 +78,7 @@ function PassengerInfoPageContent() {
 
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
+  const [seatLayout, setSeatLayout] = useState<any>(null);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
   const [passengerValidations, setPassengerValidations] = useState<boolean[]>(
     []
@@ -115,19 +117,14 @@ function PassengerInfoPageContent() {
   useEffect(() => {
     if (selectedSeats.length > 0 && tripId) {
       const lockSeats = async () => {
-        console.log(
-          "Locking seats for passenger info:",
-          selectedSeats.map((s) => s.id)
-        );
-
+        
         // Only lock seats that are not already booked
-        const lockPromises = selectedSeats.map((seat) => {
-          if (bookedSeats.has(seat.id)) {
-            console.log(`Seat ${seat.id} is already booked, skipping lock`);
-            return Promise.resolve(false);
-          }
-          return lockSeat(seat.id);
-        });
+          const lockPromises = selectedSeats.map((seat) => {
+            if (bookedSeats.has(seat.id)) {
+              return Promise.resolve(false);
+            }
+            return lockSeat(seat.id);
+          });
 
         const results = await Promise.allSettled(lockPromises);
 
@@ -136,7 +133,6 @@ function PassengerInfoPageContent() {
         );
 
         if (failedLocks.length > 0) {
-          console.warn(`Failed to lock ${failedLocks.length} seats`);
           toast.error(
             "Some seats are no longer available. Please select different seats."
           );
@@ -144,8 +140,6 @@ function PassengerInfoPageContent() {
           setTimeout(() => {
             router.push(`/trips/${tripId}`);
           }, 2000);
-        } else {
-          console.log("All seats locked successfully");
         }
       };
 
@@ -154,22 +148,15 @@ function PassengerInfoPageContent() {
       // Cleanup function to unlock seats when component unmounts
       return () => {
         const unlockSeats = async () => {
-          console.log(
-            "Unlocking seats on passenger info cleanup:",
-            selectedSeats.map((s) => s.id)
-          );
-
           // Only unlock seats that are not already booked
           const unlockPromises = selectedSeats.map((seat) => {
             if (bookedSeats.has(seat.id)) {
-              console.log(`Seat ${seat.id} is already booked, skipping unlock`);
               return Promise.resolve(false);
             }
             return unlockSeat(seat.id);
           });
 
           await Promise.allSettled(unlockPromises);
-          console.log("Seat unlocking process completed");
         };
 
         unlockSeats();
@@ -181,7 +168,6 @@ function PassengerInfoPageContent() {
   useEffect(() => {
     return () => {
       if (selectedSeats.length > 0) {
-        console.log("Unlocking seats on component unmount");
         unlockAllMySeats();
       }
     };
@@ -211,10 +197,7 @@ function PassengerInfoPageContent() {
           const seatsMatch =
             JSON.stringify(savedSeatCodes) === JSON.stringify(currentSeatCodes);
 
-          console.log("🔍 Checking localStorage compatibility:");
-          console.log("- Saved seat codes:", savedSeatCodes);
-          console.log("- Current seat codes:", currentSeatCodes);
-          console.log("- Seats match:", seatsMatch);
+          
 
           if (seatsMatch && savedData.passengers?.length === seats.length) {
             // Migrate old data format to include missing fields
@@ -230,16 +213,14 @@ function PassengerInfoPageContent() {
             setPassengerValidations(
               savedData.validations || new Array(seats.length).fill(false)
             );
-            console.log("✅ Using saved passenger data");
+            
           } else {
             // Seats don't match - clear old data and start fresh
-            console.log("🔄 Seat mismatch - clearing old data");
             localStorage.removeItem(`passengerData_${tripId}`);
             initializeNewPassengerData(seats);
           }
         } else {
           // No saved data - initialize new
-          console.log("🆕 No saved data - initializing fresh");
           initializeNewPassengerData(seats);
         }
       } catch (error) {
@@ -255,7 +236,7 @@ function PassengerInfoPageContent() {
       return;
     }
 
-    // Fetch trip information from API
+    // Fetch trip information and seat layout from API
     const loadTripInfo = async () => {
       if (!tripId) {
         setLoading(false);
@@ -265,7 +246,8 @@ function PassengerInfoPageContent() {
       const tripData = await fetchTripInfo(tripId);
       if (tripData) {
         setTripInfo(tripData);
-        console.log("Trip info loaded:", tripData);
+        // Also load seat layout for mini map using the original tripId
+        await loadSeatLayout(tripId);
       } else {
         console.error("Failed to load trip information");
         // Optionally redirect back if trip not found
@@ -291,14 +273,36 @@ function PassengerInfoPageContent() {
     setPassengerValidations(new Array(seats.length).fill(false));
   };
 
+  // Function to load seat layout for mini map
+  const loadSeatLayout = async (tripId: string) => {
+    try {
+      // First get trip details to get bus ID
+      const response = await api.get(`/trips/${tripId}`);
+      const trip = response.data?.data;
+      
+      
+      
+      // Try different possible properties for bus ID
+      const busId = trip?.bus?.id || trip?.busId || trip?.bus?.busId;
+      
+      if (busId) {
+        const layout = await seatLayoutService.getByBusId(busId, tripId);
+        setSeatLayout(layout);
+      } else {
+        console.error("No bus ID found in trip data:", trip);
+      }
+    } catch (error) {
+      console.error("Error loading seat layout:", error);
+    }
+  };
+
   // Function to fetch trip information from API
   const fetchTripInfo = async (tripId: string): Promise<TripInfo | null> => {
     try {
       const response = await api.get(`/trips/${tripId}`);
       const apiResponse = response.data;
 
-      // Debug log to see actual structure
-      console.log("Raw API response:", apiResponse);
+      
 
       // Check if API call was successful
       if (!apiResponse.success || !apiResponse.data) {
@@ -310,12 +314,12 @@ function PassengerInfoPageContent() {
 
       // Transform API response to match TripInfo interface
       return {
-        id: trip.tripId,
+        id: trip.id || tripId, // Use trip.id instead of trip.tripId
         name: `${trip.route.origin} - ${trip.route.destination}`,
         departure: trip.route.origin,
         arrival: trip.route.destination,
-        departureTime: new Date(trip.schedule.departureTime).toLocaleString(
-          "en-CA",
+        departureTime: new Date(trip.departureTime).toLocaleString( // Use trip.departureTime instead of trip.schedule.departureTime
+          "vi-VN",
           {
             year: "numeric",
             month: "2-digit",
@@ -325,8 +329,8 @@ function PassengerInfoPageContent() {
             hour12: false,
           }
         ),
-        arrivalTime: new Date(trip.schedule.arrivalTime).toLocaleString(
-          "en-CA",
+        arrivalTime: new Date(trip.arrivalTime).toLocaleString( // Use trip.arrivalTime instead of trip.schedule.arrivalTime
+          "vi-VN",
           {
             year: "numeric",
             month: "2-digit",
@@ -336,8 +340,8 @@ function PassengerInfoPageContent() {
             hour12: false,
           }
         ),
-        duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
-        price: trip.pricing.basePrice,
+        duration: `${Math.floor((new Date(trip.arrivalTime).getTime() - new Date(trip.departureTime).getTime()) / (1000 * 60 * 60))}h ${Math.floor(((new Date(trip.arrivalTime).getTime() - new Date(trip.departureTime).getTime()) / (1000 * 60)) % 60)}m`,
+        price: trip.basePrice, // Use trip.basePrice instead of trip.pricing.basePrice
         busModel: trip.bus.model,
       };
     } catch (error) {
@@ -347,43 +351,22 @@ function PassengerInfoPageContent() {
   };
 
   // Debug logging
-  useEffect(() => {
-    console.log("🔍 PASSENGER INFO DEBUG:");
-    console.log("- selectedSeats length:", selectedSeats.length);
-    console.log("- selectedSeats data:", selectedSeats);
-    console.log("- passengersData length:", passengersData.length);
-    console.log("- passengersData:", passengersData);
-    console.log("- passengerValidations:", passengerValidations);
-    console.log("- tripId:", tripId);
-    console.log("- selectedSeatsParam:", selectedSeatsParam);
-  }, [
-    selectedSeats,
-    passengersData,
-    passengerValidations,
-    tripId,
-    selectedSeatsParam,
-  ]);
+  
 
-  // Ensure passenger data is synced with selected seats
+  // Ensure passenger data is synced with selected seats  
   useEffect(() => {
-    if (
-      selectedSeats.length > 0 &&
-      passengersData.length !== selectedSeats.length
-    ) {
-      console.log("Syncing passenger data with selected seats");
-      // If we have seats but no passenger data, initialize it
-      if (passengersData.length === 0) {
-        const initialData = selectedSeats.map((seat) => ({
-          fullName: "",
-          documentId: "",
-          seatCode: seat.code,
-          documentType: "id" as const,
-          phoneNumber: "",
-          email: "",
-        }));
-        setPassengersData(initialData);
-        setPassengerValidations(new Array(selectedSeats.length).fill(false));
-      }
+    if (selectedSeats.length > 0 && passengersData.length === 0) {
+      // Create only one passenger data for all seats
+      const initialData = [{
+        fullName: "",
+        documentId: "",
+        seatCode: selectedSeats.map(seat => seat.code).join(", "), // Show all seat codes
+        documentType: "id" as const,
+        phoneNumber: "",
+        email: "",
+      }];
+      setPassengersData(initialData);
+      setPassengerValidations([false]); // Only one validation needed
     }
   }, [selectedSeats, passengersData.length]);
 
@@ -433,12 +416,12 @@ function PassengerInfoPageContent() {
   );
 
   const calculateTotalPrice = () => {
-    const tripPrice = tripInfo ? tripInfo.price : 0;
+    // Only use seat prices since they already include base price calculation
     const seatsPrice = selectedSeats.reduce((total, seat) => {
       const price = seat.price ?? 0;
       return total + price;
     }, 0);
-    return tripPrice + seatsPrice;
+    return seatsPrice;
   };
 
   const validateContactInfo = () => {
@@ -478,11 +461,17 @@ function PassengerInfoPageContent() {
         throw new Error("Booking service is not connected. Please try again.");
       }
 
-      // Create booking data
+      // Create booking data - replicate single passenger for all seats
+      const singlePassenger = passengersData[0];
+      const passengersForAllSeats = selectedSeats.map((seat, index) => ({
+        ...singlePassenger,
+        seatCode: seat.code,
+      }));
+
       const bookingData = {
         tripId,
         seats: selectedSeats,
-        passengers: passengersData,
+        passengers: passengersForAllSeats,
         totalPrice: calculateTotalPrice(),
         isGuestCheckout: isGuest,
         contactEmail: isGuest ? contactEmail : undefined,
@@ -616,30 +605,13 @@ function PassengerInfoPageContent() {
   };
 
   const isFormValid = useCallback(() => {
-    // Check if all passengers have valid forms
-    return (
-      passengerValidations.every((isValid) => isValid) &&
-      passengerValidations.length === selectedSeats.length
-    );
-  }, [passengerValidations, selectedSeats.length]);
+    // Only need to check the first (and only) passenger form
+    return passengerValidations.length > 0 && passengerValidations[0];
+  }, [passengerValidations]);
 
   const handleContinue = async () => {
     if (!isFormValid()) {
-      // Find which passengers have invalid forms
-      const invalidPassengers: number[] = [];
-      passengerValidations.forEach((isValid, index) => {
-        if (!isValid) {
-          invalidPassengers.push(index + 1);
-        }
-      });
-
-      if (invalidPassengers.length > 0) {
-        alert(
-          `Please complete and fix errors for passenger(s): ${invalidPassengers.join(", ")}`
-        );
-      } else {
-        alert("Please fill in all required passenger information");
-      }
+      alert("Please complete the passenger information");
       return;
     }
 
@@ -699,7 +671,7 @@ function PassengerInfoPageContent() {
           <h1 className="text-h2 font-semibold">Passenger Information</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trip Summary */}
@@ -850,13 +822,12 @@ function PassengerInfoPageContent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Passenger Details ({selectedSeats.length} passenger
-                  {selectedSeats.length > 1 ? "s" : ""})
+                  Passenger Details (1 passenger for all {selectedSeats.length} seat{selectedSeats.length > 1 ? "s" : ""})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {selectedSeats.length > 0 && passengersData.length > 0 ? (
-                  selectedSeats.map((seat, index) => {
+                  [selectedSeats[0]].map((seat, index) => {
                     try {
                       // Create stable callback functions for each passenger
                       const handleUpdateData = (data: Partial<PassengerData>) =>
@@ -886,7 +857,6 @@ function PassengerInfoPageContent() {
                       return (
                         <PassengerFormItem
                           key={seat.id}
-                          passengerNumber={index + 1}
                           seat={seat}
                           passengerData={passengerData}
                           onUpdate={handleUpdateData}
@@ -943,18 +913,101 @@ function PassengerInfoPageContent() {
 
           {/* Booking Summary */}
           <div className="space-y-6">
-            <Card className="sticky top-6">
+            {/* Seat Layout Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Seat Layout & Selection</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/20 rounded-lg p-3">
+                  {seatLayout ? (
+                    <div className="space-y-3">
+                      {/* Seat grid */}
+                      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${seatLayout.seatsPerRow || 4}, 1fr)` }}>
+                        {seatLayout.layoutConfig?.seats?.map((seat: any) => {
+                          const isSelected = selectedSeats.some(s => s.id === seat.id);
+                          const isBooked = bookedSeats.has(seat.id);
+                          
+                          let seatClass = "w-8 h-8 text-[10px] font-bold rounded border-2 flex items-center justify-center transition-colors";
+                          
+                          if (isSelected) {
+                            // Selected seats - highlight in blue
+                            seatClass += " bg-blue-500 text-white border-blue-600";
+                          } else if (isBooked || !seat.isAvailable) {
+                            // Booked/unavailable seats
+                            seatClass += " bg-gray-300 text-gray-500 border-gray-400";
+                          } else {
+                            // Available seats by type
+                            if (seat.type === "vip") {
+                              seatClass += " bg-purple-100 text-purple-800 border-purple-300";
+                            } else if (seat.type === "business") {
+                              seatClass += " bg-orange-100 text-orange-800 border-orange-300";
+                            } else {
+                              seatClass += " bg-green-100 text-green-800 border-green-300";
+                            }
+                          }
+                          
+                          return (
+                            <div
+                              key={seat.id}
+                              className={seatClass}
+                              title={`Seat ${seat.code} (${seat.type}) - ${isSelected ? 'Selected' : isBooked ? 'Booked' : 'Available'}`}
+                            >
+                              {seat.code}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Legend */}
+                      <div className="flex flex-wrap gap-2 justify-center text-xs">
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-blue-500 rounded border"></div>
+                          <span>Selected</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-gray-300 rounded border"></div>
+                          <span>Unavailable</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-purple-100 border border-purple-300 rounded"></div>
+                          <span>VIP</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-orange-100 border border-orange-300 rounded"></div>
+                          <span>Business</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                          <span>Normal</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : loading ? (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      Loading seat layout...
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-red-600 mb-2">Failed to load seat layout</p>
+                      <button 
+                        onClick={() => tripId && loadSeatLayout(tripId)}
+                        className="text-xs text-blue-600 underline"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Booking Summary */}
+            <Card>
               <CardHeader>
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Base price */}
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Base Price</h4>
-                  <span className="space-y-2 font-medium text-sm">
-                    {formatCurrency(tripInfo.price)}
-                  </span>
-                </div>
                 {/* Selected Seats */}
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
@@ -1034,13 +1087,12 @@ function PassengerInfoPageContent() {
                     {isFormValid() ? (
                       <span className="text-green-600 flex items-center justify-center gap-1">
                         <span className="text-green-500">✓</span>
-                        All passenger information is valid
+                        Passenger information is complete
                       </span>
                     ) : (
                       <span className="text-amber-600 flex items-center justify-center gap-1">
                         <span className="text-amber-500">⚠</span>
-                        {passengerValidations.filter((v) => !v).length}{" "}
-                        passenger(s) need attention
+                        Please complete passenger information
                       </span>
                     )}
                   </div>
@@ -1128,25 +1180,23 @@ function PassengerInfoPageContent() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium text-xs">Passengers</span>
+                <span className="font-medium text-xs">Passenger</span>
               </div>
-              <div className="space-y-1">
-                {passengersData.map((passenger, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between px-2 py-1.5 bg-muted/20 rounded text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{passenger.fullName}</span>
-                      <Badge variant="outline" className="text-xs px-1 py-0">
-                        Seat {passenger.seatCode}
-                      </Badge>
-                    </div>
-                    <span className="text-muted-foreground">
-                      {passenger.documentId}
-                    </span>
+              <div className="px-2 py-1.5 bg-muted/20 rounded text-xs">
+                <div className="font-medium">{passengersData[0]?.fullName}</div>
+                <div className="text-muted-foreground text-xs">
+                  ID: {passengersData[0]?.documentId}
+                </div>
+                {passengersData[0]?.email && (
+                  <div className="text-muted-foreground text-xs">
+                    Email: {passengersData[0]?.email}
                   </div>
-                ))}
+                )}
+                {passengersData[0]?.phoneNumber && (
+                  <div className="text-muted-foreground text-xs">
+                    Phone: {passengersData[0]?.phoneNumber}
+                  </div>
+                )}
               </div>
             </div>
 

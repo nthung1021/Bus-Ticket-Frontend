@@ -53,7 +53,7 @@ export function SeatSelectionForEdit({
     try {
       setLoading(true);
       const [layoutResponse, statusesResponse] = await Promise.all([
-        seatLayoutService.getByBusId(busId),
+        seatLayoutService.getByBusId(busId, tripId),
         getSeatStatusForTrip(tripId)
       ]);
       

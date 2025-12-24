@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -9,9 +9,14 @@ import Link from "next/link";
 import { routeService, Route } from "@/services/route.service";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { removeDiacritics, getCitySuggestions } from "@/utils/vietnameseSearch";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import OAuthCallbackHandler from "./OAuthCallbackHandler";
 
 export default function Home() {
   const router = useRouter();
+
   const [searchData, setSearchData] = useState({
     from: "",
     to: "",
@@ -293,6 +298,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <Suspense fallback={<div>Loading...</div>}>
+        <OAuthCallbackHandler />
+      </Suspense>
+      
       {/* Hero Section */}
       <section className="relative h-screen overflow-hidden">
         {/* Background Images with Transitions */}

@@ -28,7 +28,6 @@ interface PassengerData {
 }
 
 interface PassengerFormItemProps {
-  passengerNumber: number;
   seat: SelectedSeat;
   passengerData: PassengerData;
   onUpdate: (data: Partial<PassengerData>) => void;
@@ -36,14 +35,12 @@ interface PassengerFormItemProps {
 }
 
 export default function PassengerFormItem({ 
-  passengerNumber, 
   seat, 
   passengerData, 
   onUpdate,
   onValidationChange
 }: PassengerFormItemProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [canAutoFill, setCanAutoFill] = useState(false);
   const { data: currentUser } = useCurrentUser();
 
   // Safety check for passengerData - provide defaults if undefined
@@ -55,15 +52,6 @@ export default function PassengerFormItem({
     phoneNumber: "",
     email: ""
   };
-
-  // Check if user is logged in and auto-fill is possible
-  useEffect(() => {
-    if (currentUser && currentUser.fullName && currentUser.email) {
-      setCanAutoFill(true);
-    } else {
-      setCanAutoFill(false);
-    }
-  }, [currentUser]);
 
   const validateField = useCallback((field: string, value: string) => {
     setErrors(prevErrors => {
@@ -175,96 +163,29 @@ export default function PassengerFormItem({
     return () => clearTimeout(timeoutId);
   }, [checkAndNotifyValidation]);
 
-  const handleAutoFill = useCallback(() => {
-    if (!currentUser) return;
-    
-    const autoFillData: Partial<PassengerData> = {};
-    
-    if (currentUser.fullName) {
-      autoFillData.fullName = currentUser.fullName;
-    }
-    if (currentUser.email) {
-      autoFillData.email = currentUser.email;
-    }
-    
-    onUpdate(autoFillData);
-    
-    // Validate filled fields after a short delay
-    setTimeout(() => {
-      Object.entries(autoFillData).forEach(([field, value]) => {
-        if (value) {
-          validateField(field, value);
-        }
-      });
-    }, 50);
-  }, [currentUser, validateField]);
-
   const handleInputChange = useCallback((field: string, value: string) => {
     onUpdate({ [field]: value });
     // Validate on change for immediate feedback with debounce
     setTimeout(() => validateField(field, value), 100);
-  }, [validateField]);
-
-  const getSeatTypeBadge = (type: string) => {
-    switch (type) {
-      case 'vip':
-        return <Badge variant="secondary" className="bg-accent/10 text-accent-foreground border-accent/20">VIP</Badge>;
-      case 'business':
-        return <Badge variant="secondary" className="bg-primary/10 text-primary-foreground border-primary/20">Business</Badge>;
-      default:
-        return <Badge variant="outline" className="border-border text-muted-foreground">Normal</Badge>;
-    }
-  };
-
-  const getSeatTypeColor = (type: string) => {
-    switch (type) {
-      case 'vip':
-        return 'border-accent/20 bg-accent/5';
-      case 'business':
-        return 'border-primary/20 bg-primary/5';
-      default:
-        return 'border-border bg-muted/50';
-    }
-  };
+  }, [validateField, onUpdate]);
 
   return (
-    <Card className={`${getSeatTypeColor(seat.type)} transition-all duration-200`}>
+    <Card className="transition-all duration-200">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            <span>Passenger {passengerNumber}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {canAutoFill && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAutoFill}
-                className="text-xs h-7"
-                title="Fill with your account information"
-              >
-                <UserCheck className="w-3 h-3 mr-1" />
-                Auto-fill
-              </Button>
-            )}
-            {getSeatTypeBadge(seat.type)}
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              Seat {seat.code}
-            </div>
-          </div>
+        <CardTitle className="flex items-center gap-2">
+          <User className="w-5 h-5" />
+          <span>Passenger Information</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Full Name */}
           <div className="space-y-2">
-            <Label htmlFor={`fullName-${passengerNumber}`} className="text-sm font-medium">
+            <Label htmlFor="fullName" className="text-sm font-medium">
               Full Name <span className="text-destructive">*</span>
             </Label>
             <Input
-              id={`fullName-${passengerNumber}`}
+              id="fullName"
               type="text"
               placeholder="Enter passenger's full name"
               value={safePassengerData.fullName}
@@ -272,11 +193,11 @@ export default function PassengerFormItem({
               onBlur={(e) => validateField('fullName', e.target.value)}
               className={errors.fullName ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
               aria-invalid={Boolean(errors.fullName)}
-              aria-describedby={errors.fullName ? `fullName-error-${passengerNumber}` : undefined}
+              aria-describedby={errors.fullName ? 'fullName-error' : undefined}
             />
             {errors.fullName && (
               <p 
-                id={`email-error-${passengerNumber}`}
+                id="fullName-error"
                 className="text-destructive text-xs font-medium flex items-center gap-1"
                 role="alert"
               >
@@ -288,7 +209,7 @@ export default function PassengerFormItem({
 
           {/* Document Type */}
           <div className="space-y-2">
-            <Label htmlFor={`documentType-${passengerNumber}`} className="text-sm font-medium">
+            <Label htmlFor="documentType" className="text-sm font-medium">
               Document Type
             </Label>
             <Select
@@ -314,14 +235,14 @@ export default function PassengerFormItem({
 
           {/* Document ID */}
           <div className="space-y-2">
-            <Label htmlFor={`documentId-${passengerNumber}`} className="text-sm font-medium">
+            <Label htmlFor="documentId" className="text-sm font-medium">
               <div className="flex items-center gap-1">
                 <CreditCard className="w-4 h-4" />
                 Document ID <span className="text-destructive">*</span>
               </div>
             </Label>
             <Input
-              id={`documentId-${passengerNumber}`}
+              id="documentId"
               type="text"
               placeholder={`Enter ${(safePassengerData.documentType || 'id') === 'id' ? 'CCCD number (12 digits)' : 
                               (safePassengerData.documentType || 'id') === 'passport' ? 'passport number' : 
@@ -336,11 +257,11 @@ export default function PassengerFormItem({
               className={errors.documentId ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
               maxLength={(safePassengerData.documentType || 'id') === 'passport' ? 9 : 12}
               aria-invalid={Boolean(errors.documentId)}
-              aria-describedby={errors.documentId ? `documentId-error-${passengerNumber}` : undefined}
+              aria-describedby={errors.documentId ? 'documentId-error' : undefined}
             />
             {errors.documentId && (
               <p 
-                id={`documentId-error-${passengerNumber}`}
+                id="documentId-error"
                 className="text-destructive text-xs font-medium flex items-center gap-1"
                 role="alert"
               >
@@ -355,11 +276,11 @@ export default function PassengerFormItem({
 
           {/* Phone Number (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor={`phoneNumber-${passengerNumber}`} className="text-sm font-medium">
+            <Label htmlFor="phoneNumber" className="text-sm font-medium">
               Phone Number (Optional)
             </Label>
             <Input
-              id={`phoneNumber-${passengerNumber}`}
+              id="phoneNumber"
               type="tel"
               placeholder="0912345678 or +84912345678"
               value={safePassengerData.phoneNumber || ''}
@@ -367,11 +288,11 @@ export default function PassengerFormItem({
               onBlur={(e) => validateField('phoneNumber', e.target.value)}
               className={errors.phoneNumber ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
               aria-invalid={Boolean(errors.phoneNumber)}
-              aria-describedby={errors.phoneNumber ? `phoneNumber-error-${passengerNumber}` : undefined}
+              aria-describedby={errors.phoneNumber ? 'phoneNumber-error' : undefined}
             />
             {errors.phoneNumber && (
               <p 
-                id={`phoneNumber-error-${passengerNumber}`}
+                id="phoneNumber-error"
                 className="text-destructive text-xs font-medium flex items-center gap-1"
                 role="alert"
               >
@@ -384,11 +305,11 @@ export default function PassengerFormItem({
 
         {/* Email (Optional) - Full Width */}
         <div className="space-y-2">
-          <Label htmlFor={`email-${passengerNumber}`} className="text-sm font-medium">
+          <Label htmlFor="email" className="text-sm font-medium">
             Email Address (Optional)
           </Label>
           <Input
-            id={`email-${passengerNumber}`}
+            id="email"
             type="email"
             placeholder="passenger@example.com"
             value={safePassengerData.email || ''}
@@ -396,11 +317,11 @@ export default function PassengerFormItem({
             onBlur={(e) => validateField('email', e.target.value)}
             className={errors.email ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
             aria-invalid={Boolean(errors.email)}
-            aria-describedby={errors.email ? `email-error-${passengerNumber}` : undefined}
+            aria-describedby={errors.email ? 'email-error' : undefined}
           />
           {errors.email && (
             <p 
-              id={`email-error-${passengerNumber}`}
+              id="email-error"
               className="text-red-500 text-xs font-medium flex items-center gap-1"
               role="alert"
             >
@@ -411,14 +332,6 @@ export default function PassengerFormItem({
           <p className="text-xs text-muted-foreground">
             Optional: Receive booking confirmation and updates via email
           </p>
-        </div>
-
-        {/* Seat Price Display */}
-        <div className="flex justify-between items-center pt-2 border-t border-border">
-          <span className="text-sm text-muted-foreground">Seat Price:</span>
-          <span className="font-semibold text-primary">
-            {formatCurrency(seat.price)}
-          </span>
         </div>
 
         {/* Form Status Indicator */}
@@ -444,9 +357,6 @@ export default function PassengerFormItem({
             <li>• You will need to present the document used during booking at departure</li>
             <li>• Contact information will be used for booking updates and notifications</li>
             <li>• Fields marked with <span className="text-destructive font-medium">*</span> are required</li>
-            {canAutoFill && (
-              <li>• Click "Auto-fill" to use your account information</li>
-            )}
           </ul>
         </div>
       </CardContent>

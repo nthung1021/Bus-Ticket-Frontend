@@ -80,6 +80,24 @@ class UserBookingService {
     }
   }
 
+  async getCompletedBookingForTrip(tripId: string): Promise<Booking | null> {
+    try {
+      const bookings = await this.getUserBookings('paid');
+      
+      // Find completed booking for this trip
+      const completedBooking = bookings.find(booking => 
+        booking.tripId === tripId && 
+        booking.status === 'paid' &&
+        new Date(booking.trip.arrivalTime) <= new Date() // Trip has arrived
+      );
+      
+      return completedBooking || null;
+    } catch (error) {
+      console.error('Error fetching completed booking for trip:', error);
+      return null;
+    }
+  }
+
   async getBookingById(bookingId: string): Promise<Booking> {
     try {
       const response = await api.get(`/bookings/${bookingId}`);
@@ -188,6 +206,9 @@ class UserBookingService {
     return booking.status === "pending" && !this.isBookingExpired(booking);
   }
 }
+
+// Export singleton instance
+export const userBookingService = new UserBookingService();
 
 // Booking modification API functions
 export async function checkModificationPermissions(bookingId: string) {
