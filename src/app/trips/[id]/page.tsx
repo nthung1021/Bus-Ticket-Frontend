@@ -94,16 +94,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   };
 
   const handleBookNow = () => {
-    console.log('🎫 Book Now clicked - busId:', busId, 'seatLayout:', !!seatLayout);
-    
     if (seatLayout) {
-      console.log('✅ Opening seat selection dialog');
       setSeatDialogOpen(true);
     } else if (busId) {
-      console.log('🔄 Fetching seat layout for busId:', busId);
       fetchSeatLayout();
     } else {
-      console.warn('❌ No busId available for seat selection');
       // Try to proceed without seat selection for now
       toast.success('Proceeding to passenger information...');
       router.push(`/passenger-info?tripId=${resolvedParams.id}`);
@@ -204,10 +199,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         setTrip(mappedTrip);
         // Store bus ID for seat layout fetching
         if (trip.bus?.busId) {
-          console.log('🚌 Setting busId:', trip.bus.busId);
           setBusId(trip.bus.busId);
-        } else {
-          console.warn('⚠️ No busId found in trip data:', trip.bus);
         }
       } catch (error) {
         console.error("Failed to load trip details", error);
@@ -291,10 +283,8 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     }
 
     try {
-      console.log('🔄 Fetching seat layout for busId:', busId);
       setLoadingSeatLayout(true);
-      const layout = await seatLayoutService.getByBusId(busId);
-      console.log('✅ Seat layout loaded:', layout);
+      const layout = await seatLayoutService.getByBusId(busId, resolvedParams.id);
       setSeatLayout(layout);
       setSeatDialogOpen(true);
     } catch (error) {

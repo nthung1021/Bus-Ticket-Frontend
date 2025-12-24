@@ -1365,7 +1365,7 @@ function PaymentPageContent() {
                       if (bookingData?.tripId) {
                         // Clear booking data and go back to trip selection
                         sessionStorage.removeItem("bookingData");
-                        router.push(`/trips/${bookingData.tripId}`);
+                        
                       } else {
                         router.push("/trips");
                       }
