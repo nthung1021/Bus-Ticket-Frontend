@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { faqsService } from "@/services/faqs.service";
 
 interface FaqItem {
   question: string;
   answer: string;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_FAQ_API_URL || "http://localhost:3000/faqs";
 
 export default function AdminFaqsPage() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
@@ -20,8 +19,7 @@ export default function AdminFaqsPage() {
 
   async function fetchFaqs() {
     setLoading(true);
-    const res = await fetch(API_URL);
-    const data = await res.json();
+    const data = await faqsService.getFaqs();
     setFaqs(data);
     setLoading(false);
   }
@@ -44,18 +42,10 @@ export default function AdminFaqsPage() {
     e.preventDefault();
     if (editingIndex === null) {
       // Add
-      await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      await faqsService.addFaq(form);
     } else {
       // Update
-      await fetch(`${API_URL}/${editingIndex}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      await faqsService.updateFaq(editingIndex, form);
     }
     setForm({ question: "", answer: "" });
     setEditingIndex(null);
@@ -63,7 +53,7 @@ export default function AdminFaqsPage() {
   }
 
   async function handleDelete(index: number) {
-    await fetch(`${API_URL}/${index}`, { method: "DELETE" });
+    await faqsService.deleteFaq(index);
     fetchFaqs();
   }
 

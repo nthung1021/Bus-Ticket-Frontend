@@ -26,6 +26,7 @@ const menuItems = [
   { icon: Building, label: "Manage Operators", href: "/admin/operators" },
   { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
   { icon: Ticket, label: "Manage Tickets", href: "/admin/tickets" },
+  { icon: FileText, label: "Manage FAQs", href: "/admin/faqs" },
   { icon: BarChart3, label: "Revenue Analytics", href: "/admin/analytics/revenue" },
   { icon: FileText, label: "Reports", href: "/admin/reports" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
