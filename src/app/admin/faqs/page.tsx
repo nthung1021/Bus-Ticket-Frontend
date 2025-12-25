@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { faqsService } from "@/services/faqs.service";
+import { Sidebar } from "@/components/dashboard/Sidebar/Sidebar";
 
 interface FaqItem {
   question: string;
@@ -59,6 +60,7 @@ export default function AdminFaqsPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
+      <Sidebar/>
       <h1 className="text-2xl font-bold mb-4">FAQ Management</h1>
       <form onSubmit={handleSubmit} className="mb-6 space-y-2">
         <input
