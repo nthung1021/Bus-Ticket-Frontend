@@ -98,6 +98,36 @@ export default function ChatPage() {
     }
   };
 
+  const renderMessageContent = (msg: Message) => {
+    if (msg.role !== "ai") return msg.content;
+
+    try {
+      const parsed = JSON.parse(msg.content);
+      if(parsed.tool_calls && Array.isArray(parsed.tool_calls)) {
+        for(const call of parsed.tool_calls) {
+          if(call.tool_name === "save_booking_data" && call.parameters) {
+            const params = call.parameters;
+            const bookingData = {
+              bookingId: params.bookingId,
+              bookingReference: params.bookingReference,
+              tripId: params.tripId,
+              seats: params.seats,
+              passengers: params.passengers,
+              totalPrice: params.totalPrice,
+              isGuestCheckout: params.isGuestCheckout,
+              contactEmail: params.contactEmail,
+              contactPhone: params.contactPhone,
+            };
+            sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+          }
+        }
+      }
+      return typeof parsed === "object" && parsed !== null ? parsed.content || msg.content : msg.content;
+    } catch (error) {
+      return msg.content;
+    }
+  };
+
   return (
     <div className="container mx-auto max-w-4xl py-8 h-[calc(100vh-4rem)]">
       <Card className="h-full flex flex-col shadow-lg">
@@ -152,7 +182,9 @@ export default function ChatPage() {
                         : "bg-muted"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                    <p className="whitespace-pre-wrap text-sm">
+                      {renderMessageContent(msg)}
+                    </p>
                   </div>
                 </div>
               ))}
