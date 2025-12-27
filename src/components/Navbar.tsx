@@ -43,6 +43,11 @@ export default function Navbar() {
               </Link>
             </li>
             <li>
+              <Link href="/chat" className="text-body text-muted-foreground hover:text-foreground transition-colors">
+                Chat
+              </Link>
+            </li>
+            <li>
               <Link href="/routes" className="text-body text-muted-foreground hover:text-foreground transition-colors">
                 Routes
               </Link>
