@@ -113,7 +113,7 @@ export class PaymentService {
       // In development mode, if it's a mock booking, return mock success
       if (process.env.NODE_ENV === 'development' && 
           (bookingId === 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' || bookingId.startsWith('mock-'))) {
-        console.log('Using mock payment confirmation for development');
+        // Mock payment confirmation for development
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
         
         return {

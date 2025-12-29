@@ -75,11 +75,15 @@ class SeatWebSocketService {
       });
 
       this.socket.on("connect", () => {
-        console.log("WebSocket connected");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Seat WebSocket connected");
+        }
       });
 
       this.socket.on("disconnect", () => {
-        console.log("WebSocket disconnected");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Seat WebSocket disconnected");
+        }
       });
 
       this.socket.on("connect_error", (error) => {
