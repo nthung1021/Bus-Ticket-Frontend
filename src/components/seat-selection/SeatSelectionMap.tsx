@@ -381,7 +381,7 @@ function SeatSelectionMap({
                                 variant="ghost"
                                 size="sm"
                                 onClick={clearSelection}
-                                className="text-muted-foreground hover:text-destructive"
+                                className="text-muted-foreground cursor-pointer"
                             >
                                 Clear All
                             </Button>

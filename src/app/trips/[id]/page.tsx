@@ -547,9 +547,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {formatCurrency(
-                      (trip.price + selectedSeats.reduce((total, seat) => 
-                        total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)))}
+                    {formatCurrency(trip.price * selectedQuantity)}
                   </p>
                 </div>
               </div>
@@ -816,7 +814,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             )}
 
             <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
-              <Button
+              <Button className="cursor-pointer"
                 variant="outline"
                 onClick={() => setSeatDialogOpen(false)}
               >
@@ -830,7 +828,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                   handleSeatSelection(selectedSeats);
                 }}
                 disabled={selectedSeats.length === 0}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
               >
                 Continue to Booking ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
               </Button>
