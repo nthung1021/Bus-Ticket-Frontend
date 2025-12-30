@@ -27,14 +27,7 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Loader2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Route, Bus, Trip, TripStatus, formatDateForBackend } from "@/services/trip.service";
-import {
-    Toast,
-    ToastProvider,
-    ToastViewport,
-    ToastTitle,
-    ToastDescription,
-} from "@/components/ui/toast";
-import { useToast } from "@/hooks/use-toast";
+import toast from "react-hot-toast";
 
 const tripFormSchema = z
     .object({
@@ -88,7 +81,7 @@ export function TripForm({
     isLoading = false,
     className,
 }: TripFormProps) {
-    const { toast } = useToast();
+    // using react-hot-toast directly
 
     const form = useForm<StrictTripFormValues>({
         resolver: zodResolver(tripFormSchema) as any,
@@ -129,12 +122,8 @@ export function TripForm({
                 errorMessage = error.message;
             }
 
-            // Show error toast
-            toast({
-                title: "Error",
-                description: errorMessage,
-                variant: "destructive",
-            });
+            // Show error toast using react-hot-toast
+            toast.error(errorMessage);
         }
     };
 
