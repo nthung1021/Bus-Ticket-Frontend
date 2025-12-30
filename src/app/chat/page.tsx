@@ -31,6 +31,13 @@ export default function ChatPage() {
     }
   }, [messages]);
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   const loadHistory = async (id: string) => {
     try {
       setIsLoading(true);
@@ -88,13 +95,6 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Failed to clear history", error);
       toast.error("Failed to clear history");
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
 

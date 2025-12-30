@@ -27,25 +27,20 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Loader2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Route, Bus, Trip, TripStatus, formatDateForBackend } from "@/services/trip.service";
-import {
-    Toast,
-    ToastProvider,
-    ToastViewport,
-    ToastTitle,
-    ToastDescription,
-} from "@/components/ui/toast";
-import { useToast } from "@/hooks/use-toast";
+import toast from "react-hot-toast";
 
 const tripFormSchema = z
     .object({
         routeId: z.string().min(1, "Please select a route"),
         busId: z.string().min(1, "Please select a bus"),
-        departureTime: z.date({
-            required_error: "Departure time is required",
-        }),
-        arrivalTime: z.date({
-            required_error: "Arrival time is required",
-        }),
+        departureTime: z.preprocess(
+            (val) => typeof val === "string" ? new Date(val) : val,
+            z.date({ required_error: "Departure time is required" })
+        ),
+        arrivalTime: z.preprocess(
+            (val) => typeof val === "string" ? new Date(val) : val,
+            z.date({ required_error: "Arrival time is required" })
+        ),
         basePrice: z
             .string()
             .min(1, "Base price is required")
@@ -60,6 +55,12 @@ const tripFormSchema = z
     });
 
 type TripFormValues = z.infer<typeof tripFormSchema>;
+
+// Đảm bảo departureTime và arrivalTime luôn là Date
+type StrictTripFormValues = Omit<TripFormValues, "departureTime" | "arrivalTime"> & {
+    departureTime: Date;
+    arrivalTime: Date;
+};
 
 interface TripFormProps {
     initialData?: Trip;
@@ -80,10 +81,10 @@ export function TripForm({
     isLoading = false,
     className,
 }: TripFormProps) {
-    const { toast } = useToast();
+    // using react-hot-toast directly
 
-    const form = useForm<TripFormValues>({
-        resolver: zodResolver(tripFormSchema),
+    const form = useForm<StrictTripFormValues>({
+        resolver: zodResolver(tripFormSchema) as any,
         defaultValues: {
             routeId: initialData?.routeId || "",
             busId: initialData?.busId || "",
@@ -94,7 +95,7 @@ export function TripForm({
         },
     });
 
-    const handleSubmit = async (data: TripFormValues) => {
+    const handleSubmit = async (data: StrictTripFormValues) => {
         try {
             // Convert Date objects to ISO strings for API
             const apiData = {
@@ -121,12 +122,8 @@ export function TripForm({
                 errorMessage = error.message;
             }
 
-            // Show error toast
-            toast({
-                title: "Error",
-                description: errorMessage,
-                variant: "destructive",
-            });
+            // Show error toast using react-hot-toast
+            toast.error(errorMessage);
         }
     };
 
