@@ -59,9 +59,7 @@ interface TripInfo {
 
 interface PassengerData {
   fullName: string;
-  documentId: string;
   seatCode: string;
-  documentType?: "id" | "passport" | "license";
   phoneNumber?: string;
   email?: string;
 }
@@ -200,19 +198,15 @@ function PassengerInfoPageContent() {
           
 
           if (seatsMatch && savedData.passengers?.length === seats.length) {
-            // Migrate old data format to include missing fields
-            const migratedPassengers = savedData.passengers.map(
-              (passenger: any) => ({
-                ...passenger,
-                documentType: passenger.documentType || "id",
-                phoneNumber: passenger.phoneNumber || "",
-                email: passenger.email || "",
-              })
-            );
+            // Migrate old data format to current shape (remove document fields)
+            const migratedPassengers = savedData.passengers.map((passenger: any) => ({
+              fullName: passenger.fullName || "",
+              seatCode: passenger.seatCode || "",
+              phoneNumber: passenger.phoneNumber || "",
+              email: passenger.email || "",
+            }));
             setPassengersData(migratedPassengers);
-            setPassengerValidations(
-              savedData.validations || new Array(seats.length).fill(false)
-            );
+            setPassengerValidations(savedData.validations || new Array(seats.length).fill(false));
             
           } else {
             // Seats don't match - clear old data and start fresh
@@ -263,9 +257,7 @@ function PassengerInfoPageContent() {
   const initializeNewPassengerData = (seats: SelectedSeat[]) => {
     const initialData = seats.map((seat) => ({
       fullName: "",
-      documentId: "",
       seatCode: seat.code,
-      documentType: "id" as const,
       phoneNumber: "",
       email: "",
     }));
@@ -343,9 +335,7 @@ function PassengerInfoPageContent() {
       // Create only one passenger data for all seats
       const initialData = [{
         fullName: "",
-        documentId: "",
         seatCode: selectedSeats.map(seat => seat.code).join(", "), // Show all seat codes
-        documentType: "id" as const,
         phoneNumber: "",
         email: "",
       }];
@@ -639,7 +629,7 @@ function PassengerInfoPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-6 px-4 lg:px-8 max-w-4xl">
+      <div className="container mx-auto pt-8 pb-0 px-4 lg:px-8 max-w-6xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
@@ -655,7 +645,7 @@ function PassengerInfoPageContent() {
           <h1 className="text-h2 font-semibold">Passenger Information</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch pt-8">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trip Summary */}
@@ -801,104 +791,87 @@ function PassengerInfoPageContent() {
               </Card>
             )}
 
-            {/* Passenger Forms */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Passenger Details (1 passenger for all {selectedSeats.length} seat{selectedSeats.length > 1 ? "s" : ""})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {selectedSeats.length > 0 && passengersData.length > 0 ? (
-                  [selectedSeats[0]].map((seat, index) => {
-                    try {
-                      // Create stable callback functions for each passenger
-                      const handleUpdateData = (data: Partial<PassengerData>) =>
-                        updatePassengerData(index, data);
-                      const handleValidationChange = (isValid: boolean) =>
-                        updatePassengerValidation(index, isValid);
+            {/* Passenger Forms (no card wrapper) */}
+            <div className="space-y-6">
+              {selectedSeats.length > 0 && passengersData.length > 0 ? (
+                [selectedSeats[0]].map((seat, index) => {
+                  try {
+                    // Create stable callback functions for each passenger
+                    const handleUpdateData = (data: Partial<PassengerData>) =>
+                      updatePassengerData(index, data);
+                    const handleValidationChange = (isValid: boolean) =>
+                      updatePassengerValidation(index, isValid);
 
-                      // Ensure we have passenger data for this index
-                      const passengerData = passengersData[index] || {
-                        fullName: "",
-                        documentId: "",
-                        seatCode: seat.code,
-                        documentType: "id" as const,
-                        phoneNumber: "",
-                        email: "",
-                      };
+                    // Ensure we have passenger data for this index
+                    const passengerData = passengersData[index] || {
+                      fullName: "",
+                      seatCode: seat.code,
+                      phoneNumber: "",
+                      email: "",
+                    };
 
-                      console.log(`🎫 Rendering passenger ${index + 1}:`, {
-                        seat,
-                        passengerData,
-                        hasUpdateCallback:
-                          typeof handleUpdateData === "function",
-                        hasValidationCallback:
-                          typeof handleValidationChange === "function",
-                      });
+                    console.log(`🎫 Rendering passenger ${index + 1}:`, {
+                      seat,
+                      passengerData,
+                      hasUpdateCallback:
+                        typeof handleUpdateData === "function",
+                      hasValidationCallback:
+                        typeof handleValidationChange === "function",
+                    });
 
-                      return (
-                        <PassengerFormItem
-                          key={seat.id}
-                          seat={seat}
-                          passengerData={passengerData}
-                          onUpdate={handleUpdateData}
-                          onValidationChange={handleValidationChange}
-                        />
-                      );
-                    } catch (error) {
-                      console.error(
-                        `❌ Error rendering passenger form ${index + 1}:`,
-                        error
-                      );
-                      return (
-                        <div
-                          key={seat.id}
-                          className="p-4 border border-red-200 rounded-lg bg-red-50"
-                        >
-                          <p className="text-red-600">
-                            Error loading passenger form {index + 1}
-                          </p>
-                          <p className="text-sm text-red-500">
-                            Seat: {seat.code}
-                          </p>
-                          <p className="text-xs text-red-400">
-                            {error instanceof Error
-                              ? error.message
-                              : "Unknown error"}
-                          </p>
-                        </div>
-                      );
-                    }
-                  })
-                ) : selectedSeats.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-red-600">No seats selected</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push(`/trips/${tripId}`)}
-                      className="mt-2"
-                    >
-                      Go Back to Trip
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-sm text-muted-foreground">
-                      Loading passenger forms...
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    return (
+                      <PassengerFormItem
+                        key={seat.id}
+                        seat={seat}
+                        passengerData={passengerData}
+                        onUpdate={handleUpdateData}
+                        onValidationChange={handleValidationChange}
+                      />
+                    );
+                  } catch (error) {
+                    console.error(
+                      `❌ Error rendering passenger form ${index + 1}:`,
+                      error
+                    );
+                    return (
+                      <div
+                        key={seat.id}
+                        className="p-4 border border-red-200 rounded-lg bg-red-50"
+                      >
+                        <p className="text-red-600">
+                          Error loading passenger form {index + 1}
+                        </p>
+                        <p className="text-sm text-red-500">Seat: {seat.code}</p>
+                        <p className="text-xs text-red-400">
+                          {error instanceof Error ? error.message : "Unknown error"}
+                        </p>
+                      </div>
+                    );
+                  }
+                })
+              ) : selectedSeats.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-red-600">No seats selected</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/trips/${tripId}`)}
+                    className="mt-2"
+                  >
+                    Go Back to Trip
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Loading passenger forms...</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Booking Summary */}
+          {/* Column: Seat Layout (col 3) */}
           <div className="space-y-6">
-            {/* Seat Layout Overview */}
-            <Card>
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>Seat Layout & Selection</CardTitle>
               </CardHeader>
@@ -906,22 +879,18 @@ function PassengerInfoPageContent() {
                 <div className="bg-muted/20 rounded-lg p-3">
                   {seatLayout ? (
                     <div className="space-y-3">
-                      {/* Seat grid */}
                       <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${seatLayout.seatsPerRow || 4}, 1fr)` }}>
                         {seatLayout.layoutConfig?.seats?.map((seat: any) => {
                           const isSelected = selectedSeats.some(s => s.id === seat.id);
                           const isBooked = bookedSeats.has(seat.id);
-                          
+
                           let seatClass = "w-8 h-8 text-[10px] font-bold rounded border-2 flex items-center justify-center transition-colors";
-                          
+
                           if (isSelected) {
-                            // Selected seats - highlight in blue
                             seatClass += " bg-blue-500 text-white border-blue-600";
                           } else if (isBooked || !seat.isAvailable) {
-                            // Booked/unavailable seats
                             seatClass += " bg-gray-300 text-gray-500 border-gray-400";
                           } else {
-                            // Available seats by type
                             if (seat.type === "vip") {
                               seatClass += " bg-purple-100 text-purple-800 border-purple-300";
                             } else if (seat.type === "business") {
@@ -930,20 +899,15 @@ function PassengerInfoPageContent() {
                               seatClass += " bg-green-100 text-green-800 border-green-300";
                             }
                           }
-                          
+
                           return (
-                            <div
-                              key={seat.id}
-                              className={seatClass}
-                              title={`Seat ${seat.code} (${seat.type}) - ${isSelected ? 'Selected' : isBooked ? 'Booked' : 'Available'}`}
-                            >
+                            <div key={seat.id} className={seatClass} title={`Seat ${seat.code} (${seat.type}) - ${isSelected ? 'Selected' : isBooked ? 'Booked' : 'Available'}`}>
                               {seat.code}
                             </div>
                           );
                         })}
                       </div>
-                      
-                      {/* Legend */}
+
                       <div className="flex flex-wrap gap-2 justify-center text-xs">
                         <div className="flex items-center gap-1">
                           <div className="w-3 h-3 bg-blue-500 rounded border"></div>
@@ -968,123 +932,86 @@ function PassengerInfoPageContent() {
                       </div>
                     </div>
                   ) : loading ? (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      Loading seat layout...
-                    </div>
+                    <div className="text-center py-4 text-sm text-muted-foreground">Loading seat layout...</div>
                   ) : (
                     <div className="text-center py-4">
                       <p className="text-sm text-red-600 mb-2">Failed to load seat layout</p>
-                      <button 
-                        onClick={() => tripId && loadSeatLayout(tripId)}
-                        className="text-xs text-blue-600 underline"
-                      >
-                        Try again
-                      </button>
+                      <button onClick={() => tripId && loadSeatLayout(tripId)} className="text-xs text-blue-600 underline">Try again</button>
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Booking Summary */}
-            <Card>
+          {/* Column: Booking Summary (col 4) */}
+          <div className="space-y-6">
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Selected Seats */}
+              <CardContent className="flex flex-col justify-between">
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-4">
                     {selectedSeats.map((seat) => {
                       const price = seat.price ?? 0;
                       return (
-                        <div
-                          key={seat.id}
-                          className="flex justify-between items-center text-sm"
-                        >
+                        <div key={seat.id} className="flex justify-between items-center text-sm">
                           <span>
                             Seat {seat.code}
-                            <span className="text-muted-foreground ml-1">
-                              (
-                              {seat.type === "normal"
-                                ? "Normal"
-                                : seat.type === "vip"
-                                  ? "VIP"
-                                  : "Business"}
-                              )
-                            </span>
+                            <span className="text-muted-foreground ml-1">({seat.type === "normal" ? "Normal" : seat.type === "vip" ? "VIP" : "Business"})</span>
                           </span>
-                          <span className="font-medium">
-                            {formatCurrency(price)}
-                          </span>
+                          <span className="font-medium">{formatCurrency(price)}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-                {/* Additional Fee */}
-                {/* <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Service Fee</h4>
-                  <span className="space-y-2 font-medium text-sm">
-                    {formatCurrency(serviceFee)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Processing Fee</h4>
-                  <span className="space-y-2 font-medium text-sm">
-                    {formatCurrency(processingFee)}
-                  </span>
-                </div> */}
 
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Total Amount</span>
-                    <span className="text-primary">
-                      {formatCurrency(
-                        // calculateTotalPrice() + serviceFee + processingFee
-                        calculateTotalPrice()
+                <div>
+                  <div className="border-t pt-4">
+                    <div className="text-lg font-semibold">
+                      <span>Total Price</span>
+                    </div>
+                    <div className="text-primary text-lg font-semibold text-right">
+                      {formatCurrency(calculateTotalPrice())}
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Button onClick={handleContinue} disabled={!isFormValid() || isSubmitting} className="w-full" size="lg">
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <div className="cursor-pointer">
+                          Review Booking
+                        </div>
                       )}
-                    </span>
+                    </Button>
                   </div>
-                </div>
 
-                <Button
-                  onClick={handleContinue}
-                  disabled={!isFormValid() || isSubmitting}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    "Review Booking"
+                  {selectedSeats.length > 0 && (
+                    <div className="text-xs text-center mt-3">
+                      {isFormValid() ? (
+                        <span className="text-green-600 flex items-center justify-center gap-1">
+                          <span className="text-green-500">✓</span>
+                          Passenger information is complete
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 flex items-center justify-center gap-1">
+                          <span className="text-amber-500">⚠</span>
+                          Please complete passenger information
+                        </span>
+                      )}
+                    </div>
                   )}
-                </Button>
 
-                {/* Validation Status */}
-                {selectedSeats.length > 0 && (
-                  <div className="text-xs text-center">
-                    {isFormValid() ? (
-                      <span className="text-green-600 flex items-center justify-center gap-1">
-                        <span className="text-green-500">✓</span>
-                        Passenger information is complete
-                      </span>
-                    ) : (
-                      <span className="text-amber-600 flex items-center justify-center gap-1">
-                        <span className="text-amber-500">⚠</span>
-                        Please complete passenger information
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground text-center">
-                  By continuing, you agree to our terms and conditions
-                </p>
+                  <p className="text-xs text-muted-foreground text-center mt-3">By continuing, you agree to our terms and conditions</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1168,17 +1095,14 @@ function PassengerInfoPageContent() {
               </div>
               <div className="px-2 py-1.5 bg-muted/20 rounded text-xs">
                 <div className="font-medium">{passengersData[0]?.fullName}</div>
-                <div className="text-muted-foreground text-xs">
-                  ID: {passengersData[0]?.documentId}
-                </div>
-                {passengersData[0]?.email && (
-                  <div className="text-muted-foreground text-xs">
-                    Email: {passengersData[0]?.email}
-                  </div>
-                )}
                 {passengersData[0]?.phoneNumber && (
                   <div className="text-muted-foreground text-xs">
                     Phone: {passengersData[0]?.phoneNumber}
+                  </div>
+                )}
+                {passengersData[0]?.email && (
+                  <div className="text-muted-foreground text-xs">
+                    Email: {passengersData[0]?.email}
                   </div>
                 )}
               </div>
