@@ -119,7 +119,10 @@ class SeatLayoutService {
   }
 
   async getByBusId(busId: string, tripId?: string): Promise<SeatLayout> {
-    const url = tripId ? `/seat-layouts/bus/${busId}?tripId=${tripId}` : `/seat-layouts/bus/${busId}`;
+    // Use the new endpoint with proper pricing calculation
+    const url = tripId 
+      ? `/seat-layouts/bus/${busId}/with-pricing?tripId=${tripId}` 
+      : `/seat-layouts/bus/${busId}/with-pricing`;
     const response = await api.get(url);
     return response.data;
   }
