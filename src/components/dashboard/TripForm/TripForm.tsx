@@ -40,12 +40,14 @@ const tripFormSchema = z
     .object({
         routeId: z.string().min(1, "Please select a route"),
         busId: z.string().min(1, "Please select a bus"),
-        departureTime: z.date({
-            required_error: "Departure time is required",
-        }),
-        arrivalTime: z.date({
-            required_error: "Arrival time is required",
-        }),
+        departureTime: z.preprocess(
+            (val) => typeof val === "string" ? new Date(val) : val,
+            z.date({ required_error: "Departure time is required" })
+        ),
+        arrivalTime: z.preprocess(
+            (val) => typeof val === "string" ? new Date(val) : val,
+            z.date({ required_error: "Arrival time is required" })
+        ),
         basePrice: z
             .string()
             .min(1, "Base price is required")
@@ -60,6 +62,12 @@ const tripFormSchema = z
     });
 
 type TripFormValues = z.infer<typeof tripFormSchema>;
+
+// Đảm bảo departureTime và arrivalTime luôn là Date
+type StrictTripFormValues = Omit<TripFormValues, "departureTime" | "arrivalTime"> & {
+    departureTime: Date;
+    arrivalTime: Date;
+};
 
 interface TripFormProps {
     initialData?: Trip;
@@ -82,8 +90,8 @@ export function TripForm({
 }: TripFormProps) {
     const { toast } = useToast();
 
-    const form = useForm<TripFormValues>({
-        resolver: zodResolver(tripFormSchema),
+    const form = useForm<StrictTripFormValues>({
+        resolver: zodResolver(tripFormSchema) as any,
         defaultValues: {
             routeId: initialData?.routeId || "",
             busId: initialData?.busId || "",
@@ -94,7 +102,7 @@ export function TripForm({
         },
     });
 
-    const handleSubmit = async (data: TripFormValues) => {
+    const handleSubmit = async (data: StrictTripFormValues) => {
         try {
             // Convert Date objects to ISO strings for API
             const apiData = {
