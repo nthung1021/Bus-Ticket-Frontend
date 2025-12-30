@@ -495,20 +495,32 @@ function PassengerInfoPageContent() {
         })
       );
 
-      // Create PayOS payment link with actual booking ID
-      const response = await api.post("/payos/create-payment-link", {
-        amount: calculateTotalPrice(),
-        bookingId: bookingId,
-        description: "",
-        returnUrl: `${window.location.origin}/payment/success`,
-        cancelUrl: `${window.location.origin}/payment/failure`,
-      });
+      // Prefer payment URL returned from backend booking creation
+      const paymentUrl =
+        createdBooking?.paymentUrl || bookingResponse.data?.paymentUrl || null;
 
-      if (response.data.checkoutUrl) {
-        // Redirect to PayOS payment page
-        window.location.href = response.data.checkoutUrl;
+      if (paymentUrl) {
+        // Redirect to the payment URL provided by backend (respects test mode)
+        window.location.href = paymentUrl;
       } else {
-        throw new Error("Failed to create payment link");
+        // Fallback: if backend didn't return a paymentUrl, create one manually
+        console.warn(
+          "Backend did not return paymentUrl, creating payment link as fallback"
+        );
+
+        const response = await api.post("/payos/create-payment-link", {
+          amount: calculateTotalPrice(),
+          bookingId: bookingId,
+          description: `Booking ${createdBooking.bookingReference}`,
+          returnUrl: `${window.location.origin}/payment/success`,
+          cancelUrl: `${window.location.origin}/payment/failure`,
+        });
+
+        if (response.data?.checkoutUrl) {
+          window.location.href = response.data.checkoutUrl;
+        } else {
+          throw new Error("Failed to create payment link");
+        }
       }
     } catch (error: any) {
       console.error("Error processing booking:", error);
