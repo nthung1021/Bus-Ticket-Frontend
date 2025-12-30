@@ -136,4 +136,8 @@ export const routeService = {
     const response = await api.get(`/routes?operatorId=${operatorId}`);
     return response.data;
   },
+  getPopular: async (limit: number = 8): Promise<any[]> => {
+    const response = await api.get(`/routes/popular?limit=${limit}`);
+    return response.data;
+  },
 };
