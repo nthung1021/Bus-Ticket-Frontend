@@ -635,8 +635,8 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             {/* Review Statistics */}
             <div className="lg:col-span-1">
               <ReviewStats 
-                id={resolvedParams.id}
-                type="trip"
+                tripId={resolvedParams.id}
+                // type="trip"
                 title="Rating Overview"
                 showDistribution
                 className="sticky top-4"

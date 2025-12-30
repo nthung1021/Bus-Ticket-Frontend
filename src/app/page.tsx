@@ -498,7 +498,7 @@ export default function Home() {
                     <Button
                       onClick={handleSearch}
                       size="lg"
-                      className="w-full h-10 text-base font-semibold cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-200 flex items-center gap-2"
+                      className="w-full h-10 text-base font-semibold cursor-pointer bg-primary/80 hover:bg-primary/80/90 transition-all duration-200 flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -576,7 +576,7 @@ export default function Home() {
                           <span className="text-h4 font-bold text-primary">
                             {formatCurrency(route.price)}
                           </span>
-                          <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
+                          <Button size="sm" className="group-hover:bg-primary/80/90 cursor-pointer">
                             Book Route
                           </Button>
                         </div>
@@ -603,7 +603,7 @@ export default function Home() {
               }`}
           >
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/80/10 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -614,7 +614,7 @@ export default function Home() {
               </p>
             </div>
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/80/10 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m10-7V5a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2z" />
                 </svg>
@@ -625,7 +625,7 @@ export default function Home() {
               </p>
             </div>
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/80/10 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -640,7 +640,7 @@ export default function Home() {
       </section>
 
       {/* Call to Action Section */}
-      <section className="py-16 lg:py-20 bg-primary text-primary-foreground">
+      <section className="py-16 lg:py-20 bg-primary/80 text-primary-foreground">
         <div
           ref={ctaRef}
           id="cta"

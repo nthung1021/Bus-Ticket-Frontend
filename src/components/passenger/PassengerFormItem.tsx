@@ -334,7 +334,7 @@ export default function PassengerFormItem({
           </p>
         </div>
 
-        {/* Form Status Indicator */}
+        {/* Form Status Indicator
         {Object.keys(errors).length > 0 && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
             <h4 className="text-sm font-medium text-destructive-foreground mb-2 flex items-center gap-1">
@@ -347,10 +347,10 @@ export default function PassengerFormItem({
               ))}
             </ul>
           </div>
-        )}
+        )} */}
 
         {/* Important Notes */}
-        <div className="bg-accent/10 border border-accent/20 rounded-md p-3">
+        <div className="bg-accent/80 border border-accent/20 rounded-md p-3">
           <h4 className="text-sm font-medium text-accent-foreground mb-1">Important Notes:</h4>
           <ul className="text-xs text-accent-foreground/80 space-y-1">
             <li>• Please ensure all information matches your identification document</li>

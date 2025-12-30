@@ -279,11 +279,9 @@ function PassengerInfoPageContent() {
       // First get trip details to get bus ID
       const response = await api.get(`/trips/${tripId}`);
       const trip = response.data?.data;
-      
-      
-      
-      // Try different possible properties for bus ID
-      const busId = trip?.bus?.id || trip?.busId || trip?.bus?.busId;
+
+      // Try different possible properties for bus ID (backend returns bus.busId)
+      const busId = trip?.bus?.busId || trip?.bus?.id || trip?.busId;
       
       if (busId) {
         const layout = await seatLayoutService.getByBusId(busId, tripId);
@@ -302,8 +300,6 @@ function PassengerInfoPageContent() {
       const response = await api.get(`/trips/${tripId}`);
       const apiResponse = response.data;
 
-      
-
       // Check if API call was successful
       if (!apiResponse.success || !apiResponse.data) {
         console.error("API returned unsuccessful response:", apiResponse);
@@ -312,46 +308,34 @@ function PassengerInfoPageContent() {
 
       const trip = apiResponse.data;
 
+      // Normalize departure/arrival values - backend nests them under `schedule`
+      const departureRaw = trip.schedule?.departureTime || trip.departureTime || trip.departure;
+      const arrivalRaw = trip.schedule?.arrivalTime || trip.arrivalTime || trip.arrival;
+
+      const departureDate = departureRaw ? new Date(departureRaw) : null;
+      const arrivalDate = arrivalRaw ? new Date(arrivalRaw) : null;
+
+      const durationText = departureDate && arrivalDate
+        ? `${Math.floor((arrivalDate.getTime() - departureDate.getTime()) / (1000 * 60 * 60))}h ${Math.floor(((arrivalDate.getTime() - departureDate.getTime()) / (1000 * 60)) % 60)}m`
+        : `${(trip.schedule?.duration ?? trip.duration ?? 0)}m`;
+
       // Transform API response to match TripInfo interface
       return {
-        id: trip.id || tripId, // Use trip.id instead of trip.tripId
+        id: trip.tripId || trip.id || tripId,
         name: `${trip.route.origin} - ${trip.route.destination}`,
         departure: trip.route.origin,
         arrival: trip.route.destination,
-        departureTime: new Date(trip.departureTime).toLocaleString( // Use trip.departureTime instead of trip.schedule.departureTime
-          "vi-VN",
-          {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        ),
-        arrivalTime: new Date(trip.arrivalTime).toLocaleString( // Use trip.arrivalTime instead of trip.schedule.arrivalTime
-          "vi-VN",
-          {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        ),
-        duration: `${Math.floor((new Date(trip.arrivalTime).getTime() - new Date(trip.departureTime).getTime()) / (1000 * 60 * 60))}h ${Math.floor(((new Date(trip.arrivalTime).getTime() - new Date(trip.departureTime).getTime()) / (1000 * 60)) % 60)}m`,
-        price: trip.basePrice, // Use trip.basePrice instead of trip.pricing.basePrice
-        busModel: trip.bus.model,
+        departureTime: departureDate ? departureDate.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'Unknown',
+        arrivalTime: arrivalDate ? arrivalDate.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'Unknown',
+        duration: durationText,
+        price: trip.pricing?.basePrice ?? trip.basePrice ?? 0,
+        busModel: trip.bus?.model || trip.busModel || 'Unknown',
       };
     } catch (error) {
       console.error("Error fetching trip information:", error);
       return null;
     }
-  };
-
-  // Debug logging
-  
+  };  
 
   // Ensure passenger data is synced with selected seats  
   useEffect(() => {
