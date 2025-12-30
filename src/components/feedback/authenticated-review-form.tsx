@@ -79,8 +79,12 @@ export function AuthenticatedReviewForm({
 }: AuthenticatedReviewFormProps) {
   const { data: user, isLoading: isLoadingUser } = useCurrentUser();
   const { data: existingFeedback, isLoading: isLoadingFeedback } = useFeedbackForTrip(tripId);
-  const { data: canReviewData, isLoading: isCheckingEligibility } = useCanLeaveFeedback(tripId);
   const { data: completedBooking, isLoading: isLoadingBooking } = useCompletedBookingForTrip(tripId);
+  
+  // Only check can review when we have a completed booking
+  const { data: canReviewData, isLoading: isCheckingEligibility } = useCanLeaveFeedback(
+    completedBooking?.id || ""
+  );
   
   // C4: Enhanced hooks for duplicate prevention and review existence check
   const submitFeedback = useSubmitFeedback();
@@ -264,7 +268,7 @@ export function AuthenticatedReviewForm({
             {existingFeedback && (
               <div className="flex items-center justify-between pt-2 border-t">
                 <span className="text-xs text-muted-foreground">
-                  Submitted on {new Date(existingFeedback.submittedAt).toLocaleDateString()}
+                  Submitted on {new Date(existingFeedback.createdAt).toLocaleDateString()}
                 </span>
                 <Badge variant="secondary" className="text-xs">
                   <CheckCircle className="h-3 w-3 mr-1" />

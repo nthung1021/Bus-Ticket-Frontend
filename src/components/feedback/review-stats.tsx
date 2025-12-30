@@ -6,26 +6,24 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RatingStars } from "@/components/ui/rating-stars";
-import { useReviewStats } from "@/hooks/useFeedback";
+import { useTripReviewStats } from "@/hooks/useFeedback";
 import { cn } from "@/lib/utils";
 import { Star, TrendingUp, Users } from "lucide-react";
 
 interface ReviewStatsProps {
-  id: string;
-  type: 'trip' | 'route';
+  tripId: string;
   title?: string;
   className?: string;
   showDistribution?: boolean;
 }
 
 export function ReviewStats({
-  id,
-  type,
+  tripId,
   title,
   className,
   showDistribution = true,
 }: ReviewStatsProps) {
-  const { data: stats, isLoading, error } = useReviewStats(id, type);
+  const { data: stats, isLoading, error } = useTripReviewStats(tripId);
 
   if (isLoading) {
     return (

@@ -220,7 +220,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
       
       try {
         setLoadingReviews(true);
-        const stats = await feedbackService.getReviewStats(resolvedParams.id, 'trip');
+        const stats = await feedbackService.getReviewStats(resolvedParams.id);
         setReviewStats(stats);
       } catch (error) {
         console.error('Failed to load review stats:', error);
