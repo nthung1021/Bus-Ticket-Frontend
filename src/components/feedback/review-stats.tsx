@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 import { Star, TrendingUp, Users } from "lucide-react";
 
 interface ReviewStatsProps {
-  tripId: string;
+  tripId?: string;
+  id?: string;
+  type?: "trip" | "route";
   title?: string;
   className?: string;
   showDistribution?: boolean;
@@ -19,11 +21,13 @@ interface ReviewStatsProps {
 
 export function ReviewStats({
   tripId,
+  id,
   title,
   className,
   showDistribution = true,
 }: ReviewStatsProps) {
-  const { data: stats, isLoading, error } = useTripReviewStats(tripId);
+  const effectiveTripId = tripId || id;
+  const { data: stats, isLoading, error } = useTripReviewStats(effectiveTripId);
 
   if (isLoading) {
     return (

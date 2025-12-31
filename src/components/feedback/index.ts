@@ -13,15 +13,15 @@ export {
   useFeedbackForTrip,
   useCanLeaveFeedback,
   useSubmitFeedback,
-  useUpdateFeedback,
-  useUserFeedback,
-  useDeleteFeedback,
+  useUpdateReview as useUpdateFeedback,
+  useMyReviews as useUserFeedback,
+  useDeleteReview as useDeleteFeedback,
   useTripReviews,
   useRouteReviews,
   useAllReviews,
   useInfiniteTripReviews,
   useInfiniteRouteReviews,
-  useReviewStats
+  useTripReviewStats as useReviewStats
 } from "@/hooks/useFeedback";
 
 // Export services

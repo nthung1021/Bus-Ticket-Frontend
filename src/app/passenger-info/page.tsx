@@ -485,42 +485,27 @@ function PassengerInfoPageContent() {
         console.warn("Failed to update booking status to PENDING");
       }
 
-      // Store booking data for payment confirmation
+      // Prefer payment URL returned from backend booking creation
+      const paymentUrl =
+        createdBooking?.paymentUrl || bookingResponse.data?.paymentUrl || null;
+
+      // Store booking data for payment confirmation (include paymentUrl)
       sessionStorage.setItem(
         "bookingData",
         JSON.stringify({
           ...bookingData,
           bookingId,
           bookingReference: createdBooking.bookingReference,
+          paymentUrl,
         })
       );
 
-      // Prefer payment URL returned from backend booking creation
-      const paymentUrl =
-        createdBooking?.paymentUrl || bookingResponse.data?.paymentUrl || null;
-
       if (paymentUrl) {
-        // Redirect to the payment URL provided by backend (respects test mode)
-        window.location.href = paymentUrl;
+        // Navigate to existing Payment page where user can confirm and proceed
+        router.push(`/payment?bookingId=${encodeURIComponent(bookingId)}`);
       } else {
-        // Fallback: if backend didn't return a paymentUrl, create one manually
-        console.warn(
-          "Backend did not return paymentUrl, creating payment link as fallback"
-        );
-
-        const response = await api.post("/payos/create-payment-link", {
-          amount: calculateTotalPrice(),
-          bookingId: bookingId,
-          description: `Booking ${createdBooking.bookingReference}`,
-          returnUrl: `${window.location.origin}/payment/success`,
-          cancelUrl: `${window.location.origin}/payment/failure`,
-        });
-
-        if (response.data?.checkoutUrl) {
-          window.location.href = response.data.checkoutUrl;
-        } else {
-          throw new Error("Failed to create payment link");
-        }
+        // No paymentUrl returned by backend — treat as error so server-side flow can be investigated
+        throw new Error("Payment URL not provided by backend");
       }
     } catch (error: any) {
       console.error("Error processing booking:", error);
