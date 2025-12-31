@@ -41,14 +41,14 @@ export default function SignUpClient() {
         password: data.password,
       });
 
-      // Show success message
-      toast.success("Registration successful! Redirecting...", {
+      // Show success message and inform about verification email
+      toast.success("Registration successful! A verification code was sent to your email.", {
         id: loadingToast,
       });
 
-      // Redirect to login page after successful registration
+      // Redirect to email verification page after successful registration
       setTimeout(() => {
-        router.push("/login");
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
       }, 1500);
     } catch (error: any) {
       console.error("Registration error:", error);

@@ -92,6 +92,16 @@ export const authService = {
     return response.data;
   },
 
+  verifyEmail: async (data: { email: string; code: string }) => {
+    const response = await api.post("/auth/verify-email", data);
+    return response.data;
+  },
+
+  resendVerification: async (data: { email: string }) => {
+    const response = await api.post("/auth/resend-verification", data);
+    return response.data;
+  },
+
   getCurrentUser: async () => {
     try {
       // Try to fetch current user from backend
