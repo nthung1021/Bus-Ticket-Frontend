@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Mail, Phone, Shield, Calendar, RefreshCcw, Edit, Camera } from "lucide-react";
+import { User, Mail, Phone, Shield, Calendar, RefreshCcw, Edit, Camera, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import userService, { type UserProfileData } from "@/services/userService";
 import { EditProfileDialog } from "@/components/dashboard/EditProfileDialog/EditProfileDialog";
+import { ChangePasswordDialog } from "@/components/dashboard/ChangePasswordDialog/ChangePasswordDialog";
 import styles from "./UserProfile.module.css";
 
 export function UserProfile() {
@@ -17,6 +18,7 @@ export function UserProfile() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -90,6 +92,12 @@ export function UserProfile() {
             <RefreshCcw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
+          {profile.authProvider === 'email' && (
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => setIsChangePasswordDialogOpen(true)}>
+              <KeyRound className="h-4 w-4" />
+              Change Password
+            </Button>
+          )}
           <Button size="sm" className="gap-2" onClick={() => setIsEditDialogOpen(true)}>
             <Edit className="h-4 w-4" />
             Edit Profile
@@ -187,6 +195,12 @@ export function UserProfile() {
         onOpenChange={setIsEditDialogOpen}
         currentProfile={profile}
         onProfileUpdated={handleProfileUpdated}
+      />
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog
+        open={isChangePasswordDialogOpen}
+        onOpenChange={setIsChangePasswordDialogOpen}
       />
     </div>
   );
