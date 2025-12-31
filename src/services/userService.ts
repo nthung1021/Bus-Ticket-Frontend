@@ -8,6 +8,7 @@ export interface UserProfileData {
   role: string;
   createdAt: string;
   authProvider: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateProfileDto {
@@ -34,6 +35,17 @@ class UserService {
 
   async changePassword(data: ChangePasswordDto): Promise<void> {
     await api.post("/users/change-password", data);
+  }
+
+  async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post("/users/avatar", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data.data;
   }
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User, Mail, Phone, Shield, Calendar, RefreshCcw, Edit, Camera, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import userService, { type UserProfileData } from "@/services/userService";
 import { EditProfileDialog } from "@/components/dashboard/EditProfileDialog/EditProfileDialog";
 import { ChangePasswordDialog } from "@/components/dashboard/ChangePasswordDialog/ChangePasswordDialog";
 import styles from "./UserProfile.module.css";
+import { toast } from "@/hooks/use-toast";
 
 export function UserProfile() {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
@@ -19,6 +20,8 @@ export function UserProfile() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProfile = async () => {
     try {
@@ -46,6 +49,62 @@ export function UserProfile() {
 
   const handleProfileUpdated = (updatedProfile: UserProfileData) => {
     setProfile(updatedProfile);
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a PNG, JPG, or JPEG image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const result = await userService.uploadAvatar(file);
+      
+      if (profile) {
+        setProfile({ ...profile, avatarUrl: result.avatarUrl });
+      }
+
+      toast({
+        title: "Success",
+        description: "Avatar updated successfully.",
+      });
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to upload avatar.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset input value to allow selecting the same file again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleEditAvatarClick = () => {
+    fileInputRef.current?.click();
   };
 
   if (loading && !isRefreshing) {
@@ -110,12 +169,32 @@ export function UserProfile() {
         <Card className={`${styles.profileCard} lg:col-span-1`}>
           <CardContent className="pt-10 pb-8 flex flex-col items-center">
             <div className={styles.avatar}>
-              <User className={styles.avatarIcon} />
+              {profile.avatarUrl ? (
+                <img 
+                  src={profile.avatarUrl} 
+                  alt={profile.fullName} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className={styles.avatarIcon} />
+              )}
             </div>
             <h3 className="text-2xl font-bold text-foreground mt-4 text-center">{profile.fullName}</h3>
-            <Button size="sm" className="gap-2 mt-2 px-3 py-1 capitalize">
-              <Camera className="h-4 w-4" />
-              Edit Avatar
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/png, image/jpeg, image/jpg"
+              onChange={handleFileChange}
+            />
+            <Button 
+              size="sm" 
+              className="gap-2 mt-2 px-3 py-1 capitalize"
+              onClick={handleEditAvatarClick}
+              disabled={isUploading}
+            >
+              <Camera className={`h-4 w-4 ${isUploading ? "animate-spin" : ""}`} />
+              {isUploading ? "Uploading..." : "Edit Avatar"}
             </Button>
             
             <div className="w-full mt-8 space-y-4">
