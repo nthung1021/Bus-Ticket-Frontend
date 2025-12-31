@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Plus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { operatorService, Operator, CreateOperatorDto, UpdateOperatorDto, OperatorStatus } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import OperatorForm from "@/components/operator/OperatorForm";
 
 export default function OperatorsPage() {
@@ -53,7 +53,7 @@ function OperatorsManagement() {
       const data = await operatorService.getAll();
       setOperators(data);
     } catch (error) {
-      toast.error("Failed to fetch operators");
+      toast.error(error instanceof Error ? error.message : "Failed to fetch operators");
       console.error("Error fetching operators:", error);
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ function OperatorsManagement() {
       });
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to create operator");
+      toast.error(error instanceof Error ? error.message : "Failed to create operator");
       console.error("Error creating operator:", error);
     }
   };
@@ -112,7 +112,7 @@ function OperatorsManagement() {
       });
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to update operator");
+      toast.error(error instanceof Error ? error.message : "Failed to update operator");
       console.error("Error updating operator:", error);
     }
   };
@@ -139,7 +139,7 @@ function OperatorsManagement() {
       
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to delete operator");
+      toast.error(error instanceof Error ? error.message : "Failed to delete operator");
       console.error("Error deleting operator:", error);
     }
   };
@@ -164,7 +164,7 @@ function OperatorsManagement() {
       
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to approve operator");
+      toast.error(error instanceof Error ? error.message : "Failed to approve operator");
       console.error("Error approving operator:", error);
     }
   };
@@ -189,7 +189,7 @@ function OperatorsManagement() {
       
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to suspend operator");
+      toast.error(error instanceof Error ? error.message : "Failed to suspend operator");
       console.error("Error suspending operator:", error);
     }
   };
