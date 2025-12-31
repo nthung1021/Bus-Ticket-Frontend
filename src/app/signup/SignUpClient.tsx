@@ -46,9 +46,9 @@ export default function SignUpClient() {
         id: loadingToast,
       });
 
-      // Redirect to login page after successful registration
+      // Redirect to email verification page after successful registration
       setTimeout(() => {
-        router.push("/login");
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
       }, 1500);
     } catch (error: any) {
       console.error("Registration error:", error);
