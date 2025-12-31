@@ -73,6 +73,8 @@ function PassengerInfoPageContent() {
   // Get URL parameters
   const tripId = searchParams.get("tripId");
   const selectedSeatsParam = searchParams.get("seats");
+  const pickupPointIdParam = searchParams.get('pickupPointId');
+  const dropoffPointIdParam = searchParams.get('dropoffPointId');
 
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
@@ -478,6 +480,8 @@ function PassengerInfoPageContent() {
         isGuestCheckout: isGuest,
         contactEmail: isGuest ? contactEmail : undefined,
         contactPhone: isGuest ? contactPhone : undefined,
+        pickupPointId: pickupPointIdParam || undefined,
+        dropoffPointId: dropoffPointIdParam || undefined,
       };
 
       // Create booking first to get the booking ID

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
+import { routeService, RoutePoint } from "@/services/route.service";
 //import SeatSelectionDialog from "@/components/seat/SeatSelectionDialog";
 import SeatSelectionMap from "@/components/seat-selection/SeatSelectionMap";
 import { seatLayoutService, SeatLayout, SeatInfo } from "@/services/seat-layout.service";
@@ -64,6 +65,16 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [busId, setBusId] = useState<string | null>(null);
   const [relatedTrips, setRelatedTrips] = useState<Trip[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
+
+  // Route points (pickup / dropoff)
+  const [pickupPoints, setPickupPoints] = useState<RoutePoint[]>([]);
+  const [dropoffPoints, setDropoffPoints] = useState<RoutePoint[]>([]);
+  const [loadingRoutePoints, setLoadingRoutePoints] = useState(false);
+
+  // Selected pickup/dropoff by user
+  const [selectedPickupId, setSelectedPickupId] = useState<string | null>(null);
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string | null>(null);
+
   // Image gallery state
   const [images, setImages] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -90,7 +101,12 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     }));
 
     const seatsParam = encodeURIComponent(JSON.stringify(mappedSeats));
-    router.push(`/passenger-info?tripId=${resolvedParams.id}&seats=${seatsParam}`);
+    const q = new URLSearchParams();
+    q.set('tripId', resolvedParams.id);
+    q.set('seats', seatsParam);
+    if (selectedPickupId) q.set('pickupPointId', selectedPickupId);
+    if (selectedDropoffId) q.set('dropoffPointId', selectedDropoffId);
+    router.push(`/passenger-info?${q.toString()}`);
   };
 
   const handleSeatSelectionChange = (seats: SeatInfo[]) => {
@@ -106,7 +122,11 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     } else {
       // Try to proceed without seat selection for now
       toast.success('Proceeding to passenger information...');
-      router.push(`/passenger-info?tripId=${resolvedParams.id}`);
+      const q = new URLSearchParams();
+      q.set('tripId', resolvedParams.id);
+      if (selectedPickupId) q.set('pickupPointId', selectedPickupId);
+      if (selectedDropoffId) q.set('dropoffPointId', selectedDropoffId);
+      router.push(`/passenger-info?${q.toString()}`);
     }
   };
 
@@ -215,6 +235,36 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         // Store bus ID for seat layout fetching
         if (trip.bus?.busId) {
           setBusId(trip.bus.busId);
+        }
+
+        // Fetch route points (pickup / dropoff) if route ID available
+        console.log('trip.route before fetching points:', trip.route);
+        if (trip.route && (trip.route.id || trip.route.routeId)) {
+          setLoadingRoutePoints(true);
+          try {
+            const routeResp = await routeService.getById(trip.route.id || trip.route.routeId);
+            console.log('routeService returned:', routeResp);
+            // Fix: Check if routeResp has 'data' property, otherwise use routeResp directly
+            const routeObj = (routeResp && typeof routeResp === 'object' && 'data' in routeResp) ? (routeResp as any).data : routeResp;
+            const points = Array.isArray(routeObj?.points) ? routeObj.points : [];
+            console.log('Resolved route points:', points);
+
+            const pickups = points.filter((p: any) => p.type === 'pickup' || p.type === 'both');
+            const dropoffs = points.filter((p: any) => p.type === 'dropoff' || p.type === 'both');
+
+            setPickupPoints(pickups);
+            setDropoffPoints(dropoffs);
+
+            // Default to first available if none selected yet
+            if (pickups.length > 0 && !selectedPickupId) setSelectedPickupId(pickups[0].id);
+            if (dropoffs.length > 0 && !selectedDropoffId) setSelectedDropoffId(dropoffs[0].id);
+          } catch (err) {
+            console.error('Failed to load route points:', err);
+            setPickupPoints([]);
+            setDropoffPoints([]);
+          } finally {
+            setLoadingRoutePoints(false);
+          }
         }
       } catch (error) {
         console.error("Failed to load trip details", error);
@@ -550,6 +600,37 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                     {formatCurrency(trip.price * selectedQuantity)}
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Pickup / Dropoff selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-xs text-muted-foreground">Pickup point</label>
+                <select
+                  value={selectedPickupId ?? ""}
+                  onChange={(e) => setSelectedPickupId(e.target.value || null)}
+                  className="w-full mt-1 rounded border px-3 py-2"
+                >
+                  <option value="">Select pickup</option>
+                  {pickupPoints.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground">Dropoff point</label>
+                <select
+                  value={selectedDropoffId ?? ""}
+                  onChange={(e) => setSelectedDropoffId(e.target.value || null)}
+                  className="w-full mt-1 rounded border px-3 py-2"
+                >
+                  <option value="">Select dropoff</option>
+                  {dropoffPoints.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
