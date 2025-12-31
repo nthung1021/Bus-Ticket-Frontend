@@ -41,8 +41,8 @@ export default function SignUpClient() {
         password: data.password,
       });
 
-      // Show success message
-      toast.success("Registration successful! Redirecting...", {
+      // Show success message and inform about verification email
+      toast.success("Registration successful! A verification code was sent to your email.", {
         id: loadingToast,
       });
 
