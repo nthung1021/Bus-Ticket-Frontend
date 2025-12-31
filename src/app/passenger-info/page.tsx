@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { seatLayoutService } from "@/services/seat-layout.service";
+import { routeService, RoutePoint } from "@/services/route.service";
 
 // const serviceFee = 10000;
 // const processingFee = 5000;
@@ -80,6 +81,10 @@ function PassengerInfoPageContent() {
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
   const [basePrice, setBasePrice] = useState<number>(0);
   const [seatLayout, setSeatLayout] = useState<any>(null);
+
+  // Selected pickup/dropoff details (resolved from IDs)
+  const [pickupPoint, setPickupPoint] = useState<RoutePoint | null>(null);
+  const [dropoffPoint, setDropoffPoint] = useState<RoutePoint | null>(null);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
   const [passengerValidations, setPassengerValidations] = useState<boolean[]>(
     []
@@ -350,21 +355,43 @@ function PassengerInfoPageContent() {
 
   // Fallback: ensure we have authoritative base price from trip entity
   useEffect(() => {
-    const fetchBasePrice = async () => {
+    const fetchBasePriceAndPoints = async () => {
       if (!tripId) return;
       try {
         const res = await api.get(`/trips/${tripId}`);
         const data = res.data?.data;
         const price = data?.pricing?.basePrice ?? data?.basePrice ?? 0;
         setBasePrice(price);
+
+        // If pickup/dropoff ids are provided, resolve them via route points
+        try {
+          const routeId = data?.route?.id || data?.route?.routeId;
+          if (routeId && (pickupPointIdParam || dropoffPointIdParam)) {
+            const routeResp = await routeService.getById(routeId);
+            const routeObj = routeResp;
+            const points = Array.isArray(routeObj?.points) ? routeObj.points : [];
+
+            if (pickupPointIdParam) {
+              const p = points.find((pt: any) => pt.id === pickupPointIdParam);
+              if (p) setPickupPoint(p as RoutePoint);
+            }
+            if (dropoffPointIdParam) {
+              const d = points.find((pt: any) => pt.id === dropoffPointIdParam);
+              if (d) setDropoffPoint(d as RoutePoint);
+            }
+          }
+        } catch (innerErr) {
+          console.error('Failed to resolve pickup/dropoff points:', innerErr);
+        }
+
       } catch (e) {
         console.error('Failed to fetch base price for trip:', e);
       }
     };
 
     // Fetch if we don't already have basePrice set
-    if (!basePrice || basePrice === 0) {
-      fetchBasePrice();
+    if (!basePrice || basePrice === 0 || pickupPointIdParam || dropoffPointIdParam) {
+      fetchBasePriceAndPoints();
     }
   }, [tripId]);
 
@@ -724,6 +751,20 @@ function PassengerInfoPageContent() {
                     <p className="font-medium">{tripInfo.busModel}</p>
                   </div>
                 </div>
+
+                {/* Selected pickup/dropoff (if provided) */}
+                {(pickupPoint || dropoffPoint) && (
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Pickup</div>
+                      <p className="font-medium">{pickupPoint ? pickupPoint.name : 'Not selected'}</p>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Dropoff</div>
+                      <p className="font-medium">{dropoffPoint ? dropoffPoint.name : 'Not selected'}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1142,6 +1183,35 @@ function PassengerInfoPageContent() {
                 )}
               </div>
             </div>
+
+            {/* Pickup & Dropoff Summary */}
+            {(pickupPoint || dropoffPoint) && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium text-xs">Pickup / Dropoff</span>
+                </div>
+                <div className="px-2 py-1.5 bg-muted/20 rounded text-xs space-y-1">
+                  {pickupPoint ? (
+                    <div>
+                      <div className="font-medium">Pickup: {pickupPoint.name}</div>
+                      <div className="text-muted-foreground text-xs">Lat: {pickupPoint.latitude}, Lng: {pickupPoint.longitude}</div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-xs">No pickup selected</div>
+                  )}
+
+                  {dropoffPoint ? (
+                    <div>
+                      <div className="font-medium">Dropoff: {dropoffPoint.name}</div>
+                      <div className="text-muted-foreground text-xs">Lat: {dropoffPoint.latitude}, Lng: {dropoffPoint.longitude}</div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-xs">No dropoff selected</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <Separator className="my-2" />
 
