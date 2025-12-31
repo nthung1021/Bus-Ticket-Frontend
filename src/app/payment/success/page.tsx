@@ -494,6 +494,8 @@ function PaymentSuccessPageContent() {
 
   useEffect(() => {
     const sendEticketEmail = async () => {
+      console.log(booking);
+      
       if (!booking || !(booking as any)?.bookingId) return;
 
       // Skip mock bookings
