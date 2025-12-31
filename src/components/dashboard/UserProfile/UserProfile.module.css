@@ -1,0 +1,49 @@
+@reference "../../../app/globals.css";
+
+.container {
+  @apply space-y-6 container mx-auto px-4 py-6;
+}
+
+.profileCard {
+  @apply bg-card border-border shadow-sm;
+}
+
+.header {
+  @apply flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6;
+}
+
+.avatarSection {
+  @apply flex items-center gap-4;
+}
+
+.avatar {
+  @apply w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20;
+}
+
+.avatarIcon {
+  @apply w-10 h-10 text-primary;
+}
+
+.infoGrid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mt-8;
+}
+
+.infoItem {
+  @apply space-y-1;
+}
+
+.label {
+  @apply text-sm font-medium text-muted-foreground flex items-center gap-2;
+}
+
+.value {
+  @apply text-lg font-semibold text-foreground;
+}
+
+.badge {
+  @apply mt-1;
+}
+
+.createdAt {
+  @apply text-xs text-muted-foreground mt-4 italic;
+}
