@@ -101,14 +101,14 @@ function PaymentSuccessPageContent() {
       if (lastId === bookingId && now - lastTs < 30_000) return;
       fetchedBookingRef.id = bookingId;
       fetchedBookingRef.ts = now;
-      // Temporary: if PayOS returned success parameters, redirect straight to My Bookings
-      const payosStatus = searchParams.get('status') || searchParams.get('payos_status');
-      const payosCode = searchParams.get('code') || searchParams.get('orderCode');
-      const looksLikePaid = (payosStatus && payosStatus.toString().toLowerCase() === 'paid') || (payosCode && (payosCode === '00' || /^\d+$/.test(payosCode)));
-      if (looksLikePaid) {
-        router.replace('/user/bookings');
-        return;
-      }
+      // // Temporary: if PayOS returned success parameters, redirect straight to My Bookings
+      // const payosStatus = searchParams.get('status') || searchParams.get('payos_status');
+      // const payosCode = searchParams.get('code') || searchParams.get('orderCode');
+      // const looksLikePaid = (payosStatus && payosStatus.toString().toLowerCase() === 'paid') || (payosCode && (payosCode === '00' || /^\d+$/.test(payosCode)));
+      // if (looksLikePaid) {
+      //   router.replace('/user/bookings');
+      //   return;
+      // }
       console.debug('PaymentSuccessPage: starting fetchBooking for', bookingId);
       try {
         setLoading(true);
@@ -119,16 +119,16 @@ function PaymentSuccessPageContent() {
           return;
         }
 
-        // If PayOS returned with cancel flag, forward to cancel handler
-        const payosCancel = searchParams.get('cancel') || searchParams.get('canceled');
-        if (payosCancel && bookingId) {
-          const params = new URLSearchParams(searchParams.toString());
-          // ensure bookingId is a single param and set it to our value
-          params.delete('bookingId');
-          params.set('bookingId', bookingId);
-          router.replace(`/payment/cancel?${params.toString()}`);
-          return;
-        }
+        // // If PayOS returned with cancel flag, forward to cancel handler
+        // const payosCancel = searchParams.get('cancel') || searchParams.get('canceled');
+        // if (payosCancel && bookingId) {
+        //   const params = new URLSearchParams(searchParams.toString());
+        //   // ensure bookingId is a single param and set it to our value
+        //   params.delete('bookingId');
+        //   params.set('bookingId', bookingId);
+        //   router.replace(`/payment/cancel?${params.toString()}`);
+        //   return;
+        // }
 
         // Try fetching booking directly from backend (useful when returning from PayOS)
         try {
@@ -415,82 +415,82 @@ function PaymentSuccessPageContent() {
     fetchBooking();
   }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus, trackBooking]);
 
-  // Add real-time booking updates effect
-  useEffect(() => {
-    if (!bookingId || !isConnected) return;
+  // // Add real-time booking updates effect
+  // useEffect(() => {
+  //   if (!bookingId || !isConnected) return;
 
-    // Listen for booking updates in real-time
-    const interval = setInterval(async () => {
-      const bookingStatus = getBookingStatus(bookingId);
-      // console.log("Booking status: ", bookingStatus);
-      const paymentStatus = getPaymentStatus(bookingId);
+  //   // Listen for booking updates in real-time
+  //   const interval = setInterval(async () => {
+  //     const bookingStatus = getBookingStatus(bookingId);
+  //     // console.log("Booking status: ", bookingStatus);
+  //     const paymentStatus = getPaymentStatus(bookingId);
 
-      if (bookingStatus && bookings.has(bookingId)) {
-        const realTimeBooking = bookings.get(bookingId);
-        // console.log("Real time booking: ", realTimeBooking)
-        if (realTimeBooking) {
-          // Fetch trip data if not already present
-          let tripData = booking?.trip;
-          if (!tripData && (realTimeBooking as any).tripId) {
-            try {
-              const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
-              // console.log("Trip data:", tripDataRaw)
-              // Convert Date objects to strings and ensure required properties to match Booking type
-              tripData = {
-                ...tripDataRaw,
-                departureTime: tripDataRaw.departureTime instanceof Date 
-                  ? tripDataRaw.departureTime.toISOString() 
-                  : new Date(tripDataRaw.departureTime).toISOString(),
-                arrivalTime: tripDataRaw.arrivalTime instanceof Date 
-                  ? tripDataRaw.arrivalTime.toISOString() 
-                  : new Date(tripDataRaw.arrivalTime).toISOString(),
-                status: tripDataRaw.status.toString(),
-                route: {
-                  id: tripDataRaw.route?.id || '',
-                  name: tripDataRaw.route?.name || '',
-                  description: tripDataRaw.route?.description || '',
-                  origin: (tripDataRaw as any).route?.origin || '',
-                  destination: (tripDataRaw as any).route?.destination || '',
-                  distanceKm: (tripDataRaw as any).route?.distanceKm || 0, // Calculate from route points if available
-                  estimatedMinutes: (tripDataRaw as any).route?.estimatedMinutes || 0, // Calculate from route points if available
-                },
-                bus: tripDataRaw.bus || {
-                  id: '',
-                  plateNumber: '',
-                  model: '',
-                  seatCapacity: 0,
-                },
-              };
-            } catch (tripError) {
-              console.error("Error fetching trip data:", tripError);
-            }
-          }
-          console.log("Trip data:", tripData);
-          setBooking((prev: any) => {
-              const updatedBooking = {
-                ...prev,
-                ...realTimeBooking,
-                trip: tripData,
-                status:
-                  bookingStatus === BookingStatus.PAID
-                    ? "paid"
-                    : bookingStatus,
-                bookedAt:
-                  typeof realTimeBooking.bookedAt === "string"
-                    ? realTimeBooking.bookedAt
-                    : realTimeBooking.bookedAt?.toISOString() ||
-                      prev.bookedAt,
-              };
+  //     if (bookingStatus && bookings.has(bookingId)) {
+  //       const realTimeBooking = bookings.get(bookingId);
+  //       // console.log("Real time booking: ", realTimeBooking)
+  //       if (realTimeBooking) {
+  //         // Fetch trip data if not already present
+  //         let tripData = booking?.trip;
+  //         if (!tripData && (realTimeBooking as any).tripId) {
+  //           try {
+  //             const tripDataRaw = await getTripById((realTimeBooking as any).tripId);
+  //             // console.log("Trip data:", tripDataRaw)
+  //             // Convert Date objects to strings and ensure required properties to match Booking type
+  //             tripData = {
+  //               ...tripDataRaw,
+  //               departureTime: tripDataRaw.departureTime instanceof Date 
+  //                 ? tripDataRaw.departureTime.toISOString() 
+  //                 : new Date(tripDataRaw.departureTime).toISOString(),
+  //               arrivalTime: tripDataRaw.arrivalTime instanceof Date 
+  //                 ? tripDataRaw.arrivalTime.toISOString() 
+  //                 : new Date(tripDataRaw.arrivalTime).toISOString(),
+  //               status: tripDataRaw.status.toString(),
+  //               route: {
+  //                 id: tripDataRaw.route?.id || '',
+  //                 name: tripDataRaw.route?.name || '',
+  //                 description: tripDataRaw.route?.description || '',
+  //                 origin: (tripDataRaw as any).route?.origin || '',
+  //                 destination: (tripDataRaw as any).route?.destination || '',
+  //                 distanceKm: (tripDataRaw as any).route?.distanceKm || 0, // Calculate from route points if available
+  //                 estimatedMinutes: (tripDataRaw as any).route?.estimatedMinutes || 0, // Calculate from route points if available
+  //               },
+  //               bus: tripDataRaw.bus || {
+  //                 id: '',
+  //                 plateNumber: '',
+  //                 model: '',
+  //                 seatCapacity: 0,
+  //               },
+  //             };
+  //           } catch (tripError) {
+  //             console.error("Error fetching trip data:", tripError);
+  //           }
+  //         }
+  //         console.log("Trip data:", tripData);
+  //         setBooking((prev: any) => {
+  //             const updatedBooking = {
+  //               ...prev,
+  //               ...realTimeBooking,
+  //               trip: tripData,
+  //               status:
+  //                 bookingStatus === BookingStatus.PAID
+  //                   ? "paid"
+  //                   : bookingStatus,
+  //               bookedAt:
+  //                 typeof realTimeBooking.bookedAt === "string"
+  //                   ? realTimeBooking.bookedAt
+  //                   : realTimeBooking.bookedAt?.toISOString() ||
+  //                     prev.bookedAt,
+  //             };
               
-              return updatedBooking;
-            });
-          console.log("Updated booking: ", booking);
-        }
-      }
-    }, 2000); // Check every 2 seconds
+  //             return updatedBooking;
+  //           });
+  //         console.log("Updated booking: ", booking);
+  //       }
+  //     }
+  //   }, 2000); // Check every 2 seconds
 
-    return () => clearInterval(interval);
-  }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus, booking?.trip, trackBooking]);
+  //   return () => clearInterval(interval);
+  // }, [bookingId, isConnected, bookings, getBookingStatus, getPaymentStatus, booking?.trip, trackBooking]);
 
   useEffect(() => {
     const sendEticketEmail = async () => {
@@ -503,6 +503,7 @@ function PaymentSuccessPageContent() {
       if (emailTriggered) return;
 
       try {
+        // console.log("Triggering e-ticket email for booking", (booking as any)?.bookingId);
         await api.post(`/bookings/${(booking as any)?.bookingId}/eticket/email`, {});
         setEmailTriggered(true);
         console.log("E-ticket email triggered for booking", (booking as any)?.bookingId);
@@ -525,14 +526,14 @@ function PaymentSuccessPageContent() {
   }, [booking]);
 
   // Redirect to bookings page if no booking data
-  useEffect(() => {
-    // Do not auto-redirect when booking not found — allow user to see failure UI
-    // and decide next action (view bookings, contact support, etc.).
-    // if (!booking && !loading) {
-    //   router.push("/user/bookings");
-    // }
-    // console.log(booking);
-  }, [booking, loading, router]);
+  // useEffect(() => {
+  //   // Do not auto-redirect when booking not found — allow user to see failure UI
+  //   // and decide next action (view bookings, contact support, etc.).
+  //   // if (!booking && !loading) {
+  //   //   router.push("/user/bookings");
+  //   // }
+  //   // console.log(booking);
+  // }, [booking, loading, router]);
 
   // Download e-ticket
   const handleDownloadTicket = async () => {
