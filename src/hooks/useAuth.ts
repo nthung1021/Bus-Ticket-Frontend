@@ -61,6 +61,12 @@ export const useLogout = () => {
   });
 };
 
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: (data: { email: string }) => authService.forgotPassword(data),
+  });
+};
+
 export const useCurrentUser = () => {
   return useQuery({
     queryKey: ["currentUser"],

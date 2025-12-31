@@ -102,6 +102,12 @@ export const authService = {
     return response.data;
   },
 
+  // Request a password reset email. Server should send reset instructions to the provided email.
+  forgotPassword: async (data: { email: string }) => {
+    const response = await api.post("/auth/forgot-password", data);
+    return response.data;
+  },
+
   getCurrentUser: async () => {
     try {
       // Try to fetch current user from backend
