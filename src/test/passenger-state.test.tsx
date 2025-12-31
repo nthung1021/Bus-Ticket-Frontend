@@ -125,7 +125,7 @@ function runTests() {
   
   // Test 1: Initialize with seats
   console.log("\n1. Initialize with 2 seats");
-  manager.initializePassengerState(["A1", "A2"]);
+  manager.initializePassengerState(["1A", "1B"]);
   console.log("✓ State initialized:", manager.getCurrentState().length, "passengers");
   
   // Test 2: Update passenger data

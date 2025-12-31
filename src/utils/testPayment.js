@@ -4,7 +4,7 @@ const mockBookingData = {
   seats: [
     {
       id: "seat-1",
-      code: "A1",
+      code: "1A",
       type: "normal",
       price: 250000
     }
@@ -12,7 +12,7 @@ const mockBookingData = {
   passengers: [
     {
       fullName: "Nguyen Van Test",
-      seatCode: "A1",
+      seatCode: "1A",
       phoneNumber: "0123456789",
       email: "test@example.com"
     }

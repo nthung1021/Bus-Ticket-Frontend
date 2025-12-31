@@ -57,6 +57,7 @@ export default function SeatLayoutDialog({
   onSuccess,
   onBusSeatLayoutUpdate,
 }: SeatLayoutDialogProps) {
+  // console.log("Existing layout:", existingLayout);
   const [activeTab, setActiveTab] = useState("template");
   const [selectedTemplate, setSelectedTemplate] =
     useState<LayoutTemplate | null>(null);
@@ -105,6 +106,22 @@ export default function SeatLayoutDialog({
       }
     }
   }, [open]); // Remove existingLayout from dependency array
+
+  const normalizeSeatCode = (code?: string | null): string => {
+    if (!code) return '';
+    const s = String(code).trim().toUpperCase();
+    const numLetter = s.match(/^(\d+)([A-Z]+)$/i);
+    if (numLetter) return `${parseInt(numLetter[1], 10)}${numLetter[2]}`;
+    const letterNum = s.match(/^([A-Z]+)(\d+)$/i);
+    if (letterNum) return `${parseInt(letterNum[2], 10)}${letterNum[1]}`;
+    return s;
+  };
+
+  const normalizeSeats = (seats: any[]) =>
+    seats.map((s) => {
+      const raw = s.code ?? s.seatCode ?? '';
+      return { ...s, code: normalizeSeatCode(raw) };
+    });
 
   const fetchTemplates = async () => {
     try {
@@ -174,7 +191,7 @@ export default function SeatLayoutDialog({
       // Remove price field from seats as it's not required in backend
       const cleanedLayoutConfig = {
         ...layoutConfig,
-        seats: layoutConfig.seats.map(({ price, ...seat }) => seat),
+        seats: normalizeSeats(layoutConfig.seats.map(({ price, ...seat }) => seat)),
       };
 
       const updatedLayout = await seatLayoutService.update(existingLayout.id, {
@@ -198,6 +215,7 @@ export default function SeatLayoutDialog({
 
   const handleTemplateSelect = async (template: LayoutTemplate) => {
     setSelectedTemplate(template);
+    setLoading(true);
     try {
       setLayoutType(template.type);
 
@@ -207,6 +225,8 @@ export default function SeatLayoutDialog({
 
       // If there's an existing layout, update it with the new template
       if (existingLayout) {
+        // normalize seat codes in the template preview before sending
+        mockConfig.seats = normalizeSeats(mockConfig.seats || []);
         await updateExistingLayoutWithTemplate(template, mockConfig);
       }
     } catch (error) {
@@ -261,9 +281,9 @@ export default function SeatLayoutDialog({
         seatsPerRow,
         layoutConfig: {
           ...layoutConfig,
-          seats: layoutConfig.seats.map(({ price, ...seat }) => seat),
+          seats: normalizeSeats(layoutConfig.seats.map(({ price, ...seat }) => seat)),
         },
-        seatPricing: pricingConfig, // Add this line
+        seatPricing: pricingConfig,
       });
       // console.log('updated layout', updatedLayout)
       setLayoutType(type);
@@ -314,7 +334,7 @@ export default function SeatLayoutDialog({
       // Remove price field from seats as it's not required in backend
       const cleanedLayoutConfig = {
         ...config,
-        seats: config.seats.map(({ price, ...seat }) => seat),
+        seats: normalizeSeats(config.seats.map(({ price, ...seat }) => seat)),
       };
 
       const updatedLayout = await seatLayoutService.update(existingLayout.id, {

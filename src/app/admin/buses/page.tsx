@@ -190,6 +190,7 @@ function BusesManagement() {
     try {
       // Admin view doesn't have trip context, so use default pricing
       const layout = await seatLayoutService.getByBusId(busId);
+      console.log(`Fetched seat layout for bus ${busId}:`, layout);
       setBusSeatLayouts(prev => ({ ...prev, [busId]: layout }));
     } catch (error) {
       // Bus might not have a layout yet, which is fine

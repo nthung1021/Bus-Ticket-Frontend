@@ -46,7 +46,7 @@ export const createMockBooking = (bookingId?: string): Booking => {
         id: "passenger-1",
         fullName: "Nguyen Van A",
         // documentId removed: now optional
-        seatCode: "A1",
+        seatCode: "1A",
       },
     ],
     seats: [
@@ -56,7 +56,7 @@ export const createMockBooking = (bookingId?: string): Booking => {
         state: "booked",
         seat: {
           id: "seat-1",
-          seatCode: "A1",
+          seatCode: "1A",
           seatType: "normal",
           isActive: true,
         },

@@ -55,7 +55,7 @@ class SeatService {
 
   /**
    * Get seat by seat code and bus ID
-   * @param seatCode - Seat code (e.g., "A1", "B2")
+   * @param seatCode - Seat code (number+letter, e.g., "1A", "11B")
    * @param busId - ID of the bus
    * @returns Seat details
    */
@@ -192,8 +192,8 @@ class SeatService {
    * @returns True if valid, false otherwise
    */
   validateSeatCode(seatCode: string): boolean {
-    // Seat code should be like "A1", "B2", "C3" etc.
-    return /^[A-Z]\d+$/.test(seatCode);
+    // Seat code should be number+letter, e.g. "1A", "2B", "11C"
+    return /^\d+[A-Z]$/i.test(seatCode);
   }
 
   /**
