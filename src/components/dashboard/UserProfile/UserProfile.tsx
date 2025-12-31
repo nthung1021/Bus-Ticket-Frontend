@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import userService, { type UserProfileData } from "@/services/userService";
+import { EditProfileDialog } from "@/components/dashboard/EditProfileDialog/EditProfileDialog";
 import styles from "./UserProfile.module.css";
 
 export function UserProfile() {
@@ -15,6 +16,7 @@ export function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -38,6 +40,10 @@ export function UserProfile() {
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchProfile();
+  };
+
+  const handleProfileUpdated = (updatedProfile: UserProfileData) => {
+    setProfile(updatedProfile);
   };
 
   if (loading && !isRefreshing) {
@@ -84,10 +90,10 @@ export function UserProfile() {
             <RefreshCcw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-            <Button size="sm" className="gap-2">
-              <Edit className="h-4 w-4" />
-              Edit Profile
-            </Button>
+          <Button size="sm" className="gap-2" onClick={() => setIsEditDialogOpen(true)}>
+            <Edit className="h-4 w-4" />
+            Edit Profile
+          </Button>
         </div>
       </div>
 
@@ -174,6 +180,14 @@ export function UserProfile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Profile Dialog */}
+      <EditProfileDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        currentProfile={profile}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   );
 }
