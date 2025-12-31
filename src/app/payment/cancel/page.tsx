@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 
-export default function PaymentCancelRedirect() {
+function PaymentCancelRedirectContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -29,7 +29,7 @@ export default function PaymentCancelRedirect() {
       return;
     }
 
-    // guard against duplicate redirects/calls when provider hits URL multiple times
+    // guard against duplicate redirects/callswhen provider hits URL multiple times
     const handledRef = (globalThis as any).__bpf_cancelHandledRef ||= { ids: new Set() };
 
     // If PayOS indicates a successful payment on this redirect, confirm it immediately
@@ -110,4 +110,12 @@ export default function PaymentCancelRedirect() {
   }, [searchParams, router]);
 
   return null;
+}
+
+export default function PaymentCancelRedirect() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentCancelRedirectContent />
+    </Suspense>
+  );
 }
