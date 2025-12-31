@@ -76,6 +76,7 @@ function PassengerInfoPageContent() {
 
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
+  const [basePrice, setBasePrice] = useState<number>(0);
   const [seatLayout, setSeatLayout] = useState<any>(null);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
   const [passengerValidations, setPassengerValidations] = useState<boolean[]>(
@@ -143,33 +144,33 @@ function PassengerInfoPageContent() {
 
       lockSeats();
 
-      // Cleanup function to unlock seats when component unmounts
-      return () => {
-        const unlockSeats = async () => {
-          // Only unlock seats that are not already booked
-          const unlockPromises = selectedSeats.map((seat) => {
-            if (bookedSeats.has(seat.id)) {
-              return Promise.resolve(false);
-            }
-            return unlockSeat(seat.id);
-          });
+      // // Cleanup function to unlock seats when component unmounts
+      // return () => {
+      //   const unlockSeats = async () => {
+      //     // Only unlock seats that are not already booked
+      //     const unlockPromises = selectedSeats.map((seat) => {
+      //       if (bookedSeats.has(seat.id)) {
+      //         return Promise.resolve(false);
+      //       }
+      //       return unlockSeat(seat.id);
+      //     });
 
-          await Promise.allSettled(unlockPromises);
-        };
+      //     await Promise.allSettled(unlockPromises);
+      //   };
 
-        unlockSeats();
-      };
+      //   unlockSeats();
+      // };
     }
   }, [selectedSeats, tripId, lockSeat, unlockSeat, router, bookedSeats]);
 
-  // Unlock all seats when component unmounts or user leaves
-  useEffect(() => {
-    return () => {
-      if (selectedSeats.length > 0) {
-        unlockAllMySeats();
-      }
-    };
-  }, [selectedSeats, unlockAllMySeats]);
+  // // Unlock all seats when component unmounts or user leaves
+  // useEffect(() => {
+  //   return () => {
+  //     if (selectedSeats.length > 0) {
+  //       unlockAllMySeats();
+  //     }
+  //   };
+  // }, [selectedSeats, unlockAllMySeats]);
 
   useEffect(() => {
     // Try to load existing data from localStorage first
@@ -240,6 +241,7 @@ function PassengerInfoPageContent() {
       const tripData = await fetchTripInfo(tripId);
       if (tripData) {
         setTripInfo(tripData);
+        setBasePrice(tripData.price ?? 0);
         // Also load seat layout for mini map using the original tripId
         await loadSeatLayout(tripId);
       } else {
@@ -344,6 +346,26 @@ function PassengerInfoPageContent() {
     }
   }, [selectedSeats, passengersData.length]);
 
+  // Fallback: ensure we have authoritative base price from trip entity
+  useEffect(() => {
+    const fetchBasePrice = async () => {
+      if (!tripId) return;
+      try {
+        const res = await api.get(`/trips/${tripId}`);
+        const data = res.data?.data;
+        const price = data?.pricing?.basePrice ?? data?.basePrice ?? 0;
+        setBasePrice(price);
+      } catch (e) {
+        console.error('Failed to fetch base price for trip:', e);
+      }
+    };
+
+    // Fetch if we don't already have basePrice set
+    if (!basePrice || basePrice === 0) {
+      fetchBasePrice();
+    }
+  }, [tripId]);
+
   const updatePassengerData = useCallback(
     (index: number, data: Partial<PassengerData>) => {
       setPassengersData((prev) => {
@@ -389,13 +411,19 @@ function PassengerInfoPageContent() {
     [tripId, passengersData]
   );
 
-  const calculateTotalPrice = () => {
-    // Only use seat prices since they already include base price calculation
-    const seatsPrice = selectedSeats.reduce((total, seat) => {
+  const calculateSeatsPrice = () => {
+    // Sum of seat-specific charges (surcharges, type fees, etc.)
+    return selectedSeats.reduce((total, seat) => {
       const price = seat.price ?? 0;
       return total + price;
     }, 0);
-    return seatsPrice;
+  };
+
+  const calculateTotalPrice = () => {
+    // Base price per seat (authoritative basePrice from trip entity) plus any seat-specific charges
+    const seatsPrice = calculateSeatsPrice();
+    const basePrice = tripInfo?.price ?? 0;
+    return seatsPrice + basePrice;
   };
 
   const validateContactInfo = () => {
@@ -1111,7 +1139,11 @@ function PassengerInfoPageContent() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span>Seat charges:</span>
-                <span>{formatCurrency(calculateTotalPrice())}</span>
+                <span>{formatCurrency(calculateSeatsPrice())}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>Base price ({selectedSeats.length}×):</span>
+                <span>{formatCurrency(basePrice * selectedSeats.length)}</span>
               </div>
               {/* <div className="flex justify-between text-xs">
                 <span>Service fee:</span>
