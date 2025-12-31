@@ -457,6 +457,12 @@ function PassengerInfoPageContent() {
   };
 
   const handleConfirmPayment = async () => {
+    // Validate pickup/dropoff not equal
+    if (pickupPointIdParam && dropoffPointIdParam && pickupPointIdParam === dropoffPointIdParam) {
+      toast.error('Pickup and dropoff points cannot be the same. Please select different points.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {

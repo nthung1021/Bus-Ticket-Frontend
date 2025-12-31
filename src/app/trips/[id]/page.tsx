@@ -66,6 +66,15 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [relatedTrips, setRelatedTrips] = useState<Trip[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
 
+  // Helper validation: ensure pickup and dropoff are not the same
+  const validatePickupDropoffDifferent = (pickupId: string | null, dropoffId: string | null) => {
+    if (pickupId && dropoffId && pickupId === dropoffId) {
+      toast.error('Pickup and dropoff points must be different');
+      return false;
+    }
+    return true;
+  };
+
   // Route points (pickup / dropoff)
   const [pickupPoints, setPickupPoints] = useState<RoutePoint[]>([]);
   const [dropoffPoints, setDropoffPoints] = useState<RoutePoint[]>([]);
@@ -89,6 +98,9 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const handleSeatSelection = (selectedSeats: SeatInfo[]) => {
+    // Validate pickup/dropoff not equal
+    if (!validatePickupDropoffDifferent(selectedPickupId, selectedDropoffId)) return;
+
     // Map seats to include price so downstream pages don't break when formatting
     const mappedSeats = selectedSeats.map((seat) => ({
       id: seat.id,
@@ -115,6 +127,9 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   };
 
   const handleBookNow = () => {
+    // Validate pickup/dropoff not equal
+    if (!validatePickupDropoffDifferent(selectedPickupId, selectedDropoffId)) return;
+
     if (seatLayout) {
       setSeatDialogOpen(true);
     } else if (busId) {
