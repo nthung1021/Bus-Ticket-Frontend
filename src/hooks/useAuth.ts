@@ -75,3 +75,21 @@ export const useCurrentUser = () => {
     retry: 1,
   });
 };
+
+export const useVerifyResetToken = () => {
+  return useMutation({
+    mutationFn: (data: { token: string }) => authService.verifyResetToken(data),
+  });
+};
+
+export const useResetPassword = () => {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (data: { token: string; newPassword: string }) =>
+      authService.resetPassword(data),
+    onSuccess: () => {
+      router.push("/login");
+    },
+  });
+};

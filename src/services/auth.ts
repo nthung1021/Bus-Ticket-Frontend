@@ -125,4 +125,16 @@ export const authService = {
     const response = await api.post("/auth/refresh-token", {});
     return response.data.data;
   },
+
+  // Verify raw token exists and is valid (backend compares hashed tokens)
+  verifyResetToken: async (data: { token: string }) => {
+    const response = await api.post("/auth/verify-reset-token", data);
+    return response.data;
+  },
+
+  // Reset password using token
+  resetPassword: async (data: { token: string; newPassword: string }) => {
+    const response = await api.post("/auth/reset-password", data);
+    return response.data;
+  },
 };
