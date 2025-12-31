@@ -567,7 +567,7 @@ function PassengerInfoPageContent() {
 
       if (paymentUrl) {
         // Navigate to existing Payment page where user can confirm and proceed
-        router.push(`/payment?bookingId=${encodeURIComponent(bookingId)}`);
+        router.push(paymentUrl);
       } else {
         // No paymentUrl returned by backend — treat as error so server-side flow can be investigated
         throw new Error("Payment URL not provided by backend");
