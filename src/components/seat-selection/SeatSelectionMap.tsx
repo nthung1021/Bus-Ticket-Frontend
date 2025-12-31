@@ -15,7 +15,7 @@
  * @component
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +83,28 @@ function SeatSelectionMap({
         tripId,
         enabled: enableRealtime,
     });
+
+    // keep a ref to latest selected seats so cleanup on unmount can access them
+    const selectedSeatsRef = useRef<SeatInfo[]>(selectedSeats);
+    useEffect(() => {
+        selectedSeatsRef.current = selectedSeats;
+    }, [selectedSeats]);
+
+    // Unlock selected seats on component unmount
+    useEffect(() => {
+        return () => {
+            if (!enableRealtime) return;
+            const toUnlock = selectedSeatsRef.current || [];
+            toUnlock.forEach((s) => {
+                try {
+                    // fire-and-forget; unlockSeat returns a promise
+                    unlockSeat(s.id);
+                } catch (e) {
+                    // ignore
+                }
+            });
+        };
+    }, [enableRealtime, unlockSeat]);
     
     useEffect(() => {
         console.log("useEffect triggered - Booked seats:", bookedSeats);
@@ -246,7 +268,11 @@ function SeatSelectionMap({
     /**
      * Clears all seat selections and resets the selection state
      */
-    const clearSelection = () => {
+    const clearSelection = async () => {
+        if (enableRealtime && selectedSeats.length > 0) {
+            // unlock all selected seats
+            await Promise.all(selectedSeats.map(s => unlockSeat(s.id).catch(() => undefined)));
+        }
         setSelectedSeats([]);
         onSelectionChange?.([]);
     };
