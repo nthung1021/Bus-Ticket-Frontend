@@ -10,7 +10,7 @@ import api from "@/lib/api";
 import SeatSelectionMap from "@/components/seat-selection/SeatSelectionMap";
 import { seatLayoutService, SeatLayout, SeatInfo } from "@/services/seat-layout.service";
 import toast from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ interface Trip {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[];
   description: string;
   features: string[];
   duration: string;
@@ -63,6 +64,10 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [busId, setBusId] = useState<string | null>(null);
   const [relatedTrips, setRelatedTrips] = useState<Trip[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
+  // Image gallery state
+  const [images, setImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
   
   // Review state
   const [reviewStats, setReviewStats] = useState<{
@@ -169,6 +174,13 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           originalPrice: undefined,
           image:
             "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+          images: (trip.media && Array.isArray(trip.media.images) && trip.media.images.filter((u:any)=>typeof u === 'string' && u.length > 0).length > 0)
+            ? trip.media.images.filter((u:any)=>typeof u === 'string' && u.length > 0)
+            : [
+                "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+                "https://www.travelalaska.com/sites/default/files/2022-02/GettingAround_Motorcoach_Hero_%28Design%20Pics%20Inc%2C%20Alamy%20Stock%20Photo%29%20crop.jpg",
+                "https://images.unsplash.com/photo-1694671295667-6fe824195756?fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000",
+              ],
           description:
             descriptionParts.length > 0
               ? descriptionParts.join(" • ")
@@ -197,6 +209,9 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         };
 
         setTrip(mappedTrip);
+        // initialize gallery
+        setImages(mappedTrip.images || [mappedTrip.image]);
+        setCurrentImageIndex(0);
         // Store bus ID for seat layout fetching
         if (trip.bus?.busId) {
           setBusId(trip.bus.busId);
@@ -220,7 +235,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
       
       try {
         setLoadingReviews(true);
-        const stats = await feedbackService.getReviewStats(resolvedParams.id, 'trip');
+        const stats = await feedbackService.getReviewStats(resolvedParams.id);
         setReviewStats(stats);
       } catch (error) {
         console.error('Failed to load review stats:', error);
@@ -361,23 +376,24 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           <div className="bg-card border border-border rounded-2xl p-6 h-fit">
             <div className="space-y-4">
               <div className="group cursor-pointer">
-                <img
-                  src={trip.image}
-                  alt={trip.name}
-                  className="w-full aspect-4/3 rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                />
+                    <img
+                      src={images[currentImageIndex] || trip.image}
+                      alt={trip.name}
+                      onClick={() => setImageDialogOpen(true)}
+                      className="w-full aspect-4/3 rounded-xl object-cover cursor-pointer group-hover:scale-[1.02] transition-transform duration-300"
+                    />
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-                  <span className="text-caption text-muted-foreground">View 1</span>
-                </div>
-                <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-                  <span className="text-caption text-muted-foreground">View 2</span>
-                </div>
-                <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-                  <span className="text-caption text-muted-foreground">View 3</span>
-                </div>
-              </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {images.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className={`aspect-video rounded-lg overflow-hidden cursor-pointer border ${idx === currentImageIndex ? 'ring-2 ring-primary border-primary' : 'bg-muted border-border'}`}
+                          onClick={() => { setCurrentImageIndex(idx); }}
+                        >
+                          <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                        </div>
+                      ))}
+                  </div>
             </div>
           </div>
 
@@ -531,9 +547,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {formatCurrency(
-                      (trip.price + selectedSeats.reduce((total, seat) => 
-                        total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)))}
+                    {formatCurrency(trip.price * selectedQuantity)}
                   </p>
                 </div>
               </div>
@@ -559,6 +573,43 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             </div>
           </div>
         </section>
+
+        {/* Image Lightbox (custom overlay to avoid Dialog outside-click handling) */}
+        {imageDialogOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center pt-20"
+            onClick={() => setImageDialogOpen(false)}
+          >
+            <div
+              className="relative max-w-[80vw] max-h-[calc(100vh-6rem)] w-auto h-auto flex items-center justify-center px-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setCurrentImageIndex((i) => (i - 1 + images.length) % images.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-2 rounded-full"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+                <div className="max-w-full max-h-full flex items-center justify-center p-0">
+                <img
+                  src={images[currentImageIndex]}
+                  alt={`full-${currentImageIndex}`}
+                  className="max-w-[80vw] max-h-[80vh] object-contain rounded-lg"
+                />
+              </div>
+
+              <button
+                onClick={() => setCurrentImageIndex((i) => (i + 1) % images.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-2 rounded-full"
+                aria-label="Next image"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <section className="bg-card border border-border rounded-2xl p-8 space-y-6">
@@ -635,8 +686,8 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             {/* Review Statistics */}
             <div className="lg:col-span-1">
               <ReviewStats 
-                id={resolvedParams.id}
-                type="trip"
+                tripId={resolvedParams.id}
+                // type="trip"
                 title="Rating Overview"
                 showDistribution
                 className="sticky top-4"
@@ -763,7 +814,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             )}
 
             <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
-              <Button
+              <Button className="cursor-pointer"
                 variant="outline"
                 onClick={() => setSeatDialogOpen(false)}
               >
@@ -777,7 +828,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                   handleSeatSelection(selectedSeats);
                 }}
                 disabled={selectedSeats.length === 0}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
               >
                 Continue to Booking ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
               </Button>

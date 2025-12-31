@@ -40,7 +40,7 @@ interface Booking {
   passengers: Array<{
     id: string;
     fullName: string;
-    documentId: string;
+    documentId?: string | null;
     seatCode: string;
   }>;
 }
@@ -232,8 +232,9 @@ export default function BookingEditPage() {
           id: 'seat-update'
         });
         
-        try {
-          const seatResult = await changeSeats(bookingId, changes.seatChanges);
+          try {
+          const seatPayload = changes.seatChanges.map(c => ({ passengerId: c.passengerId, newSeatCode: c.newSeatCode }));
+          const seatResult = await changeSeats(bookingId, seatPayload);
           seatUpdateSuccess = true;
           
           // Show detailed seat change feedback
@@ -383,7 +384,7 @@ export default function BookingEditPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -509,7 +510,10 @@ export default function BookingEditPage() {
         onConfirm={confirmChanges}
         changes={changes}
         loading={saving}
-        booking={booking}
+        booking={booking ? {
+          ...booking,
+          passengers: booking.passengers.map(p => ({ ...p, documentId: p.documentId ?? undefined }))
+        } : booking}
       />
 
       {/* Save Progress Indicator */}

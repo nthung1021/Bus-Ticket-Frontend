@@ -10,6 +10,62 @@ import { userBookingService } from "@/services/userBookingService";
 import { useCurrentUser } from "./useAuth";
 import { toast } from "react-hot-toast";
 
+// Hook to get trip reviews with optional parameters
+export const useTripReviews = (tripId: string, params: ReviewsListParams = {}) => {
+  return useQuery({
+    queryKey: ["tripReviews", tripId, params],
+    queryFn: () => feedbackService.getTripReviews(tripId, params),
+    enabled: !!tripId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 1,
+  });
+};
+
+// Hook to get route reviews (assuming this is same as trip reviews)
+export const useRouteReviews = (tripId: string, params: ReviewsListParams = {}) => {
+  return useTripReviews(tripId, params);
+};
+
+// Hook to get all reviews
+export const useAllReviews = (params: ReviewsListParams = {}) => {
+  return useQuery({
+    queryKey: ["allReviews", params],
+    queryFn: () => feedbackService.getAllReviews(params),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 1,
+  });
+};
+
+// Hook to get trip review stats
+export const useTripReviewStats = (tripId?: string) => {
+  return useQuery({
+    queryKey: ["tripReviewStats", tripId],
+    queryFn: () => feedbackService.getReviewStats(tripId),
+    enabled: !!tripId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+};
+
+// Infinite scroll hooks for large lists
+export const useInfiniteTripReviews = (tripId: string, params: Omit<ReviewsListParams, 'page'> = {}) => {
+  return useInfiniteQuery({
+    queryKey: ["infiniteTripReviews", tripId, params],
+    queryFn: ({ pageParam = 1 }) => 
+      feedbackService.getTripReviews(tripId, { ...params, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => 
+      lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined,
+    enabled: !!tripId,
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+  });
+};
+
+export const useInfiniteRouteReviews = (tripId: string, params: Omit<ReviewsListParams, 'page'> = {}) => {
+  return useInfiniteTripReviews(tripId, params);
+};
+
 export const useCompletedBookingForTrip = (tripId: string) => {
   const { data: user } = useCurrentUser();
 
@@ -30,8 +86,7 @@ export const useHasUserReviewed = (tripId: string) => {
     queryKey: ["hasUserReviewed", tripId],
     queryFn: async () => {
       // Check if user has already reviewed this trip by looking at their reviews
-      const response = await feedbackService.getTripReviews({ 
-        tripId, 
+      const response = await feedbackService.getTripReviews(tripId, {
         page: 1, 
         limit: 100 // Get enough to check if user's review exists
       });
@@ -58,13 +113,13 @@ export const useFeedbackForTrip = (tripId: string) => {
   });
 };
 
-export const useCanLeaveFeedback = (tripId: string) => {
+export const useCanLeaveFeedback = (bookingId: string) => {
   const { data: user } = useCurrentUser();
 
   return useQuery({
-    queryKey: ["canLeaveFeedback", tripId],
-    queryFn: () => feedbackService.canLeaveFeedback(tripId),
-    enabled: !!user && !!tripId,
+    queryKey: ["canLeaveFeedback", bookingId],
+    queryFn: () => feedbackService.canLeaveFeedback(bookingId),
+    enabled: !!user && !!bookingId && bookingId.length > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 1,
   });
@@ -143,14 +198,14 @@ export const useSubmitFeedback = () => {
         id: data.id,
         rating: data.rating,
         comment: data.comment,
-        submittedAt: data.createdAt,
+        createdAt: data.createdAt,
       });
 
       // Mark user as having reviewed this trip
       queryClient.setQueryData(["hasUserReviewed", variables.tripId], true);
       
       // Invalidate and refetch related queries for accuracy
-      queryClient.invalidateQueries({ queryKey: ["canLeaveFeedback", variables.tripId] });
+      queryClient.invalidateQueries({ queryKey: ["canLeaveFeedback", variables.bookingId] });
       queryClient.invalidateQueries({ queryKey: ["userFeedback"] });
       queryClient.invalidateQueries({ queryKey: ["tripReviews", variables.tripId] });
       queryClient.invalidateQueries({ queryKey: ["tripReviewStats", variables.tripId] });
@@ -205,152 +260,74 @@ export const useSubmitFeedback = () => {
   });
 };
 
-export const useUpdateFeedback = () => {
+export const useUpdateReview = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ feedbackId, feedbackData, tripId }: { 
-      feedbackId: string; 
+    mutationFn: ({ reviewId, feedbackData, tripId }: { 
+      reviewId: string; 
       feedbackData: Partial<FeedbackData>;
       tripId: string;
-    }) => feedbackService.updateFeedback(feedbackId, feedbackData),
+    }) => feedbackService.updateReview(reviewId, feedbackData),
     onSuccess: (data, variables) => {
       // Update the feedback cache
       queryClient.setQueryData(["feedback", variables.tripId], {
         id: data.id,
         rating: data.rating,
         comment: data.comment,
-        submittedAt: data.createdAt, // Map createdAt to submittedAt for compatibility
+        createdAt: data.createdAt, // Use createdAt consistently
       });
 
-      toast.success("Feedback updated successfully!");
+      toast.success("Review updated successfully!");
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || "Failed to update feedback";
+      const errorMessage = error.response?.data?.message || "Failed to update review";
       toast.error(errorMessage);
     },
   });
 };
 
-export const useUserFeedback = () => {
+export const useMyReviews = (params: ReviewsListParams = {}) => {
   const { data: user } = useCurrentUser();
 
   return useQuery({
-    queryKey: ["userFeedback"],
-    queryFn: feedbackService.getUserFeedback,
+    queryKey: ["myReviews", params],
+    queryFn: () => feedbackService.getMyReviews(params),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
-export const useDeleteFeedback = () => {
+export const useDeleteReview = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ feedbackId, tripId }: { feedbackId: string; tripId: string }) =>
-      feedbackService.deleteFeedback(feedbackId),
+    mutationFn: ({ reviewId, tripId }: { reviewId: string; tripId: string }) =>
+      feedbackService.deleteReview(reviewId),
     onSuccess: (_, variables) => {
       // Remove from cache
       queryClient.setQueryData(["feedback", variables.tripId], null);
       
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ["canLeaveFeedback", variables.tripId] });
-      queryClient.invalidateQueries({ queryKey: ["userFeedback"] });
+      queryClient.invalidateQueries({ queryKey: ["canLeaveFeedback"] });
+      queryClient.invalidateQueries({ queryKey: ["myReviews"] });
+      queryClient.invalidateQueries({ queryKey: ["hasUserReviewed", variables.tripId] });
 
-      toast.success("Feedback deleted successfully!");
+      toast.success("Review deleted successfully!");
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || "Failed to delete feedback";
+      const errorMessage = error.response?.data?.message || "Failed to delete review";
       toast.error(errorMessage);
     },
   });
 };
 
-// C3: Hook for trip reviews with pagination
-export const useTripReviews = (tripId: string, params: Omit<ReviewsListParams, 'tripId'> = {}) => {
-  return useQuery({
-    queryKey: ["tripReviews", tripId, params],
-    queryFn: () => feedbackService.getTripReviews({ tripId, ...params }),
-    enabled: !!tripId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
 
-// Hook for route reviews with pagination
-// C3: Hook for trip review statistics (average rating, total count)
-export const useTripReviewStats = (tripId: string) => {
-  return useQuery({
-    queryKey: ["tripReviewStats", tripId],
-    queryFn: () => feedbackService.getReviewStats(tripId, 'trip'),
-    enabled: !!tripId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
 
-export const useRouteReviews = (routeId: string, params: ReviewsListParams = {}) => {
-  return useQuery({
-    queryKey: ["routeReviews", routeId, params],
-    queryFn: () => feedbackService.getRouteReviews({ routeId, ...params }),
-    enabled: !!routeId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
 
-// Hook for all reviews with pagination (admin/public view)
-export const useAllReviews = (params: ReviewsListParams = {}) => {
-  return useQuery({
-    queryKey: ["allReviews", params],
-    queryFn: () => feedbackService.getAllReviews(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
 
-// Hook for infinite scroll loading of reviews
-export const useInfiniteTripReviews = (
-  tripId: string,
-  params: Omit<ReviewsListParams, 'tripId' | 'page'> = {}
-) => {
-  return useInfiniteQuery({
-    queryKey: ["infiniteTripReviews", tripId, params],
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      feedbackService.getTripReviews({
-        tripId,
-        ...params,
-        page: pageParam as number,
-      }),
-    enabled: !!tripId,
-    getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined,
-    staleTime: 2 * 60 * 1000,
-  });
-};
 
-export const useInfiniteRouteReviews = (
-  routeId: string,
-  params: Omit<ReviewsListParams, 'routeId' | 'page'> = {}
-) => {
-  return useInfiniteQuery({
-    queryKey: ["infiniteRouteReviews", routeId, params],
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      feedbackService.getRouteReviews({
-        routeId,
-        ...params,
-        page: pageParam as number,
-      }),
-    enabled: !!routeId,
-    getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasNext ? lastPage.pagination.page + 1 : undefined,
-    staleTime: 2 * 60 * 1000,
-  });
-};
 
-// Hook for review statistics
-export const useReviewStats = (id: string, type: 'trip' | 'route') => {
-  return useQuery({
-    queryKey: ["reviewStats", type, id],
-    queryFn: () => feedbackService.getReviewStats(id, type),
-    enabled: !!id && !!type,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
+
+
+
+

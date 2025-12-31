@@ -4,12 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { User, CreditCard, MapPin, UserCheck } from "lucide-react";
-import { useCurrentUser } from "@/hooks/useAuth";
-import { formatCurrency } from "@/utils/formatCurrency";
+import { User } from "lucide-react";
 
 interface SelectedSeat {
   id: string;
@@ -20,9 +15,7 @@ interface SelectedSeat {
 
 interface PassengerData {
   fullName: string;
-  documentId: string;
   seatCode: string;
-  documentType?: 'id' | 'passport' | 'license';
   phoneNumber?: string;
   email?: string;
 }
@@ -41,14 +34,11 @@ export default function PassengerFormItem({
   onValidationChange
 }: PassengerFormItemProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { data: currentUser } = useCurrentUser();
 
   // Safety check for passengerData - provide defaults if undefined
   const safePassengerData = passengerData || {
     fullName: "",
-    documentId: "",
     seatCode: seat.code,
-    documentType: 'id' as const,
     phoneNumber: "",
     email: ""
   };
@@ -74,40 +64,13 @@ export default function PassengerFormItem({
           }
           break;
         
-        case 'documentId':
-          const docType = safePassengerData.documentType || 'id';
-          if (!value.trim()) {
-            newErrors.documentId = 'Document ID is required';
-          } else {
-            // Specific validation patterns based on document type
-            if (docType === 'id') {
-              // Vietnamese CCCD: 12 digits
-              if (!/^\d{12}$/.test(value.replace(/\s/g, ''))) {
-                newErrors.documentId = 'CCCD must be exactly 12 digits';
-              } else {
-                delete newErrors.documentId;
-              }
-            } else if (docType === 'passport') {
-              // Passport: 8-9 alphanumeric characters
-              if (!/^[A-Z0-9]{8,9}$/.test(value.toUpperCase().replace(/\s/g, ''))) {
-                newErrors.documentId = 'Passport must be 8-9 alphanumeric characters';
-              } else {
-                delete newErrors.documentId;
-              }
-            } else if (docType === 'license') {
-              // Driver license: 12 digits
-              if (!/^\d{12}$/.test(value.replace(/\s/g, ''))) {
-                newErrors.documentId = 'Driver license must be 12 digits';
-              } else {
-                delete newErrors.documentId;
-              }
-            }
-          }
-          break;
+        // documentId removed: no longer validated here
           
         case 'phoneNumber':
-          if (value) {
-            // Vietnamese phone number patterns
+          // Phone is now required for passenger info
+          if (!value || !value.trim()) {
+            newErrors.phoneNumber = 'Phone number is required';
+          } else {
             const phoneRegex = /^(\+84|84|0)([3-9]\d{8})$/;
             const cleanPhone = value.replace(/[\s-()]/g, '');
             if (!phoneRegex.test(cleanPhone)) {
@@ -115,8 +78,6 @@ export default function PassengerFormItem({
             } else {
               delete newErrors.phoneNumber;
             }
-          } else {
-            delete newErrors.phoneNumber;
           }
           break;
           
@@ -138,15 +99,15 @@ export default function PassengerFormItem({
 
       return newErrors;
     });
-  }, [safePassengerData.documentType]); // Use safePassengerData instead of passengerData
+  }, []); // validation logic is self-contained
 
   const isValidForm = useCallback((): boolean => {
     // Required fields must be filled and have no errors
-    const hasRequiredFields = Boolean(safePassengerData.fullName.trim() && safePassengerData.documentId.trim());
+    const hasRequiredFields = Boolean(safePassengerData.fullName.trim() && (safePassengerData.phoneNumber || '').trim());
     const errorCount = Object.keys(errors).length;
     const hasNoErrors = errorCount === 0;
     return hasRequiredFields && hasNoErrors;
-  }, [safePassengerData.fullName, safePassengerData.documentId, errors]);
+  }, [safePassengerData.fullName, safePassengerData.phoneNumber, errors]);
 
   // Memoize the validation check to prevent unnecessary re-renders
   const checkAndNotifyValidation = useCallback(() => {
@@ -207,77 +168,12 @@ export default function PassengerFormItem({
             )}
           </div>
 
-          {/* Document Type */}
-          <div className="space-y-2">
-            <Label htmlFor="documentType" className="text-sm font-medium">
-              Document Type
-            </Label>
-            <Select
-              value={safePassengerData.documentType || 'id'}
-              onValueChange={(value) => {
-                onUpdate({ documentType: value as 'id' | 'passport' | 'license' });
-                // Re-validate document ID when type changes
-                if (safePassengerData.documentId) {
-                  setTimeout(() => validateField('documentId', safePassengerData.documentId), 100);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select document type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="id">National ID</SelectItem>
-                <SelectItem value="passport">Passport</SelectItem>
-                <SelectItem value="license">Driver's License</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Document fields removed - phone is required now */}
 
-          {/* Document ID */}
-          <div className="space-y-2">
-            <Label htmlFor="documentId" className="text-sm font-medium">
-              <div className="flex items-center gap-1">
-                <CreditCard className="w-4 h-4" />
-                Document ID <span className="text-destructive">*</span>
-              </div>
-            </Label>
-            <Input
-              id="documentId"
-              type="text"
-              placeholder={`Enter ${(safePassengerData.documentType || 'id') === 'id' ? 'CCCD number (12 digits)' : 
-                              (safePassengerData.documentType || 'id') === 'passport' ? 'passport number' : 
-                              'driver license number'}`}
-              value={safePassengerData.documentId}
-              onChange={(e) => {
-                const docType = safePassengerData.documentType || 'id';
-                const value = docType === 'passport' ? e.target.value.toUpperCase() : e.target.value;
-                handleInputChange('documentId', value);
-              }}
-              onBlur={(e) => validateField('documentId', e.target.value)}
-              className={errors.documentId ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
-              maxLength={(safePassengerData.documentType || 'id') === 'passport' ? 9 : 12}
-              aria-invalid={Boolean(errors.documentId)}
-              aria-describedby={errors.documentId ? 'documentId-error' : undefined}
-            />
-            {errors.documentId && (
-              <p 
-                id="documentId-error"
-                className="text-destructive text-xs font-medium flex items-center gap-1"
-                role="alert"
-              >
-                <span className="text-destructive">⚠</span>
-                {errors.documentId}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Enter the exact number as it appears on your document
-            </p>
-          </div>
-
-          {/* Phone Number (Optional) */}
+          {/* Phone Number (Required) */}
           <div className="space-y-2">
             <Label htmlFor="phoneNumber" className="text-sm font-medium">
-              Phone Number (Optional)
+              Phone Number <span className="text-destructive">*</span>
             </Label>
             <Input
               id="phoneNumber"
@@ -334,7 +230,7 @@ export default function PassengerFormItem({
           </p>
         </div>
 
-        {/* Form Status Indicator */}
+        {/* Form Status Indicator
         {Object.keys(errors).length > 0 && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
             <h4 className="text-sm font-medium text-destructive-foreground mb-2 flex items-center gap-1">
@@ -347,18 +243,9 @@ export default function PassengerFormItem({
               ))}
             </ul>
           </div>
-        )}
+        )} */}
 
-        {/* Important Notes */}
-        <div className="bg-accent/10 border border-accent/20 rounded-md p-3">
-          <h4 className="text-sm font-medium text-accent-foreground mb-1">Important Notes:</h4>
-          <ul className="text-xs text-accent-foreground/80 space-y-1">
-            <li>• Please ensure all information matches your identification document</li>
-            <li>• You will need to present the document used during booking at departure</li>
-            <li>• Contact information will be used for booking updates and notifications</li>
-            <li>• Fields marked with <span className="text-destructive font-medium">*</span> are required</li>
-          </ul>
-        </div>
+        {/* Important Notes removed per request */}
       </CardContent>
     </Card>
   );

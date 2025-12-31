@@ -9,7 +9,7 @@ import { Users, User, CreditCard } from "lucide-react";
 interface Passenger {
   id: string;
   fullName: string;
-  documentId: string;
+  documentId?: string | null;
   seatCode: string;
 }
 
@@ -85,16 +85,16 @@ export function BookingEditForm({ passengers, onPassengerChange }: BookingEditFo
                   </Label>
                   <Input
                     id={`documentId-${passenger.id}`}
-                    value={editedPassenger.documentId}
+                    value={editedPassenger.documentId ?? ''}
                     onChange={(e) => handleInputChange(passenger.id, 'documentId', e.target.value)}
                     placeholder="Enter ID/CCCD number"
-                    className={editedPassenger.documentId !== passenger.documentId ? "border-orange-300 bg-orange-50" : ""}
+                    className={(editedPassenger.documentId ?? '') !== (passenger.documentId ?? '') ? "border-orange-300 bg-orange-50" : ""}
                   />
                 </div>
               </div>
               
               {(editedPassenger.fullName !== passenger.fullName || 
-                editedPassenger.documentId !== passenger.documentId) && (
+                (editedPassenger.documentId ?? '') !== (passenger.documentId ?? '')) && (
                 <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
                   📝 This passenger information has been modified
                 </div>

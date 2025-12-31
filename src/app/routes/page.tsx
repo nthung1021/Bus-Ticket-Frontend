@@ -33,7 +33,7 @@ interface RouteResult {
   image: string;
   description: string;
   category: string;
-  rating: number;
+  // rating: number;
   estimatedMinutes: number;
   distanceKm: number;
 }
@@ -58,7 +58,7 @@ const convertRouteToResult = (route: Route): RouteResult => ({
   image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
   description: route.description || `Route from ${route.origin} to ${route.destination}`,
   category: route.distanceKm && route.distanceKm > 300 ? "Premium" : "Standard",
-  rating: 4.0 + Math.random() * 1.0,
+  // rating: 4.0 + Math.random() * 1.0,
   estimatedMinutes: route.estimatedMinutes || 180,
   distanceKm: route.distanceKm || 100
 });
@@ -164,9 +164,9 @@ export default function RoutesPage() {
       case "distance-desc":
         filteredRoutes.sort((a, b) => b.distance - a.distance);
         break;
-      case "rating":
-        filteredRoutes.sort((a, b) => b.rating - a.rating);
-        break;
+      // case "rating":
+      //   filteredRoutes.sort((a, b) => b.rating - a.rating);
+      //   break;
       case "newest":
       default:
         // Keep original order
@@ -295,7 +295,7 @@ export default function RoutesPage() {
                 <select
                   value={filters.operator}
                   onChange={(e) => handleFilterChange("operator", e.target.value)}
-                  className="w-full h-8 text-xs bg-background border border-border rounded-md px-2"
+                  className="w-full h-8 text-xs bg-background border border-border rounded-md px-2 cursor-pointer"
                 >
                   <option value="">All Operators</option>
                   {operators.map((operator) => (
@@ -311,12 +311,12 @@ export default function RoutesPage() {
                 <h4 className="text-sm font-semibold text-foreground">Category</h4>
                 <div className="space-y-1">
                   {categories.map((category) => (
-                    <div key={category} className="flex items-center space-x-2">
+                    <div key={category} className="flex items-center space-x-2 text-sm">
                       <Checkbox
                         id={category}
                         checked={filters.category.includes(category)}
                         onCheckedChange={() => handleCategoryToggle(category)}
-                        className="cursor-pointer h-3 w-3"
+                        className="cursor-pointer h-4 w-4 bg-muted/60"
                       />
                       <label htmlFor={category} className="text-xs text-foreground cursor-pointer">
                         {category}
@@ -341,7 +341,7 @@ export default function RoutesPage() {
                     sortBy: "newest",
                   });
                 }}
-                className="w-full h-8 text-xs"
+                className="w-full h-8 text-xs cursor-pointer"
               >
                 Clear All
               </Button>
@@ -404,12 +404,12 @@ export default function RoutesPage() {
                                   {route.category}
                                 </span>
                               </div>
-                              <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
+                              {/* <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/50 px-2 py-1 rounded">
                                 <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                 </svg>
                                 <span className="text-white text-xs font-medium">{route.rating.toFixed(1)}</span>
-                              </div>
+                              </div> */}
                             </div>
 
                             {/* Route Details */}

@@ -12,9 +12,7 @@ const mockBookingData = {
   passengers: [
     {
       fullName: "Nguyen Van Test",
-      documentId: "123456789",
       seatCode: "A1",
-      documentType: "id",
       phoneNumber: "0123456789",
       email: "test@example.com"
     }

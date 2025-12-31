@@ -1,18 +1,21 @@
 import api from "@/lib/api";
 
+/* ======================================================
+   Types & Interfaces
+====================================================== */
+
 export interface FeedbackData {
-  bookingId: string; // C1 API Contract: Required field
-  tripId: string;    // C1 API Contract: Required field
+  bookingId: string;
+  tripId: string;
   rating: number;
   comment?: string;
 }
 
-// C1 API Contract: Simplified response format
 export interface FeedbackResponse {
   id: string;
   rating: number;
   comment: string | null;
-  createdAt: string;  // ISO string format
+  createdAt: string;
   user: {
     name: string;
   };
@@ -22,17 +25,17 @@ export interface ExistingFeedback {
   id: string;
   rating: number;
   comment: string | null;
-  submittedAt: string; // Keep for backwards compatibility
+  createdAt: string;
 }
 
-// C1 API Contract: Review with user info for listing
 export interface ReviewWithUser {
   id: string;
+  tripId: string;
   rating: number;
   comment: string | null;
-  createdAt: string; // ISO string from C1 API
+  createdAt: string;
   user: {
-    name: string; // Simplified user info from C1 API
+    name: string;
   };
 }
 
@@ -48,157 +51,214 @@ export interface ReviewsListResponse {
   };
 }
 
-export type SortBy = 'newest' | 'oldest' | 'highest_rating' | 'lowest_rating';
+export type SortBy =
+  | "newest"
+  | "oldest"
+  | "highest_rating"
+  | "lowest_rating";
 
 export interface ReviewsListParams {
   page?: number;
   limit?: number;
   sortBy?: SortBy;
-  tripId?: string;
-  routeId?: string;
 }
 
+/* ======================================================
+   Helpers
+====================================================== */
+
+function assertString(value: unknown, name: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`${name} must be a string`);
+  }
+  return value;
+}
+
+/* ======================================================
+   Service
+====================================================== */
+
 export const feedbackService = {
-  // C1 API Contract: Submit new review for a booking
-  async submitFeedback(bookingId: string, tripId: string, feedbackData: Omit<FeedbackData, 'bookingId' | 'tripId'>): Promise<FeedbackResponse> {
-    const response = await api.post(`/reviews`, {
-      bookingId,
-      tripId,
-      rating: feedbackData.rating,
-      comment: feedbackData.comment || undefined,
-    });
-    return response.data;
+  /* =======================
+     CREATE REVIEW
+  ======================= */
+  async submitFeedback(
+    bookingId: string,
+    tripId: string,
+    feedbackData: Omit<FeedbackData, "bookingId" | "tripId">
+  ): Promise<FeedbackResponse> {
+    return (
+      await api.post(`/reviews`, {
+        bookingId: assertString(bookingId, "bookingId"),
+        tripId: assertString(tripId, "tripId"),
+        rating: feedbackData.rating,
+        comment: feedbackData.comment || undefined,
+      })
+    ).data;
   },
 
-  // Get user's feedback for a specific trip
-  async getFeedbackForTrip(tripId: string): Promise<ExistingFeedback | null> {
+  /* =======================
+     GET FEEDBACK FOR TRIP
+  ======================= */
+  async getFeedbackForTrip(tripId: string): Promise<ReviewWithUser | null> {
     try {
-      const response = await api.get(`/api/feedback/trip/${tripId}`);
-      return response.data;
+      // Get user's review for this trip from my-reviews
+      const response = await api.get('/reviews/my-reviews?limit=100');
+      const userReviews = response.data.reviews;
+      
+      // Find the review for this specific trip
+      const tripReview = userReviews.find((review: ReviewWithUser) => review.tripId === tripId);
+      return tripReview || null;
     } catch (error: any) {
-      // Return null if feedback doesn't exist (404)
-      if (error.response?.status === 404) {
+      // If error is 401 (not authenticated), return null
+      if (error.response?.status === 401) {
         return null;
       }
       throw error;
     }
   },
 
-  // Get all user's feedback
-  async getUserFeedback(): Promise<ExistingFeedback[]> {
-    const response = await api.get(`/api/feedback/user`);
-    return response.data;
-  },
-
-  // Update existing feedback
-  async updateFeedback(feedbackId: string, feedbackData: Partial<FeedbackData>): Promise<FeedbackResponse> {
-    const response = await api.put(`/api/feedback/${feedbackId}`, feedbackData);
-    return response.data;
-  },
-
-  // Delete feedback
-  async deleteFeedback(feedbackId: string): Promise<void> {
-    await api.delete(`/api/feedback/${feedbackId}`);
-  },
-
-  // Check if user can leave feedback for a trip
-  async canLeaveFeedback(tripId: string): Promise<{
+  /* =======================
+     CHECK CAN REVIEW
+  ======================= */
+  async canLeaveFeedback(bookingId: string): Promise<{
     canReview: boolean;
     reason?: string;
     bookingStatus?: string;
     tripStatus?: string;
   }> {
     try {
-      const response = await api.get(`/api/feedback/can-review/${tripId}`);
+      const response = await api.get(
+        `/reviews/can-review/${assertString(bookingId, "bookingId")}`
+      );
       return response.data;
     } catch (error: any) {
       return {
         canReview: false,
-        reason: error.response?.data?.message || "Unable to check review eligibility",
+        reason:
+          error.response?.data?.message ||
+          "Unable to check review eligibility",
       };
     }
   },
 
-  // C3: Get reviews for a specific trip with pagination and sorting
-  async getTripReviews(params: ReviewsListParams & { tripId: string }): Promise<ReviewsListResponse> {
-    const { tripId, page = 1, limit = 10, sortBy = 'newest', ...otherParams } = params;
-    
+  /* =======================
+     LIST REVIEWS
+  ======================= */
+
+  async getTripReviews(
+    tripId: string,
+    params: ReviewsListParams = {}
+  ): Promise<ReviewsListResponse> {
+    const safeTripId = assertString(tripId, "tripId");
+
     const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      sortBy,
-      ...Object.entries(otherParams).reduce((acc, [key, value]) => {
-        if (value !== undefined) acc[key] = value.toString();
-        return acc;
-      }, {} as Record<string, string>)
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 10),
+      sortBy: params.sortBy ?? "newest",
     });
 
-    // C1 API Contract: Use /reviews endpoint
-    const response = await api.get(`/reviews?tripId=${tripId}&${queryParams}`);
+    const response = await api.get(
+      `/reviews?tripId=${safeTripId}&${queryParams.toString()}`
+    );
     return response.data;
   },
 
-  // Get reviews for a specific route with pagination and sorting
-  async getRouteReviews(params: ReviewsListParams & { routeId: string }): Promise<ReviewsListResponse> {
-    const { routeId, page = 1, limit = 10, sortBy = 'newest', ...otherParams } = params;
-    
+  async getUserReviews(
+    userId: string,
+    params: ReviewsListParams = {}
+  ): Promise<ReviewsListResponse> {
+    const safeUserId = assertString(userId, "userId");
+
     const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      sortBy,
-      ...Object.entries(otherParams).reduce((acc, [key, value]) => {
-        if (value !== undefined) acc[key] = value.toString();
-        return acc;
-      }, {} as Record<string, string>)
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 10),
+      sortBy: params.sortBy ?? "newest",
     });
 
-    // C1 API Contract: Use /reviews endpoint with routeId filter
-    const response = await api.get(`/reviews?routeId=${routeId}&${queryParams}`);
+    const response = await api.get(
+      `/reviews/user/${safeUserId}?${queryParams.toString()}`
+    );
     return response.data;
   },
 
-  // Get all reviews with pagination and sorting (public endpoint)
-  async getAllReviews(params: ReviewsListParams = {}): Promise<ReviewsListResponse> {
-    const { page = 1, limit = 10, sortBy = 'newest', ...otherParams } = params;
-    
+  async getMyReviews(
+    params: ReviewsListParams = {}
+  ): Promise<ReviewsListResponse> {
     const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      sortBy,
-      ...Object.entries(otherParams).reduce((acc, [key, value]) => {
-        if (value !== undefined) acc[key] = value.toString();
-        return acc;
-      }, {} as Record<string, string>)
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 10),
+      sortBy: params.sortBy ?? "newest",
     });
 
-    const response = await api.get(`/reviews?${queryParams}`);
+    const response = await api.get(
+      `/reviews/my-reviews?${queryParams.toString()}`
+    );
     return response.data;
   },
 
-  // Get review statistics for trip or route
-  async getReviewStats(id: string, type: 'trip' | 'route'): Promise<{
+  async getAllReviews(
+    params: ReviewsListParams = {}
+  ): Promise<ReviewsListResponse> {
+    const queryParams = new URLSearchParams({
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 10),
+      sortBy: params.sortBy ?? "newest",
+    });
+
+    const response = await api.get(`/reviews?${queryParams.toString()}`);
+    return response.data;
+  },
+
+  /* =======================
+     REVIEW DETAIL
+  ======================= */
+
+  async getReviewById(reviewId: string): Promise<ReviewWithUser> {
+    return (
+      await api.get(`/reviews/${assertString(reviewId, "reviewId")}`)
+    ).data;
+  },
+
+  async updateReview(
+    reviewId: string,
+    data: Partial<FeedbackData>
+  ): Promise<FeedbackResponse> {
+    return (
+      await api.patch(
+        `/reviews/${assertString(reviewId, "reviewId")}`,
+        data
+      )
+    ).data;
+  },
+
+  async deleteReview(reviewId: string): Promise<void> {
+    await api.delete(`/reviews/${assertString(reviewId, "reviewId")}`);
+  },
+
+  /* =======================
+     REVIEW STATS
+     Backend:
+     GET /reviews/stats
+     GET /reviews/stats?tripId=UUID
+  ======================= */
+
+  async getReviewStats(tripId?: string): Promise<{
     averageRating: number;
     totalReviews: number;
-    ratingDistribution: { [key: number]: number };
+    ratingDistribution: Record<number, number>;
   }> {
-    // Use the correct endpoint format from backend
-    const endpoint = type === 'trip' ? `/reviews/stats?tripId=${id}` : `/reviews/stats?routeId=${id}`;
+    const endpoint = tripId
+      ? `/reviews/stats?tripId=${assertString(tripId, "tripId")}`
+      : `/reviews/stats`;
+
     const response = await api.get(endpoint);
-    
-    // Transform ratingDistribution from array to object format
     const rawData = response.data;
-    const ratingDistribution: { [key: number]: number } = {};
-    
-    if (rawData.ratingDistribution && Array.isArray(rawData.ratingDistribution)) {
-      rawData.ratingDistribution.forEach((item: { rating: number; count: number }) => {
-        ratingDistribution[item.rating] = item.count;
-      });
-    }
-    
+
     return {
-      averageRating: rawData.averageRating || 0,
-      totalReviews: rawData.totalReviews || 0,
-      ratingDistribution,
+      averageRating: rawData.averageRating ?? 0,
+      totalReviews: rawData.totalReviews ?? 0,
+      ratingDistribution: rawData.ratingDistribution || {},
     };
   },
 };

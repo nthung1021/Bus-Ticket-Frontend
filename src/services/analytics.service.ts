@@ -147,9 +147,7 @@ export class AnalyticsService {
       if (params?.endDate) searchParams.append('endDate', params.endDate);
       if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
-      console.log('Fetching bookings summary with params:', params);
       const response = await api.get(`/admin/analytics/bookings/summary${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
-      console.log('Bookings summary response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching bookings summary:', error);
@@ -164,9 +162,7 @@ export class AnalyticsService {
       if (params?.endDate) searchParams.append('endDate', params.endDate);
       if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
-      console.log('Fetching bookings trends with params:', params);
       const response = await api.get(`/admin/analytics/bookings/trends${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
-      console.log('Bookings trends response:', response.data);
       // Backend returns { data: BookingTrend[], ... }, we need the data array
       return response.data.data || [];
     } catch (error) {
@@ -182,9 +178,7 @@ export class AnalyticsService {
       if (params?.endDate) searchParams.append('endDate', params.endDate);
       if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
-      console.log('Fetching route analytics with params:', params);
       const response = await api.get(`/admin/analytics/bookings/routes${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
-      console.log('Route analytics response:', response.data);
       // Backend returns { routes: RouteAnalytics[], ... }, we need the routes array
       return response.data.routes || [];
     } catch (error) {

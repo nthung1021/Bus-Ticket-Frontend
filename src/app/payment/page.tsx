@@ -58,7 +58,7 @@ interface SelectedSeat {
 
 interface PassengerData {
   fullName: string;
-  documentId: string;
+  documentId?: string;
   seatCode: string;
   documentType?: "id" | "passport" | "license";
   phoneNumber?: string;
@@ -115,9 +115,10 @@ function PaymentPageContent() {
         setLoading(true);
         setError(null);
 
-        // Get booking data from sessionStorage
+        // Get booking data from sessionStorage or, if absent, try loading by bookingId
         const savedBookingData = sessionStorage.getItem("bookingData");
-        if (!savedBookingData) {
+        const bookingIdFromQuery = searchParams.get("bookingId");
+        if (!savedBookingData && !bookingIdFromQuery) {
           setError(
             "No booking data found. Please start over from trip selection."
           );
@@ -126,16 +127,56 @@ function PaymentPageContent() {
         }
 
         let parsedBookingData: BookingData;
-        try {
-          parsedBookingData = JSON.parse(savedBookingData);
-        } catch (parseError) {
-          console.error("Failed to parse booking data:", parseError);
-          setError(
-            "Invalid booking data. Please start over from trip selection."
-          );
-          setLoading(false);
-          return;
+
+        if (!savedBookingData && bookingIdFromQuery) {
+          // Try to fetch booking from backend so user returning from PayOS can resume
+          try {
+            const resp = await api.get(`/bookings/${bookingIdFromQuery}`);
+            // Backend returns { success, message, data } - prefer the inner data
+            const remote = resp.data?.data || resp.data;
+            // Map backend booking to front-end BookingData shape
+            const seatStatuses = remote.seatStatuses || [];
+            const passengers = remote.passengerDetails || [];
+            const seats = seatStatuses.map((s: any, idx: number) => ({
+              id: s.seatId || s.seat?.id,
+              code: s.seat?.seatCode || passengers?.[idx]?.seatCode || '',
+              type: 'normal',
+              price: Math.round((remote.totalAmount || 0) / Math.max(1, seatStatuses.length)),
+            }));
+
+            parsedBookingData = {
+              tripId: remote.tripId,
+              seats,
+              passengers: passengers.map((p: any) => ({
+                fullName: p.fullName,
+                documentId: p.documentId || undefined,
+                seatCode: p.seatCode,
+                phoneNumber: p.phoneNumber || undefined,
+                email: p.email || undefined,
+              })),
+              totalPrice: remote.totalAmount || 0,
+              isGuestCheckout: !remote.userId,
+              contactEmail: remote.contactEmail,
+              contactPhone: remote.contactPhone,
+            };
+
+            // also persist to sessionStorage so subsequent navigation works
+            try {
+              sessionStorage.setItem('bookingData', JSON.stringify({ ...parsedBookingData, bookingId: bookingIdFromQuery }));
+            } catch (e) {
+              console.debug('Failed to persist bookingData to sessionStorage', e);
+            }
+          } catch (err) {
+            console.error('Failed to load booking by id:', err);
+            setError('Booking data not found. Please start over from trip selection.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          parsedBookingData = JSON.parse(savedBookingData as string);
         }
+
+        // parsedBookingData is prepared above
 
         // Validate required fields
         if (
@@ -290,16 +331,21 @@ function PaymentPageContent() {
           }
         }
 
-        // Validate each passenger has required fields
+        // Validate each passenger has required fields (guard against empty/corrupt objects)
         for (const passenger of parsedBookingData.passengers) {
-          if (
-            !passenger.fullName ||
-            !passenger.documentId ||
-            !passenger.seatCode
-          ) {
-            console.error("Invalid passenger data:", passenger);
+          if (!passenger || Object.keys(passenger).length === 0) {
+            console.error("Invalid passenger data (empty object):", passenger);
             setError(
-              `Invalid passenger data: missing required fields. Please complete passenger details.`
+              "Invalid passenger data: passenger entry is empty or corrupted. Please complete passenger details."
+            );
+            setLoading(false);
+            return;
+          }
+
+          if (!passenger.fullName || !passenger.seatCode) {
+            console.error("Invalid passenger data (missing fields):", passenger);
+            setError(
+              `Invalid passenger data: missing required fields (full name or seat). Please complete passenger details.`
             );
             setLoading(false);
             return;
@@ -667,9 +713,13 @@ function PaymentPageContent() {
           showToast.dismiss(bookingToast);
           showToast.success("Booking created successfully!");
 
+          const bookingResult = response.data.data;
+          // Prefer paymentUrl from booking result, fallback to response top-level
+          const paymentUrl = bookingResult?.paymentUrl || response.data?.paymentUrl || null;
+
           // Update seat statuses to 'booked' for all booked seats
           try {
-            const bookingId = response.data.data.id;
+            const bookingId = bookingResult.id;
             const updatePromises = bookingData.seats.map((seat) =>
               bookSeat(seat.id, bookingId)
             );
@@ -704,10 +754,24 @@ function PaymentPageContent() {
             "🧹 Cleared localStorage and sessionStorage after successful booking"
           );
 
+          // If backend returned a paymentUrl, redirect user to PayOS (for all payment methods)
+          if (paymentUrl) {
+            // Optionally store last booking info for callback handling
+            sessionStorage.setItem(
+              "lastBookingAfterCreate",
+              JSON.stringify({ id: bookingResult.id, reference: bookingResult.bookingReference })
+            );
+
+            // Redirect to payment provider
+            window.location.href = paymentUrl;
+            return;
+          }
+
+          // Fallback: no paymentUrl, treat as immediate success
           setPaymentSuccess(true);
           // Redirect to success page with actual booking ID
           setTimeout(() => {
-            router.push(`/payment/success?bookingId=${response.data.data.id}`);
+            router.push(`/payment/success?bookingId=${bookingResult.id}`);
           }, 1500);
         } else {
           throw new Error(response.data.message || "Failed to create booking");
@@ -903,7 +967,7 @@ function PaymentPageContent() {
                 </Button>
               ) : (
                 <Button asChild>
-                  <Link href="/trips">Back to Trips</Link>
+                  <Link href="/">Back to Home</Link>
                 </Button>
               )}
             </div>
@@ -1023,7 +1087,7 @@ function PaymentPageContent() {
               >
                 {paymentMethods.map((method) => (
                   <div key={method.id} className="flex items-center space-x-3">
-                    <RadioGroupItem value={method.id} id={method.id} />
+                    <RadioGroupItem value={method.id} id={method.id} className="bg-muted/60 cursor-pointer" />
                     <Label
                       htmlFor={method.id}
                       className="flex items-center gap-3 cursor-pointer flex-1"
@@ -1062,7 +1126,7 @@ function PaymentPageContent() {
                 </Alert>
               )}
 
-              {/* Debug Test Button (Development Only) */}
+              {/* Debug Test Button (Development Only)
               {process.env.NODE_ENV === "development" && (
                 <div className="space-y-2">
                   <Button
@@ -1374,7 +1438,7 @@ function PaymentPageContent() {
                     Reselect Seats
                   </Button>
                 </div>
-              )}
+              )} */}
 
               {/* Payment Button */}
               <Button
@@ -1398,7 +1462,7 @@ function PaymentPageContent() {
                   </>
                 ) : (
                   <>
-                    <CreditCard className="w-4 h-4 mr-2" />
+                    <CreditCard className="w-4 h-4 mr-2 cursor-pointer" />
                     Complete Booking{" "}
                     {formatCurrency(
                       bookingData.totalPrice + serviceFee + processingFee
@@ -1502,14 +1566,14 @@ function PaymentPageContent() {
                 </div>
               </div>
 
-              {/* Seats Info */}
+              {/* Seats Info
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>Trip ID: {bookingData.tripId}</p>
                 <p>
                   Selected Seats:{" "}
                   {bookingData.seats.map((s) => s.code).join(", ")}
                 </p>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </div>

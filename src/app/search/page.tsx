@@ -21,6 +21,8 @@ interface SearchFilters {
   to: string;
   category: string[];
   operator: string;
+  departureTime: string; // morning|afternoon|evening|night
+  date: string; // yyyy-mm-dd
   sortBy: string;
 }
 
@@ -66,6 +68,8 @@ function SearchPageContent() {
     to: "",
     category: [],
     operator: "",
+    departureTime: "",
+    date: "",
     sortBy: "newest",
   });
 
@@ -84,6 +88,18 @@ function SearchPageContent() {
   // console.log(date);
   const passengers = searchParams.get("passengers") || "";
 
+  // Effective display values for date and time (prefer filter values)
+  const effectiveDateDisplay = filters.date || date;
+  const timeLabelMap: Record<string, string> = {
+    morning: "Morning (05:00-11:59)",
+    afternoon: "Afternoon (12:00-16:59)",
+    evening: "Evening (17:00-20:59)",
+    night: "Night (21:00-04:59)",
+  };
+  const effectiveTimeLabel = filters.departureTime
+    ? timeLabelMap[filters.departureTime] || filters.departureTime
+    : "Any time";
+
   useEffect(() => {
     // Require at least origin and destination for trip searches
     if (!origin || !destination) {
@@ -98,19 +114,29 @@ function SearchPageContent() {
     setIsLoading(true);
     setError(null);
 
-    // Convert date to ISO 8601 format (YYYY-MM-DD) if provided
+    // Convert date to ISO 8601 format (YYYY-MM-DD) if provided.
     const searchParams: any = {
       origin,
       destination,
     };
-    
-    if (date) {
-      const formattedDate = new Date(`${date}T00:00:00`).toISOString();
+
+    // prefer filter date (if set) over URL param
+    const effectiveDate = filters.date || date;
+    if (effectiveDate) {
+      const formattedDate = new Date(`${effectiveDate}T00:00:00`).toISOString();
       searchParams.date = formattedDate;
       console.log('📅 Using specific date:', formattedDate);
     } else {
       console.log('📅 Searching all dates');
     }
+
+    // Include departure time bucket if selected (morning/afternoon/evening/night)
+    if (filters.departureTime) {
+      searchParams.departureTime = filters.departureTime;
+      console.log('⏱️ Filtering by departureTime bucket:', filters.departureTime);
+    }
+
+    // exact time filter removed — only using bucket + date
     api.get("/trips/search", {
       params: searchParams,
     })
@@ -186,7 +212,7 @@ function SearchPageContent() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [origin, destination, date]);
+  }, [origin, destination, date, filters.departureTime, filters.date]);
 
   // Filter and sort results
   useEffect(() => {
@@ -359,7 +385,7 @@ function SearchPageContent() {
               className="bg-card/90 dark:bg-black/95 backdrop-blur-sm border border-border/70 dark:border-border/40 rounded-xl p-6 shadow-lg dark:shadow-2xl"
             >
               <h3 className="text-h5 font-semibold text-foreground flex items-center gap-2 pb-3 border-b border-border">
-                <svg
+                {/* <svg
                   className="w-5 h-5 text-primary"
                   fill="none"
                   stroke="currentColor"
@@ -371,11 +397,39 @@ function SearchPageContent() {
                     strokeWidth={2}
                     d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
                   />
-                </svg>
+                </svg> */}
                 Filters
               </h3>
 
               {/* Trip Type */}
+              <div className="space-y-3">
+                <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-ticket text-primary" viewBox="0 0 16 16">
+                    <path d="M0 4.5A1.5 1.5 0 0 1 1.5 3h13A1.5 1.5 0 0 1 16 4.5V6a.5.5 0 0 1-.5.5 1.5 1.5 0 0 0 0 3 .5.5 0 0 1 .5.5v1.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 11.5V10a.5.5 0 0 1 .5-.5 1.5 1.5 0 1 0 0-3A.5.5 0 0 1 0 6zM1.5 4a.5.5 0 0 0-.5.5v1.05a2.5 2.5 0 0 1 0 4.9v1.05a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-1.05a2.5 2.5 0 0 1 0-4.9V4.5a.5.5 0 0 0-.5-.5z"/>
+                  </svg>
+                  Trip Type
+                </h4>
+                <div className="space-y-2 bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                  {tripTypes.map((type) => (
+                    <div key={type} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/40 dark:hover:bg-gray-800/50 transition-colors">
+                      <Checkbox
+                        id={type}
+                        checked={filters.tripType.includes(type)}
+                        onCheckedChange={() => handleTripTypeToggle(type)}
+                        className="cursor-pointer bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
+                      />
+                      <label
+                        htmlFor={type}
+                        className="text-sm text-foreground cursor-pointer font-medium flex-1"
+                      >
+                        {type}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Departure Time */}
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
                   <svg
@@ -391,26 +445,54 @@ function SearchPageContent() {
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  Trip Type
+                  Departure Time
                 </h4>
-                <div className="space-y-2 bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
-                  {tripTypes.map((type) => (
-                    <div key={type} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/50 dark:hover:bg-gray-800/50 transition-colors">
-                      <Checkbox
-                        id={type}
-                        checked={filters.tripType.includes(type)}
-                        onCheckedChange={() => handleTripTypeToggle(type)}
-                        className="cursor-pointer bg-secondary data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
+                  <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-2">
+                    <div>
+                      <Input
+                        type="date"
+                        value={filters.date}
+                        onChange={(e) => handleFilterChange('date', e.target.value)}
+                        className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
                       />
-                      <label
-                        htmlFor={type}
-                        className="text-sm text-foreground cursor-pointer font-medium flex-1"
-                      >
-                        {type}
-                      </label>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="relative">
+                      <select
+                        value={filters.departureTime}
+                        onChange={(e) => handleFilterChange('departureTime', e.target.value)}
+                        className="
+                          w-full h-9
+                          bg-background/90 dark:bg-black/95
+                          border border-border/60 dark:border-border/40
+                          focus:border-primary
+                          text-sm rounded-md
+                          pl-4 pr-10
+                          transition-colors
+                          cursor-pointer
+                          appearance-none
+                        "
+                      >
+                        <option value="">Any time</option>
+                        <option value="morning">Morning (05:00-11:59)</option>
+                        <option value="afternoon">Afternoon (12:00-16:59)</option>
+                        <option value="evening">Evening (17:00-20:59)</option>
+                        <option value="night">Night (21:00-04:59)</option>
+                      </select>
+
+                      {/* Arrow */}
+                      <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                        <svg
+                          className="w-4 h-4 text-muted-foreground"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
               </div>
 
               {/* Price Range */}
@@ -429,9 +511,9 @@ function SearchPageContent() {
                       d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                     />
                   </svg>
-                  Price Range ({getCurrencySymbol()})
+                  Price Range 
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label
@@ -469,7 +551,7 @@ function SearchPageContent() {
                 </div>
               </div>
 
-              {/* From/To Locations */}
+              {/* From/To Locations
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
                   <svg
@@ -493,7 +575,7 @@ function SearchPageContent() {
                   </svg>
                   Locations
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-3">
+                <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-3">
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1.5 block">
                       From
@@ -517,7 +599,7 @@ function SearchPageContent() {
                     />
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Bus Operator */}
               <div className="space-y-3">
@@ -537,11 +619,11 @@ function SearchPageContent() {
                   </svg>
                   Bus Operator
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <select
                     value={filters.operator}
                     onChange={(e) => handleFilterChange("operator", e.target.value)}
-                    className="w-full h-9 bg-background/90 dark:bg-black/95 border border-border/60 dark:border-border/40 focus:border-primary text-sm rounded-md px-2 transition-colors"
+                    className="w-full h-9 bg-background/90 dark:bg-black/95 border border-border/60 dark:border-border/40 focus:border-primary text-sm rounded-md px-2 transition-colors cursor-pointer"
                   >
                     <option value="">All Operators</option>
                     {operators.map((operator) => (
@@ -571,17 +653,17 @@ function SearchPageContent() {
                   </svg>
                   Category
                 </h4>
-                <div className="space-y-2 bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                <div className="space-y-2 bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   {categories.map((category) => (
                     <div
                       key={category}
-                      className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/50 dark:hover:bg-gray-800/50 transition-colors"
+                      className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/40 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       <Checkbox
                         id={category}
                         checked={filters.category.includes(category)}
                         onCheckedChange={() => handleCategoryToggle(category)}
-                        className="cursor-pointer bg-secondary data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
+                        className="cursor-pointer bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
                       />
                       <label
                         htmlFor={category}
@@ -608,6 +690,8 @@ function SearchPageContent() {
                       to: "",
                       category: [],
                       operator: "",
+                      departureTime: "",
+                      date: "",
                       sortBy: "price-asc",
                     });
                   }}
@@ -643,13 +727,16 @@ function SearchPageContent() {
                     <span className="font-semibold text-foreground">
                       {origin} → {destination}
                     </span>
-                    {date && (
+                    {effectiveDateDisplay ? (
                       <>
                         {" "}on{" "}
                         <span className="font-semibold text-foreground">
-                          {date}
+                          {effectiveDateDisplay}
                         </span>
+                        <span className="text-muted-foreground ml-2">• {effectiveTimeLabel}</span>
                       </>
+                    ) : (
+                      <span className="text-muted-foreground ml-2">({effectiveTimeLabel})</span>
                     )}
                     {passengers && (
                       <span>
@@ -657,9 +744,6 @@ function SearchPageContent() {
                         for {passengers} passenger
                         {Number(passengers) > 1 ? "s" : ""}
                       </span>
-                    )}
-                    {!date && (
-                      <span className="text-muted-foreground ml-2">(all dates)</span>
                     )}
                   </>
                 ) : (
@@ -755,7 +839,7 @@ function SearchPageContent() {
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                               </svg>
                               <span className="text-caption font-medium">
-                                {result.rating}
+                                {result.rating.toFixed(1)}
                               </span>
                             </div>
                             <p className="text-caption bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
@@ -906,7 +990,9 @@ function SearchPageContent() {
                       to: "",
                       category: [],
                       operator: "",
-                      sortBy: "newest"
+                      departureTime: "",
+                      date: "",
+                      sortBy: "newest",
                     })}
                     variant="outline"
                     className="cursor-pointer"

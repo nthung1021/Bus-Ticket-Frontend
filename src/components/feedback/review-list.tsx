@@ -457,11 +457,11 @@ export function ReviewList({
         </div>
       )}
 
-      {/* Loading State */}
-      {isLoading && <ReviewListSkeleton />}
+      {/* Loading State (only show skeleton when there are no reviews yet) */}
+      {isLoading && reviews.length === 0 && <ReviewListSkeleton />}
 
-      {/* Reviews List */}
-      {!isLoading && (
+      {/* Reviews List (keep showing existing reviews while loading to avoid layout jitter) */}
+      {!(isLoading && reviews.length === 0) && (
         <>
           {reviews.length === 0 ? (
             <Card>

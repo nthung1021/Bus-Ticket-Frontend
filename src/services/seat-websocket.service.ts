@@ -4,6 +4,12 @@ const SOCKET_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api", "") ||
   "http://localhost:3000";
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuid(id?: string) {
+  return typeof id === 'string' && uuidRegex.test(id);
+}
+
 export interface SeatLock {
   seatId: string;
   userId: string;
@@ -75,11 +81,15 @@ class SeatWebSocketService {
       });
 
       this.socket.on("connect", () => {
-        console.log("WebSocket connected");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Seat WebSocket connected");
+        }
       });
 
       this.socket.on("disconnect", () => {
-        console.log("WebSocket disconnected");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Seat WebSocket disconnected");
+        }
       });
 
       this.socket.on("connect_error", (error) => {
@@ -103,6 +113,11 @@ class SeatWebSocketService {
 
   joinTrip(tripId: string): Promise<{ success: boolean; tripId: string }> {
     return new Promise((resolve, reject) => {
+      if (!tripId || !isValidUuid(tripId)) {
+        reject(new Error('Invalid tripId'));
+        return;
+      }
+
       if (!this.socket) {
         reject(new Error("Socket not connected"));
         return;
@@ -147,6 +162,16 @@ class SeatWebSocketService {
     userId?: string,
   ): Promise<{ success: boolean; lock?: SeatLock; message?: string }> {
     return new Promise((resolve, reject) => {
+      if (!tripId || !isValidUuid(tripId)) {
+        resolve({ success: false, message: 'Invalid tripId' });
+        return;
+      }
+
+      if (!seatId) {
+        resolve({ success: false, message: 'Invalid seatId' });
+        return;
+      }
+
       if (!this.socket) {
         reject(new Error("Socket not connected"));
         return;
@@ -167,6 +192,16 @@ class SeatWebSocketService {
     seatId: string,
   ): Promise<{ success: boolean; message?: string }> {
     return new Promise((resolve, reject) => {
+      if (!tripId || !isValidUuid(tripId)) {
+        resolve({ success: false, message: 'Invalid tripId' });
+        return;
+      }
+
+      if (!seatId) {
+        resolve({ success: false, message: 'Invalid seatId' });
+        return;
+      }
+
       if (!this.socket) {
         reject(new Error("Socket not connected"));
         return;
