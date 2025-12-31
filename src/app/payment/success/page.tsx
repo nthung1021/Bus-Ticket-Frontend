@@ -495,20 +495,20 @@ function PaymentSuccessPageContent() {
   useEffect(() => {
     const sendEticketEmail = async () => {
       console.log(booking);
-      
-      if (!booking || !(booking as any)?.bookingId) return;
+
+      if (!booking || !(booking as any)?.id) return;
 
       // Skip mock bookings
-      if ((booking as any)?.bookingId.startsWith("mock-booking-")) return;
+      if ((booking as any)?.id.startsWith("mock-booking-")) return;
 
       // Avoid sending multiple times if state changes
       if (emailTriggered) return;
 
       try {
-        // console.log("Triggering e-ticket email for booking", (booking as any)?.bookingId);
-        await api.post(`/bookings/${(booking as any)?.bookingId}/eticket/email`, {});
+        // console.log("Triggering e-ticket email for booking", (booking as any)?.id);
+        await api.post(`/bookings/${(booking as any)?.id}/eticket/email`, {});
         setEmailTriggered(true);
-        console.log("E-ticket email triggered for booking", (booking as any)?.bookingId);
+        console.log("E-ticket email triggered for booking", (booking as any)?.id);
       } catch (err) {
         console.error("Failed to send e-ticket email:", err);
       }
@@ -542,10 +542,10 @@ function PaymentSuccessPageContent() {
     if (!booking) return;
 
     // For mock bookings, keep existing simple text-based ticket behavior
-    if ((booking as any)?.bookingId.startsWith("mock-booking-")) {
+    if ((booking as any)?.id.startsWith("mock-booking-")) {
       const ticketContent = `
 === BUS TICKET ===
-Booking ID: ${(booking as any)?.bookingId}
+Booking ID: ${(booking as any)?.id}
 Status: PAID
 Route: ${booking.trip?.route?.origin} → ${booking.trip?.route?.destination}
 Date: ${booking.trip?.departureTime ? format(new Date(booking.trip.departureTime), "PPP") : "N/A"}
@@ -563,7 +563,7 @@ Present this ticket when boarding the bus.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ticket-${(booking as any)?.bookingId}.txt`;
+      a.download = `ticket-${(booking as any)?.id}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -572,7 +572,7 @@ Present this ticket when boarding the bus.
     }
 
     try {
-      const response = await api.get(`/bookings/${(booking as any)?.bookingId}/eticket`, {
+      const response = await api.get(`/bookings/${(booking as any)?.id}/eticket`, {
         responseType: "blob",
       });
 
@@ -731,7 +731,7 @@ Present this ticket when boarding the bus.
           <CardHeader>
             <CardTitle>Booking Confirmation</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Booking ID: {(booking as any)?.bookingId}
+              Booking ID: {(booking as any)?.id}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
