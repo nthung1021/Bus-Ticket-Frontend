@@ -76,9 +76,11 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@types/multer": "^2.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/streamifier": "^0.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "husky": "^9.1.7",

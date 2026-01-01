@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import {
   useAdminUsers,
   useChangeUserRole,
@@ -16,6 +16,7 @@ import {
 } from "src/hooks/useAdminUsers";
 import { adminActivityService } from "@/services/admin-activity.service";
 import { useState } from "react";
+import { CreateAccountDialog } from "@/components/dashboard/CreateAccountDialog/CreateAccountDialog";
 
 const ROLES = [
   { key: "customer", label: "Passenger" },
@@ -36,6 +37,7 @@ function AdminPageContent() {
   console.log("admin users raw:", users);
   const changeRole = useChangeUserRole();
   const [changingUser, setChangingUser] = useState<string | null>(null);
+  const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,7 +106,13 @@ function AdminPageContent() {
         <main className="flex-1 pt-10 px-6 pb-6 overflow-auto">
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">User Management</CardTitle>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">User Management</CardTitle>
+                <Button onClick={() => setIsCreateAccountOpen(true)} className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Create Account
+                </Button>
+              </div>
               
               {/* Enhanced Filters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
@@ -207,6 +215,11 @@ function AdminPageContent() {
           </Card>
         </main>
       </div>
+
+      <CreateAccountDialog 
+        open={isCreateAccountOpen} 
+        onOpenChange={setIsCreateAccountOpen} 
+      />
     </div>
   );
 }
