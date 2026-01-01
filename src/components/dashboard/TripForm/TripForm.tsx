@@ -98,12 +98,32 @@ export function TripForm({
     // Watch the selected route so we can enable/disable the bus selector
     const selectedRouteId = form.watch("routeId");
 
-    // If the route changes (or is cleared), reset the selected bus to avoid mismatches
+    // Track available buses for the selected route and reset bus when route changes
+    const [availableBuses, setAvailableBuses] = React.useState<Bus[]>([]);
+
     React.useEffect(() => {
         if (!selectedRouteId) {
             form.setValue("busId", "");
+            setAvailableBuses([]);
+            return;
         }
-    }, [selectedRouteId, form]);
+
+        // Find the route to access operatorId and filter buses by operator
+        const route = routes.find((r) => r.id === selectedRouteId);
+        if (route?.operatorId) {
+            const filtered = buses.filter((b) => b.operatorId === route.operatorId);
+            setAvailableBuses(filtered);
+
+            // If currently selected bus is not part of the new filtered list, clear it
+            const currentBus = form.getValues("busId");
+            if (currentBus && !filtered.find((b) => b.id === currentBus)) {
+                form.setValue("busId", "");
+            }
+        } else {
+            setAvailableBuses([]);
+            form.setValue("busId", "");
+        }
+    }, [selectedRouteId, routes, buses, form]);
 
     const handleSubmit = async (data: StrictTripFormValues) => {
         try {
@@ -195,11 +215,17 @@ export function TripForm({
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {buses.map((bus) => (
-                                            <SelectItem key={bus.id} value={bus.id}>
-                                                {bus.plateNumber} - {bus.model}
+                                        {availableBuses.length === 0 ? (
+                                            <SelectItem value="__no_bus" disabled>
+                                                {selectedRouteId ? "No buses available for the selected route" : "Select a route first"}
                                             </SelectItem>
-                                        ))}
+                                        ) : (
+                                            availableBuses.map((bus) => (
+                                                <SelectItem key={bus.id} value={bus.id}>
+                                                    {bus.plateNumber} - {bus.model}
+                                                </SelectItem>
+                                            ))
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <FormDescription>
