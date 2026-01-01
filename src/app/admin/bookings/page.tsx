@@ -14,6 +14,7 @@ import { Search, Eye, CheckCircle, XCircle, RefreshCw, Calendar, User, MapPin, C
 import { adminBookingService, AdminBooking } from "@/services/admin-booking.service";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function BookingsPage() {
   return (
@@ -37,6 +38,10 @@ function BookingsManagement() {
   const [newStatus, setNewStatus] = useState<"paid" | "completed" | "cancelled">("completed");
   const [refundReason, setRefundReason] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   useEffect(() => {
     fetchBookings();
@@ -134,6 +139,20 @@ function BookingsManagement() {
     new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime()
   );
 
+  // Pagination calculations
+  const totalItems = sortedBookings.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBookings = sortedBookings.slice(startIndex, endIndex);
+  const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, totalItems);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, startDate, endDate]);
+
   return (
     <div className="flex bg-background min-h-screen">
       <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
@@ -213,7 +232,7 @@ function BookingsManagement() {
                 <>
                   {/* Showing X of Y text */}
                   <div className="mb-4 text-sm text-muted-foreground">
-                    Showing {sortedBookings.length} of {bookings.length} bookings
+                    Showing {showingFrom} to {showingTo} of {totalItems} bookings
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -231,7 +250,7 @@ function BookingsManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sortedBookings.map((booking) => (
+                      {paginatedBookings.map((booking) => (
                         <TableRow key={booking.id}>
                           <TableCell className="font-medium">
                             {booking.bookingReference}
@@ -326,12 +345,25 @@ function BookingsManagement() {
                     </TableBody>
                   </Table>
 
-                  {sortedBookings.length === 0 && (
+                  {paginatedBookings.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       No bookings found
                     </div>
                   )}
                   </div>
+                  
+                  {/* Pagination */}
+                  {totalItems > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setCurrentPage}
+                      showingFrom={showingFrom}
+                      showingTo={showingTo}
+                    />
+                  )}
                 </>
               )}
             </CardContent>

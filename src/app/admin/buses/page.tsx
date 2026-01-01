@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import BusForm from "@/components/bus/BusForm";
 import SeatLayoutDialog from "@/components/seat-layout/SeatLayoutDialog";
 import { seatLayoutService, SeatLayout } from "@/services/seat-layout.service";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function BusesPage() {
   return (
@@ -45,6 +46,8 @@ function BusesManagement() {
   const [selectedBusForLayout, setSelectedBusForLayout] = useState<Bus | null>(null);
   const [busSeatLayouts, setBusSeatLayouts] = useState<{ [busId: string]: SeatLayout }>({});
   const [uploadingBusId, setUploadingBusId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [formData, setFormData] = useState<CreateBusDto>({
     operatorId: "",
     plateNumber: "",
@@ -292,6 +295,20 @@ function BusesManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  // Pagination calculations
+  const totalItems = filteredBuses.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBuses = filteredBuses.slice(startIndex, endIndex);
+  const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, totalItems);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, operatorFilter, capacityFilter, amenityFilter, sortBy, sortOrder]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -404,7 +421,13 @@ function BusesManagement() {
               {loading ? (
                 <div className="text-center py-8">Loading buses...</div>
               ) : (
-                <Table>
+                <>
+                  {/* Showing X of Y text */}
+                  <div className="mb-4 text-sm text-muted-foreground">
+                    Showing {showingFrom} to {showingTo} of {totalItems} buses
+                  </div>
+                  
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Plate Number</TableHead>
@@ -425,7 +448,7 @@ function BusesManagement() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredBuses.map((bus) => (
+                      paginatedBuses.map((bus) => (
                         <TableRow key={bus.id}>
                           <TableCell className="font-medium">{bus.plateNumber}</TableCell>
                           <TableCell>{bus.model}</TableCell>
@@ -522,6 +545,20 @@ function BusesManagement() {
                     )}
                   </TableBody>
                 </Table>
+                </>
+              )}
+              
+              {/* Pagination */}
+              {!loading && totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  showingFrom={showingFrom}
+                  showingTo={showingTo}
+                />
               )}
             </CardContent>
           </Card>

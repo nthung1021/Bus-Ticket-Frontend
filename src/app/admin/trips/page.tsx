@@ -42,6 +42,7 @@ import {
 import { format, parseISO } from "date-fns";
 import toast from "react-hot-toast";
 import ProtectedRole from "@/components/ProtectedRole";
+import { Pagination } from "@/components/ui/pagination";
 import {
     getTrips,
     createTrip,
@@ -76,6 +77,8 @@ function TripManagementPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 50;
 
     // Fetch data on component mount
     useEffect(() => {
@@ -199,7 +202,17 @@ function TripManagementPage() {
         });
 
         setFilteredTrips(filtered);
+        setCurrentPage(1); // Reset to page 1 when filters change
     }, [searchQuery, statusFilter, routeFilter, dateFilter, priceFilter, sortBy, sortOrder, trips]);
+
+    // Pagination calculations
+    const totalItems = filteredTrips.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedTrips = filteredTrips.slice(startIndex, endIndex);
+    const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+    const showingTo = Math.min(endIndex, totalItems);
 
     const handleCreateTrip = () => {
         setEditingTrip(null);
@@ -502,6 +515,11 @@ function TripManagementPage() {
 
                     {/* Trips Table */}
                     <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+                        {/* Showing X of Y text */}
+                        <div className="px-4 pt-4 pb-2 text-sm text-muted-foreground">
+                            Showing {showingFrom} to {showingTo} of {totalItems} trips
+                        </div>
+                        
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -544,7 +562,7 @@ function TripManagementPage() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredTrips.map((trip) => (
+                                        paginatedTrips.map((trip) => (
                                             <TableRow key={trip.id} className="hover:bg-muted/50">
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
@@ -620,6 +638,19 @@ function TripManagementPage() {
                                 </TableBody>
                             </Table>
                         </div>
+                        
+                        {/* Pagination */}
+                        {totalItems > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                showingFrom={showingFrom}
+                                showingTo={showingTo}
+                            />
+                        )}
                     </div>
 
                     {/* Summary Stats */}

@@ -16,6 +16,7 @@ import { operatorService, Operator, CreateOperatorDto, UpdateOperatorDto, Operat
 import { adminActivityService } from "@/services/admin-activity.service";
 import { toast } from "react-hot-toast";
 import OperatorForm from "@/components/operator/OperatorForm";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function OperatorsPage() {
   return (
@@ -36,6 +37,8 @@ function OperatorsManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [formData, setFormData] = useState<CreateOperatorDto>({
     name: "",
     contactEmail: "",
@@ -244,6 +247,20 @@ function OperatorsManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  // Pagination calculations
+  const totalItems = filteredOperators.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOperators = filteredOperators.slice(startIndex, endIndex);
+  const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, totalItems);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateFilter, sortBy, sortOrder]);
+
   const getStatusBadge = (status: OperatorStatus) => {
     switch (status) {
       case OperatorStatus.APPROVED:
@@ -351,7 +368,6 @@ function OperatorsManagement() {
               
               {/* Results count and sort order */}
               <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
-                <span>Showing {filteredOperators.length} of {operators.length} operators</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -366,7 +382,13 @@ function OperatorsManagement() {
               {loading ? (
                 <div className="text-center py-8">Loading operators...</div>
               ) : (
-                <Table>
+                <>
+                  {/* Showing X of Y text */}
+                  <div className="mb-4 text-sm text-muted-foreground">
+                    Showing {showingFrom} to {showingTo} of {totalItems} operators
+                  </div>
+                  
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -378,14 +400,14 @@ function OperatorsManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOperators.length === 0 ? (
+                    {paginatedOperators.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8">
                           No operators found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredOperators.map((operator) => (
+                      paginatedOperators.map((operator) => (
                         <TableRow key={operator.id}>
                           <TableCell className="font-medium">{operator.name}</TableCell>
                           <TableCell>{operator.contactEmail}</TableCell>
@@ -442,6 +464,20 @@ function OperatorsManagement() {
                     )}
                   </TableBody>
                 </Table>
+                
+                {/* Pagination */}
+                {totalItems > 0 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPage}
+                    showingFrom={showingFrom}
+                    showingTo={showingTo}
+                  />
+                )}
+                </>
               )}
             </CardContent>
           </Card>

@@ -16,6 +16,7 @@ import { operatorService, Operator } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
 import toast from "react-hot-toast";
 import RouteForm from "@/components/route/RouteForm";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function RoutesPage() {
   return (
@@ -40,6 +41,8 @@ function RoutesManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [expandedRoutes, setExpandedRoutes] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [formData, setFormData] = useState<CreateRouteDto>({
     operatorId: "",
     name: "",
@@ -261,6 +264,20 @@ function RoutesManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  // Pagination calculations
+  const totalItems = filteredRoutes.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRoutes = filteredRoutes.slice(startIndex, endIndex);
+  const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, totalItems);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, operatorFilter, statusFilter, distanceFilter, amenityFilter, sortBy, sortOrder]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -386,7 +403,13 @@ function RoutesManagement() {
               {loading ? (
                 <div className="text-center py-8 px-6">Loading routes...</div>
               ) : (
-                <div className="overflow-x-auto px-4">
+                <>
+                  {/* Showing X of Y text */}
+                  <div className="px-4 pt-4 pb-2 text-sm text-muted-foreground">
+                    Showing {showingFrom} to {showingTo} of {totalItems} routes
+                  </div>
+                  
+                  <div className="overflow-x-auto px-4">
                   <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
@@ -401,14 +424,14 @@ function RoutesManagement() {
                       </TableRow>
                     </TableHeader>
                   <TableBody>
-                    {filteredRoutes.length === 0 ? (
+                    {paginatedRoutes.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 px-6">
                           No routes found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredRoutes.map((route) => (
+                      paginatedRoutes.map((route) => (
                         <TableRow key={route.id}>
                           <TableCell className="font-medium">
                             <div className="max-w-[180px]">
@@ -537,6 +560,20 @@ function RoutesManagement() {
                   </TableBody>
                 </Table>
                 </div>
+                
+                {/* Pagination */}
+              {!loading && totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  showingFrom={showingFrom}
+                  showingTo={showingTo}
+                />
+              )}
+              </>
               )}
             </CardContent>
           </Card>
