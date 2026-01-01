@@ -259,15 +259,28 @@ function BusesManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex bg-background">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <main className="flex-1 pt-10 px-4 pb-4">
+    <div className="flex bg-background min-h-screen">
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+        <main className="flex-1 pt-6 lg:pt-10 px-4 pb-4">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Bus Management</CardTitle>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-start sm:items-center">
+                <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Bus Management</CardTitle>
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>

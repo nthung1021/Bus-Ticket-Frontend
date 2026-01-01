@@ -42,6 +42,9 @@ function AdminPageContent() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Mobile menu state - must be at top level before any conditional returns
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Filter and sort users
   const filteredUsers = users?.filter((user) => {
@@ -73,7 +76,7 @@ function AdminPageContent() {
   if (isLoading) {
     return (
       <div className="flex bg-background min-h-screen overflow-hidden">
-        <Sidebar />
+        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
         <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
           <main className="flex-1 pt-10 px-6 pb-6 overflow-auto">
             <div className="text-center py-8">Loading users…</div>
@@ -85,7 +88,7 @@ function AdminPageContent() {
   if (isError) {
     return (
       <div className="flex bg-background min-h-screen overflow-hidden">
-        <Sidebar />
+        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
         <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
           <main className="flex-1 pt-10 px-6 pb-6 overflow-auto">
             <div className="text-center py-8 text-destructive">
@@ -99,12 +102,23 @@ function AdminPageContent() {
 
   return (
     <div className="flex bg-background min-h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
-        <main className="flex-1 pt-10 px-6 pb-6 overflow-auto">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+        <main className="flex-1 pt-6 lg:pt-10 px-4 sm:px-6 pb-6 overflow-auto">
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">User Management</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">User Management</CardTitle>
               
               {/* Enhanced Filters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">

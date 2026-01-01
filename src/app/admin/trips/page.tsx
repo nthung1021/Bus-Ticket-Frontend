@@ -308,49 +308,64 @@ function TripManagementPage() {
         return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     return (
         <div className="flex bg-background min-h-screen">
             {/* Sidebar */}
-            <Sidebar />
+            <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
             {/* Main Content */}
-            <div className="flex-1 ml-64 flex flex-col">
+            <div className="flex-1 lg:ml-64 flex flex-col">
+                {/* Mobile Header with Menu Button */}
+                <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="p-2 rounded-lg hover:bg-muted"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+
                 {/* Content Area */}
-                <main className="flex-1 pt-10 px-6 pb-6">
+                <main className="flex-1 pt-6 lg:pt-10 px-4 sm:px-6 pb-6">
                     {/* Page Header */}
                     <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                        <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                             Trip Management
                         </h1>
-                        <p className="text-muted-foreground">
+                        <p className="text-sm sm:text-base text-muted-foreground">
                             Create, edit, and manage trip schedules
                         </p>
                     </div>
 
                     {/* Enhanced Filters and Actions */}
-                    <div className="bg-card rounded-lg p-4 mb-6 shadow-sm border border-border">
-                        <div className="flex flex-col gap-4">
+                    <div className="bg-card rounded-lg p-3 sm:p-4 mb-6 shadow-sm border border-border">
+                        <div className="flex flex-col gap-3 sm:gap-4">
                             {/* First row: Search and Create button */}
-                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                                <div className="relative flex-1 min-w-[200px]">
+                            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                                <div className="relative flex-1 min-w-0">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search routes, buses, origins, destinations..."
+                                        placeholder="Search trips..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10"
+                                        className="pl-10 h-9 sm:h-10"
                                     />
                                 </div>
                                 
-                                <Button onClick={handleCreateTrip} className="w-full md:w-auto">
+                                <Button onClick={handleCreateTrip} className="w-full sm:w-auto h-9 sm:h-10 shrink-0">
                                     <Plus className="h-4 w-4 mr-2" />
                                     Create Trip
                                 </Button>
                             </div>
                             
                             {/* Second row: Filters only */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-                                <span className="text-sm font-medium text-foreground pt-3">Filter by:</span>
+                            <div className="space-y-2">
+                                <span className="text-xs sm:text-sm font-medium text-foreground block">Filter by:</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="All Status" />
@@ -405,54 +420,57 @@ function TripManagementPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
                             
                             {/* Third row: Sort options */}
-                            <div className="border-t border-border pt-4">
-                                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-sm font-medium text-foreground">Sort by:</span>
-                                        <div className="flex gap-2 flex-wrap">
+                            <div className="border-t border-border pt-3 sm:pt-4">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                        <span className="text-xs sm:text-sm font-medium text-foreground shrink-0">Sort by:</span>
+                                        <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                                             <Button
                                                 variant={sortBy === "departureTime" ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => setSortBy("departureTime")}
-                                                className="h-8 cursor-pointer"
+                                                className="h-7 sm:h-8 text-xs cursor-pointer"
                                             >
-                                                <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                                                Departure
+                                                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                                                <span className="hidden xs:inline">Departure</span>
+                                                <span className="xs:hidden">Dept</span>
                                             </Button>
                                             <Button
                                                 variant={sortBy === "bookings" ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => setSortBy("bookings")}
-                                                className="h-8 cursor-pointer"
+                                                className="h-7 sm:h-8 text-xs cursor-pointer"
                                             >
-                                                <BusIcon className="h-3.5 w-3.5 mr-1.5" />
-                                                Bookings
+                                                <BusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+                                                <span className="hidden xs:inline">Bookings</span>
+                                                <span className="xs:hidden">Book</span>
                                             </Button>
                                             <Button
                                                 variant={sortBy === "route" ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => setSortBy("route")}
-                                                className="h-8 cursor-pointer"
+                                                className="h-7 sm:h-8 text-xs cursor-pointer"
                                             >
-                                                <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                                                <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                                                 Route
                                             </Button>
                                             <Button
                                                 variant={sortBy === "price" ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => setSortBy("price")}
-                                                className="h-8 cursor-pointer"
+                                                className="h-7 sm:h-8 text-xs cursor-pointer"
                                             >
-                                                <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+                                                <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                                                 Price
                                             </Button>
                                             <Button
                                                 variant={sortBy === "status" ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => setSortBy("status")}
-                                                className="h-8 cursor-pointer"
+                                                className="h-7 sm:h-8 text-xs cursor-pointer"
                                             >
                                                 Status
                                             </Button>

@@ -261,15 +261,28 @@ function RoutesManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex bg-background min-h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
-        <main className="flex-1 pt-10 px-4 pb-4 overflow-auto">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+        <main className="flex-1 pt-6 lg:pt-10 px-4 pb-4 overflow-auto">
           <Card className="min-w-0">
             <CardHeader>
               <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
-                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Route Management</CardTitle>
+                <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Route Management</CardTitle>
                 <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                   <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogTrigger asChild>

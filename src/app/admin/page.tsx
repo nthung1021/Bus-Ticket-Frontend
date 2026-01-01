@@ -265,22 +265,35 @@ function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex bg-background min-h-screen">
       {/* Sidebar - Desktop only */}
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
         {/* Content Area */}
-        <main className="flex-1 pt-10 px-4">
+        <main className="flex-1 pt-6 lg:pt-10 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
                 <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mb-6">
-                  <h2 className="text-h2 text-card-foreground">
+                  <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl text-card-foreground font-bold">
                     Statistics Overview
                   </h2>
                   <Link 
