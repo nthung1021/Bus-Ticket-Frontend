@@ -187,7 +187,9 @@ function SearchPageContent() {
                 ? Number(trip.route.distanceKm)
                 : 0,
             image:
-              "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+              trip.bus?.photo && trip.bus.photo.length > 0
+                ? trip.bus.photo[0]
+                : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
             description:
               trip.bus?.model && trip.bus?.amenities?.length
                 ? `${trip.bus.model} • ${trip.bus.amenities.join(", ")}`
