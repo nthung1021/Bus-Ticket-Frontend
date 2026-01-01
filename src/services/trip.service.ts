@@ -84,6 +84,7 @@ export interface Trip {
   status: TripStatus;
   route?: Route;
   bus?: Bus;
+  bookings?: any[]; // Array of bookings for this trip
 }
 
 export interface CreateTripDto {

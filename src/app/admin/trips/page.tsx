@@ -175,6 +175,11 @@ function TripManagementPage() {
                 case "departureTime":
                     comparison = new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime();
                     break;
+                case "bookings":
+                    const aBookings = a.bookings?.length || 0;
+                    const bBookings = b.bookings?.length || 0;
+                    comparison = aBookings - bBookings;
+                    break;
                 case "route":
                     comparison = (a.route?.name || "").localeCompare(b.route?.name || "");
                     break;
@@ -343,8 +348,9 @@ function TripManagementPage() {
                                 </Button>
                             </div>
                             
-                            {/* Second row: All filters */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                            {/* Second row: Filters only */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+                                <span className="text-sm font-medium text-foreground pt-3">Filter by:</span>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="All Status" />
@@ -398,32 +404,80 @@ function TripManagementPage() {
                                         <SelectItem value="high">High (&gt;1M VND)</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                
-                                <Select value={sortBy} onValueChange={setSortBy}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sort by" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="departureTime">Departure Time</SelectItem>
-                                        <SelectItem value="route">Route</SelectItem>
-                                        <SelectItem value="price">Price</SelectItem>
-                                        <SelectItem value="status">Status</SelectItem>
-                                        <SelectItem value="bus">Bus</SelectItem>
-                                    </SelectContent>
-                                </Select>
                             </div>
                             
-                            {/* Results count and sort order */}
-                            <div className="flex justify-between items-center text-sm text-muted-foreground">
-                                <span>Showing {filteredTrips.length} of {trips.length} trips</span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                                    className="h-8"
-                                >
-                                    Sort {sortOrder === 'asc' ? '↑' : '↓'}
-                                </Button>
+                            {/* Third row: Sort options */}
+                            <div className="border-t border-border pt-4">
+                                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-medium text-foreground">Sort by:</span>
+                                        <div className="flex gap-2 flex-wrap">
+                                            <Button
+                                                variant={sortBy === "departureTime" ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSortBy("departureTime")}
+                                                className="h-8 cursor-pointer"
+                                            >
+                                                <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                                                Departure
+                                            </Button>
+                                            <Button
+                                                variant={sortBy === "bookings" ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSortBy("bookings")}
+                                                className="h-8 cursor-pointer"
+                                            >
+                                                <BusIcon className="h-3.5 w-3.5 mr-1.5" />
+                                                Bookings
+                                            </Button>
+                                            <Button
+                                                variant={sortBy === "route" ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSortBy("route")}
+                                                className="h-8 cursor-pointer"
+                                            >
+                                                <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                                                Route
+                                            </Button>
+                                            <Button
+                                                variant={sortBy === "price" ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSortBy("price")}
+                                                className="h-8 cursor-pointer"
+                                            >
+                                                <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+                                                Price
+                                            </Button>
+                                            <Button
+                                                variant={sortBy === "status" ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSortBy("status")}
+                                                className="h-8 cursor-pointer"
+                                            >
+                                                Status
+                                            </Button>
+                                            <Button
+                                                variant={sortBy === "bus" ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSortBy("bus")}
+                                                className="h-8 cursor-pointer"
+                                            >
+                                                Bus
+                                            </Button>
+                                        </div>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                            className="h-8 cursor-pointer"
+                                        >
+                                            {sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+                                        </Button>
+                                    </div>
+                                    <span className="text-sm text-muted-foreground">
+                                        Showing {filteredTrips.length} of {trips.length} trips
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -451,7 +505,7 @@ function TripManagementPage() {
                                                 className="text-center py-12 text-muted-foreground"
                                             >
                                                 <div className="flex items-center justify-center">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                    <div className="animate-spin rounded-full h-8 cursor-pointer w-8 border-b-2 border-primary"></div>
                                                 </div>
                                                 <p className="text-lg font-medium mt-4">Loading trips...</p>
                                             </TableCell>
