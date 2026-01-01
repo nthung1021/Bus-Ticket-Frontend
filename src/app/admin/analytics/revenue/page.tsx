@@ -25,7 +25,7 @@ import {
 } from "recharts";
 import { format, startOfToday, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth } from "date-fns";
 import { analyticsService, BookingsSummary, BookingTrend, RouteAnalytics } from "@/services/analytics.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 export default function RevenueAnalyticsPage() {
   return (

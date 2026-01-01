@@ -15,7 +15,7 @@ import { Trash2, Edit, Plus, Search, Settings, Camera, Loader2 } from "lucide-re
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import BusForm from "@/components/bus/BusForm";
 import SeatLayoutDialog from "@/components/seat-layout/SeatLayoutDialog";
 import { seatLayoutService, SeatLayout } from "@/services/seat-layout.service";
