@@ -14,12 +14,11 @@ import { filterWithVietnameseSearch, matchesWithoutDiacritics } from "@/utils/vi
 // Search filters interface
 interface SearchFilters {
   query: string;
-  tripType: string[];
+  category: string[]; // Bus types: standard, vip, sleeper, etc.
   minPrice: number;
   maxPrice: number;
   from: string;
   to: string;
-  category: string[];
   operator: string;
   departureTime: string; // morning|afternoon|evening|night
   date: string; // yyyy-mm-dd
@@ -44,9 +43,6 @@ interface SearchResult {
   rating: number;
 }
 
-const categories = ["Premium", "Standard", "Tourist", "Cultural"];
-const operators = ["Phương Trang", "Tuấn Hưng", "Hoàng Long", "Mai Linh", "Thành Bưởi", "Hà Lan"];
-const tripTypes = ["One-way", "Round-trip"];
 const sortOptions = [
   { value: "newest", label: "Newest" },
   { value: "price-asc", label: "Price: Low to High" },
@@ -54,6 +50,18 @@ const sortOptions = [
   { value: "rating", label: "Highest Rated" },
 ];
 
+// Helper function to format bus type labels
+const formatBusTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    'standard': 'Standard',
+    'vip': 'VIP',
+    'sleeper': 'Sleeper',
+    'limousine': 'Limousine',
+    'business': 'Business',
+    'seater': 'Seater',
+  };
+  return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+};
 
 
 function SearchPageContent() {
@@ -61,12 +69,11 @@ function SearchPageContent() {
 
   const [filters, setFilters] = useState<SearchFilters>({
     query: "",
-    tripType: [],
+    category: [],
     minPrice: 0,
     maxPrice: 500000,
     from: "",
     to: "",
-    category: [],
     operator: "",
     departureTime: "",
     date: "",
@@ -75,6 +82,8 @@ function SearchPageContent() {
 
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [operators, setOperators] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -100,6 +109,38 @@ function SearchPageContent() {
     ? timeLabelMap[filters.departureTime] || filters.departureTime
     : "Any time";
 
+  // Load bus types and operators from API
+  useEffect(() => {
+    // Fetch buses to get unique bus types
+    api.get("/buses")
+      .then((response) => {
+        const buses = response.data || [];
+        const uniqueBusTypes = Array.from(
+          new Set(buses.map((bus: any) => bus.busType).filter((type: any) => !!type))
+        ).sort();
+        setCategories(uniqueBusTypes as string[]);
+        console.log('✅ Loaded bus types:', uniqueBusTypes);
+      })
+      .catch((err) => {
+        console.error('❌ Failed to load bus types:', err);
+      });
+
+    // Fetch operators
+    api.get("/operators")
+      .then((response) => {
+        const ops = response.data || [];
+        const operatorNames = ops
+          .filter((op: any) => op.status === 'approved')
+          .map((op: any) => op.name)
+          .sort();
+        setOperators(operatorNames);
+        console.log('✅ Loaded operators:', operatorNames);
+      })
+      .catch((err) => {
+        console.error('❌ Failed to load operators:', err);
+      });
+  }, []);
+
   useEffect(() => {
     // Require at least origin and destination for trip searches
     if (!origin || !destination) {
@@ -123,9 +164,9 @@ function SearchPageContent() {
     // prefer filter date (if set) over URL param
     const effectiveDate = filters.date || date;
     if (effectiveDate) {
-      const formattedDate = new Date(`${effectiveDate}T00:00:00`).toISOString();
-      searchParams.date = formattedDate;
-      console.log('📅 Using specific date:', formattedDate);
+      // Just send the date in YYYY-MM-DD format, backend will handle timezone
+      searchParams.date = effectiveDate;
+      console.log('📅 Using specific date:', effectiveDate);
     } else {
       console.log('📅 Searching all dates');
     }
@@ -175,8 +216,8 @@ function SearchPageContent() {
               departureCity && arrivalCity
                 ? `${departureCity} → ${arrivalCity}`
                 : "",
-            departure: departureCity || "",
-            arrival: arrivalCity || "",
+            departure: departureTime ? departureTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "",
+            arrival: arrivalTime ? arrivalTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "",
             // Ensure price is numeric so filters and sorting work correctly
             price: trip.pricing?.basePrice != null
               ? Number(trip.pricing.basePrice)
@@ -189,10 +230,10 @@ function SearchPageContent() {
             image:
               "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
             description:
-              trip.bus?.model && trip.bus?.amenities?.length
-                ? `${trip.bus.model} • ${trip.bus.amenities.join(", ")}`
+              trip.bus?.model && trip.bus?.amenities
+                ? `${trip.bus.model} • ${Object.entries(trip.bus.amenities).filter(([_, v]) => v).map(([k, _]) => k.replace('_', ' ')).join(", ")}`
                 : trip.bus?.model || "",
-            category: trip.bus?.busType || "Standard",
+            category: trip.bus?.busType || "standard",
             rating: trip.operator?.rating ?? 0.0,
           };
         });
@@ -302,15 +343,6 @@ function SearchPageContent() {
     }));
   };
 
-  const handleTripTypeToggle = (tripType: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      tripType: prev.tripType.includes(tripType)
-        ? prev.tripType.filter((t) => t !== tripType)
-        : [...prev.tripType, tripType],
-    }));
-  };
-
   // Pagination
   const totalPages = Math.ceil(results.length / resultsPerPage);
 
@@ -401,28 +433,28 @@ function SearchPageContent() {
                 Filters
               </h3>
 
-              {/* Trip Type */}
+              {/* Bus Type */}
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-ticket text-primary" viewBox="0 0 16 16">
                     <path d="M0 4.5A1.5 1.5 0 0 1 1.5 3h13A1.5 1.5 0 0 1 16 4.5V6a.5.5 0 0 1-.5.5 1.5 1.5 0 0 0 0 3 .5.5 0 0 1 .5.5v1.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 11.5V10a.5.5 0 0 1 .5-.5 1.5 1.5 0 1 0 0-3A.5.5 0 0 1 0 6zM1.5 4a.5.5 0 0 0-.5.5v1.05a2.5 2.5 0 0 1 0 4.9v1.05a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-1.05a2.5 2.5 0 0 1 0-4.9V4.5a.5.5 0 0 0-.5-.5z"/>
                   </svg>
-                  Trip Type
+                  Bus Type
                 </h4>
-                <div className="space-y-2 bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
-                  {tripTypes.map((type) => (
-                    <div key={type} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/40 dark:hover:bg-gray-800/50 transition-colors">
+                <div className="space-y-1">
+                  {categories.map((type) => (
+                    <div key={type} className="flex items-center space-x-2 text-sm">
                       <Checkbox
                         id={type}
-                        checked={filters.tripType.includes(type)}
-                        onCheckedChange={() => handleTripTypeToggle(type)}
-                        className="cursor-pointer bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
+                        checked={filters.category.includes(type)}
+                        onCheckedChange={() => handleCategoryToggle(type)}
+                        className="cursor-pointer h-4 w-4 bg-muted/60"
                       />
                       <label
                         htmlFor={type}
-                        className="text-sm text-foreground cursor-pointer font-medium flex-1"
+                        className="text-sm text-foreground cursor-pointer"
                       >
-                        {type}
+                        {formatBusTypeLabel(type)}
                       </label>
                     </div>
                   ))}
@@ -635,47 +667,6 @@ function SearchPageContent() {
                 </div>
               </div>
 
-              {/* Category */}
-              <div className="space-y-3">
-                <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                    />
-                  </svg>
-                  Category
-                </h4>
-                <div className="space-y-2 bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
-                  {categories.map((category) => (
-                    <div
-                      key={category}
-                      className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/40 dark:hover:bg-gray-800/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={category}
-                        checked={filters.category.includes(category)}
-                        onCheckedChange={() => handleCategoryToggle(category)}
-                        className="cursor-pointer bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
-                      />
-                      <label
-                        htmlFor={category}
-                        className="text-sm text-foreground cursor-pointer font-medium flex-1"
-                      >
-                        {category}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Clear Filters Button */}
               <div className="pt-2 border-t border-border">
                 <Button
@@ -683,12 +674,11 @@ function SearchPageContent() {
                   onClick={() => {
                     setFilters({
                       query: "",
-                      tripType: [],
+                      category: [],
                       minPrice: 0,
                       maxPrice: 500000,
                       from: "",
                       to: "",
-                      category: [],
                       operator: "",
                       departureTime: "",
                       date: "",
@@ -983,12 +973,11 @@ function SearchPageContent() {
                   <Button
                     onClick={() => setFilters({
                       query: "",
-                      tripType: [],
+                      category: [],
                       minPrice: 0,
                       maxPrice: 500000,
                       from: "",
                       to: "",
-                      category: [],
                       operator: "",
                       departureTime: "",
                       date: "",

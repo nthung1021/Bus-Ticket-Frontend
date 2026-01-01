@@ -38,8 +38,6 @@ interface RouteResult {
   distanceKm: number;
 }
 
-const categories = ["Premium", "Standard", "Express", "Economy"];
-const operators = ["Phương Trang", "Tuấn Hưng", "Hoàng Long", "Mai Linh", "Thành Bưởi", "Hà Lan"];
 const sortOptions = [
   { value: "newest", label: "Newest" },
   { value: "distance-asc", label: "Distance: Short to Long" },
@@ -50,17 +48,16 @@ const sortOptions = [
 // Convert Route to RouteResult
 const convertRouteToResult = (route: Route): RouteResult => ({
   id: route.id,
-  title: `${route.origin} to ${route.destination}`,
+  title: route.name || `${route.origin} to ${route.destination}`,
   origin: route.origin || 'Unknown',
   destination: route.destination || 'Unknown',
-  distance: route.distanceKm || 100,
-  duration: `${Math.floor((route.estimatedMinutes || 180) / 60)}h${(route.estimatedMinutes || 180) % 60 ? ` ${(route.estimatedMinutes || 180) % 60}m` : ''}`,
+  distance: Number(route.distanceKm) || 0,
+  duration: `${Math.floor((route.estimatedMinutes || 0) / 60)}h${(route.estimatedMinutes || 0) % 60 ? ` ${(route.estimatedMinutes || 0) % 60}m` : ''}`,
   image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
   description: route.description || `Route from ${route.origin} to ${route.destination}`,
-  category: route.distanceKm && route.distanceKm > 300 ? "Premium" : "Standard",
-  // rating: 4.0 + Math.random() * 1.0,
-  estimatedMinutes: route.estimatedMinutes || 180,
-  distanceKm: route.distanceKm || 100
+  category: (Number(route.distanceKm) > 300) ? "Premium" : "Standard",
+  estimatedMinutes: route.estimatedMinutes || 0,
+  distanceKm: Number(route.distanceKm) || 0
 });
 
 export default function RoutesPage() {
@@ -77,12 +74,46 @@ export default function RoutesPage() {
 
   const [allRoutes, setAllRoutes] = useState<RouteResult[]>([]);
   const [routes, setRoutes] = useState<RouteResult[]>([]);
+  const [operators, setOperators] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 9;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load operators from API
+  useEffect(() => {
+    routeService.getAllSimple()
+      .then((routesData) => {
+        // Extract unique operator names from routes
+        const uniqueOperators = Array.from(
+          new Set(
+            routesData
+              .map(r => r.operator?.name)
+              .filter((name): name is string => !!name)
+          )
+        ).sort();
+        setOperators(uniqueOperators);
+        console.log('✅ Loaded operators:', uniqueOperators);
+        
+        // Extract unique categories from routes
+        const uniqueCategories = Array.from(
+          new Set(
+            routesData.map(r => {
+              const km = Number(r.distanceKm) || 0;
+              return km > 300 ? "Premium" : "Standard";
+            })
+          )
+        ).sort();
+        setCategories(uniqueCategories);
+        console.log('✅ Loaded categories:', uniqueCategories);
+      })
+      .catch((err) => {
+        console.error('❌ Failed to load operators:', err);
+      });
+  }, []);
 
   // Load all routes
   useEffect(() => {
@@ -251,51 +282,51 @@ export default function RoutesPage() {
 
               {/* Distance Range - Compact */}
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Distance (km)</h4>
+                <h4 className="text-base font-semibold text-foreground">Distance (km)</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     type="number"
                     placeholder="Min"
                     value={filters.minDistance}
                     onChange={(e) => handleFilterChange("minDistance", parseInt(e.target.value) || 0)}
-                    className="h-8 text-xs"
+                    className="h-9 text-sm"
                   />
                   <Input
                     type="number"
                     placeholder="Max"
                     value={filters.maxDistance}
                     onChange={(e) => handleFilterChange("maxDistance", parseInt(e.target.value) || 1000)}
-                    className="h-8 text-xs"
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
 
               {/* From/To - Compact */}
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Locations</h4>
+                <h4 className="text-base font-semibold text-foreground">Locations</h4>
                 <div className="space-y-2">
                   <Input
                     placeholder="From..."
                     value={filters.from}
                     onChange={(e) => handleFilterChange("from", e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-9 text-sm"
                   />
                   <Input
                     placeholder="To..."
                     value={filters.to}
                     onChange={(e) => handleFilterChange("to", e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
 
               {/* Operator Filter */}
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Bus Operator</h4>
+                <h4 className="text-base font-semibold text-foreground">Bus Operator</h4>
                 <select
                   value={filters.operator}
                   onChange={(e) => handleFilterChange("operator", e.target.value)}
-                  className="w-full h-8 text-xs bg-background border border-border rounded-md px-2 cursor-pointer"
+                  className="w-full h-9 text-sm bg-background border border-border rounded-md px-2 cursor-pointer"
                 >
                   <option value="">All Operators</option>
                   {operators.map((operator) => (
@@ -308,7 +339,7 @@ export default function RoutesPage() {
 
               {/* Category - Compact */}
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Category</h4>
+                <h4 className="text-base font-semibold text-foreground">Category</h4>
                 <div className="space-y-1">
                   {categories.map((category) => (
                     <div key={category} className="flex items-center space-x-2 text-sm">
@@ -318,7 +349,7 @@ export default function RoutesPage() {
                         onCheckedChange={() => handleCategoryToggle(category)}
                         className="cursor-pointer h-4 w-4 bg-muted/60"
                       />
-                      <label htmlFor={category} className="text-xs text-foreground cursor-pointer">
+                      <label htmlFor={category} className="text-sm text-foreground cursor-pointer">
                         {category}
                       </label>
                     </div>
