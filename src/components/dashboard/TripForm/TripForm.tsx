@@ -95,6 +95,16 @@ export function TripForm({
         },
     });
 
+    // Watch the selected route so we can enable/disable the bus selector
+    const selectedRouteId = form.watch("routeId");
+
+    // If the route changes (or is cleared), reset the selected bus to avoid mismatches
+    React.useEffect(() => {
+        if (!selectedRouteId) {
+            form.setValue("busId", "");
+        }
+    }, [selectedRouteId, form]);
+
     const handleSubmit = async (data: StrictTripFormValues) => {
         try {
             // Convert Date objects to ISO strings for API
@@ -167,7 +177,7 @@ export function TripForm({
                         )}
                     />
 
-                    {/* Bus Selection */}
+                    {/* Bus Selection (disabled until a route is selected) */}
                     <FormField
                         control={form.control}
                         name="busId"
@@ -177,11 +187,11 @@ export function TripForm({
                                 <Select
                                     onValueChange={field.onChange}
                                     defaultValue={field.value}
-                                    disabled={isLoading}
+                                    disabled={isLoading || !selectedRouteId}
                                 >
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a bus" />
+                                            <SelectValue placeholder={selectedRouteId ? "Select a bus" : "Select a route first"} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -193,7 +203,7 @@ export function TripForm({
                                     </SelectContent>
                                 </Select>
                                 <FormDescription>
-                                    Choose the bus for this trip
+                                    {selectedRouteId ? "Choose the bus for this trip" : "Select a route first to choose an available bus"}
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
