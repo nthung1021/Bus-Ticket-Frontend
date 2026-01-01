@@ -47,6 +47,8 @@ import {
     createTrip,
     updateTrip,
     deleteTrip,
+    refundTrip,
+    getTripPayments,
     getRoutes,
     getBuses,
     Trip,
@@ -76,6 +78,14 @@ function TripManagementPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [showDeleted, setShowDeleted] = useState(false);
+
+    // deleted trips modal state
+    const [showDeletedModal, setShowDeletedModal] = useState(false);
+    const [selectedDeletedTrip, setSelectedDeletedTrip] = useState<Trip | null>(null);
+    const [deletedTripPayments, setDeletedTripPayments] = useState<any[]>([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [refunding, setRefunding] = useState(false);
 
     // Fetch data on component mount
     useEffect(() => {
@@ -83,12 +93,11 @@ function TripManagementPage() {
             try {
                 setIsInitialLoading(true);
                 const [tripsData, routesData, busesData] = await Promise.all([
-                    getTrips(),
+                    getTrips(showDeleted),
                     getRoutes(),
                     getBuses()
                 ]);
                 setTrips(tripsData);
-                console.log(tripsData)
                 setRoutes(routesData);
                 setBuses(busesData);
             } catch (error) {
@@ -100,7 +109,7 @@ function TripManagementPage() {
         };
 
         fetchData();
-    }, []);
+    }, [showDeleted]);
 
     // Filter trips based on search and multiple filters
     useEffect(() => {
@@ -210,26 +219,35 @@ function TripManagementPage() {
         if (confirm("Are you sure you want to delete this trip?")) {
             try {
                 setIsLoading(true);
-                
-                // Get trip info before deletion for activity log
+
                 const tripToDelete = trips.find(t => t.id === tripId);
-                
-                await deleteTrip(tripId);
-                setTrips(trips.filter((t) => t.id !== tripId));
-                toast.success("Trip deleted successfully");
-                
+
+                // First call refund endpoint and show loading toast
+                await toast.promise(
+                    refundTrip(tripId),
+                    {
+                        loading: 'Refunding money...',
+                        success: 'Refunds processed and trip marked deleted',
+                        error: 'Failed to refund users',
+                    }
+                );
+
+                // Refresh trips list (non-deleted view)
+                const refreshed = await getTrips(false);
+                setTrips(refreshed);
+
                 // Log admin activity
                 if (tripToDelete) {
                     adminActivityService.addActivity(
                         'deleted',
                         'trip',
                         `${tripToDelete.route?.name || 'Route'} - ${new Date(tripToDelete.departureTime).toLocaleDateString()}`,
-                        `Removed scheduled trip`
+                        `Removed scheduled trip and issued refunds`
                     );
                 }
             } catch (error) {
                 console.error("Error deleting trip:", error);
-                toast.error("Failed to delete trip");
+                toast.error("Failed to delete and refund trip");
             } finally {
                 setIsLoading(false);
             }
@@ -337,10 +355,15 @@ function TripManagementPage() {
                                     />
                                 </div>
                                 
-                                <Button onClick={handleCreateTrip} className="w-full md:w-auto">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Create Trip
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button onClick={() => setShowDeleted((s) => !s)} variant={showDeleted ? 'destructive' : 'default'} size="sm">
+                                        {showDeleted ? 'Hide Deleted Trips' : 'Show Deleted Trips'}
+                                    </Button>
+                                    <Button onClick={handleCreateTrip} className="w-full md:w-auto">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Trip
+                                    </Button>
+                                </div>
                             </div>
                             
                             {/* Second row: All filters */}
@@ -473,7 +496,20 @@ function TripManagementPage() {
                                         </TableRow>
                                     ) : (
                                         filteredTrips.map((trip) => (
-                                            <TableRow key={trip.id} className="hover:bg-muted/50">
+                                            <TableRow key={trip.id} className={`hover:bg-muted/50 ${showDeleted ? 'cursor-pointer' : ''}`} onClick={showDeleted ? async () => {
+                                                try {
+                                                    setPaymentsLoading(true);
+                                                    setSelectedDeletedTrip(trip);
+                                                    setShowDeletedModal(true);
+                                                    const payments = await getTripPayments(trip.id);
+                                                    setDeletedTripPayments(payments);
+                                                } catch (err) {
+                                                    console.error('Failed to fetch trip payments', err);
+                                                    toast.error('Failed to load payments');
+                                                } finally {
+                                                    setPaymentsLoading(false);
+                                                }
+                                            } : undefined}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <MapPin className="h-4 w-4 text-primary" />
@@ -535,7 +571,10 @@ function TripManagementPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => handleDeleteTrip(trip.id)}
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                await handleDeleteTrip(trip.id);
+                                                            }}
                                                             className="text-destructive hover:text-destructive"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
@@ -585,6 +624,76 @@ function TripManagementPage() {
                     </div>
                 </main>
             </div>
+
+            {/* Deleted Trip Payments Dialog */}
+            <Dialog open={showDeletedModal} onOpenChange={(open) => { if (!open) { setShowDeletedModal(false); setSelectedDeletedTrip(null); setDeletedTripPayments([]); } }}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Deleted Trip Payments</DialogTitle>
+                        <DialogDescription>
+                            {selectedDeletedTrip ? `${selectedDeletedTrip.route?.name || ''} - ${new Date(selectedDeletedTrip.departureTime).toLocaleString()}` : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="mt-4">
+                        {paymentsLoading ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                <p className="mt-2">Loading payments...</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="text-sm text-muted-foreground">{deletedTripPayments.length} payments</div>
+                                    <div>
+                                        <Button
+                                            onClick={async () => {
+                                                if (!selectedDeletedTrip) return;
+                                                try {
+                                                    setRefunding(true);
+                                                    await toast.promise(refundTrip(selectedDeletedTrip.id), {
+                                                        loading: 'Refunding money...',
+                                                        success: 'Refund attempt finished',
+                                                        error: 'Refund failed',
+                                                    });
+                                                    // refresh payments
+                                                    const payments = await getTripPayments(selectedDeletedTrip.id);
+                                                    setDeletedTripPayments(payments);
+                                                } catch (err) {
+                                                    console.error('Refund failed', err);
+                                                    toast.error('Refund failed');
+                                                } finally {
+                                                    setRefunding(false);
+                                                }
+                                            }}
+                                            disabled={refunding}
+                                        >
+                                            {refunding ? 'Refunding...' : 'Refund payments again'}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {deletedTripPayments.map((p) => (
+                                        <div key={p.id} className="p-3 border rounded-md flex justify-between items-center">
+                                            <div>
+                                                <div className="font-medium">Payment {p.id}</div>
+                                                <div className="text-xs text-muted-foreground">Booking: {p.bookingId || 'N/A'}</div>
+                                                <div className="text-xs text-muted-foreground">Bank: {p.bankId || 'N/A'} / {p.bankNumber || 'N/A'}</div>
+                                                <div className="text-xs text-muted-foreground">Created: {new Date(p.createdAt).toLocaleString()}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-medium">{p.amount?.toFixed?.(2) ?? p.amount}</div>
+                                                <div className="text-xs text-muted-foreground">{p.status}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

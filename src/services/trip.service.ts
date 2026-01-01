@@ -105,12 +105,51 @@ export interface UpdateTripDto {
 }
 
 // Trip API calls
-export const getTrips = async (): Promise<Trip[]> => {
+export const getTrips = async (includeDeleted = false): Promise<Trip[]> => {
   try {
-    const response = await apiClient.get("/trips");
+    const url = includeDeleted ? `/trips?deleted=true` : `/trips`;
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching trips:", error);
+    throw error;
+  }
+};
+
+// Refund payouts for a trip and mark it deleted (admin)
+export interface RefundsResult {
+  refunded: string[];
+  skipped: Array<{ paymentId: string; reason: string }>;
+}
+
+export const refundTrip = async (
+  id: string,
+): Promise<{ success: boolean; refunds: RefundsResult }> => {
+  try {
+    const response = await apiClient.post(`/trips/${id}/refund`);
+    return response.data as { success: boolean; refunds: RefundsResult };
+  } catch (error) {
+    console.error("Error refunding trip:", error);
+    throw error;
+  }
+};
+
+export interface TripPayment {
+  id: string;
+  bookingId?: string;
+  amount: number;
+  status: string;
+  bankId?: string;
+  bankNumber?: string | null;
+  createdAt: string;
+}
+
+export const getTripPayments = async (id: string): Promise<TripPayment[]> => {
+  try {
+    const response = await apiClient.get(`/trips/${id}/payments`);
+    return response.data?.data || response.data;
+  } catch (error) {
+    console.error("Error fetching trip payments:", error);
     throw error;
   }
 };
