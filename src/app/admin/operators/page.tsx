@@ -356,7 +356,7 @@ function OperatorsManagement() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8"
+                  className="h-8 cursor-pointer"
                 >
                   Sort {sortOrder === 'asc' ? '↑' : '↓'}
                 </Button>
@@ -404,7 +404,7 @@ function OperatorsManagement() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleApproveOperator(operator.id)}
-                                  className="text-green-600 hover:text-green-700"
+                                  className="text-green-600 hover:text-green-700 cursor-pointer"
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
@@ -414,7 +414,7 @@ function OperatorsManagement() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleSuspendOperator(operator.id)}
-                                  className="text-orange-600 hover:text-orange-700"
+                                  className="text-orange-600 hover:text-orange-700 cursor-pointer"
                                 >
                                   <XCircle className="w-4 h-4" />
                                 </Button>
@@ -423,6 +423,7 @@ function OperatorsManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditDialog(operator)}
+                                className="cursor-pointer"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -430,7 +431,7 @@ function OperatorsManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteOperator(operator.id)}
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

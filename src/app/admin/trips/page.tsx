@@ -356,7 +356,7 @@ function TripManagementPage() {
                                     />
                                 </div>
                                 
-                                <Button onClick={handleCreateTrip} className="w-full sm:w-auto h-9 sm:h-10 shrink-0">
+                                <Button onClick={handleCreateTrip} className="w-full sm:w-auto h-9 sm:h-10 shrink-0 cursor-pointer">
                                     <Plus className="h-4 w-4 mr-2" />
                                     Create Trip
                                 </Button>

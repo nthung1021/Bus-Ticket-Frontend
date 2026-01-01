@@ -361,7 +361,7 @@ function BusesManagement() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8"
+                  className="h-8 cursor-pointer"
                 >
                   Sort {sortOrder === 'asc' ? '↑' : '↓'}
                 </Button>
@@ -430,7 +430,7 @@ function BusesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openSeatLayoutDialog(bus)}
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-blue-600 hover:text-blue-700 cursor-pointer"
                               >
                                 <Settings className="w-4 h-4" />
                               </Button>
@@ -438,6 +438,7 @@ function BusesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditDialog(bus)}
+                                className="cursor-pointer"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -445,7 +446,7 @@ function BusesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteBus(bus.id)}
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

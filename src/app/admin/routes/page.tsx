@@ -376,7 +376,7 @@ function RoutesManagement() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8"
+                  className="h-8 cursor-pointer"
                 >
                   Sort {sortOrder === 'asc' ? '↑' : '↓'}
                 </Button>
@@ -517,6 +517,7 @@ function RoutesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditDialog(route)}
+                                className="cursor-pointer"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -524,7 +525,7 @@ function RoutesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteRoute(route.id)}
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

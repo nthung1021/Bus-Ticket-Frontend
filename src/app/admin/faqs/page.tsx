@@ -95,11 +95,11 @@ export default function AdminFaqsPage() {
                 required
               />
               <div className="space-x-2">
-                <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
+                <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 cursor-pointer">
                   {editingIndex === null ? "Add FAQ" : "Update FAQ"}
                 </button>
                 {editingIndex !== null && (
-                  <button type="button" onClick={handleCancel} className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">
+                  <button type="button" onClick={handleCancel} className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500 cursor-pointer">
                     Cancel
                   </button>
                 )}
@@ -115,13 +115,13 @@ export default function AdminFaqsPage() {
                     <div className="mb-2">A: {faq.answer}</div>
                     <button
                       onClick={() => handleEdit(idx)}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded mr-2 hover:bg-yellow-600"
+                      className="bg-yellow-500 text-white px-3 py-1 rounded mr-2 hover:bg-yellow-600 cursor-pointer"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(idx)}
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 cursor-pointer"
                     >
                       Delete
                     </button>

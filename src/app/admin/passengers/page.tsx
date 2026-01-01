@@ -162,7 +162,7 @@ function AdminPageContent() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8"
+                  className="h-8 cursor-pointer"
                 >
                   Sort {sortOrder === 'asc' ? '↑' : '↓'}
                 </Button>
@@ -258,6 +258,7 @@ function UserRow({
               size="sm"
               onClick={() => onChangeRole(r.key)}
               disabled={disabled || user.role === r.key}
+              className="cursor-pointer"
             >
               {r.label}
             </Button>
