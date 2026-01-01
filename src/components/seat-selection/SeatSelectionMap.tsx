@@ -94,7 +94,7 @@ function SeatSelectionMap({
      * Creates a structure like: { 1: [seat1, seat2], 2: [seat3, seat4], ... }
      */ 
     const seatsByRow: Record<number, SeatInfo[]> = {};
-    // console.log(layoutConfig)
+    // console.log("Layout config: ", layoutConfig);
     if (layoutConfig?.seats) {
         layoutConfig.seats.forEach(seat => {
             const row = seat.position.row;
