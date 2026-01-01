@@ -210,7 +210,13 @@ function BookingsManagement() {
               {loading ? (
                 <div className="text-center py-8">Loading bookings...</div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  {/* Showing X of Y text */}
+                  <div className="mb-4 text-sm text-muted-foreground">
+                    Showing {sortedBookings.length} of {bookings.length} bookings
+                  </div>
+                  
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -325,7 +331,8 @@ function BookingsManagement() {
                       No bookings found
                     </div>
                   )}
-                </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

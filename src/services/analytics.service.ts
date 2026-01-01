@@ -10,6 +10,7 @@ export interface AnalyticsQueryDto {
 export interface BookingsSummary {
   totalBookings: number;
   paidBookings: number;
+  completedBookings: number;
   pendingBookings: number;
   cancelledBookings: number;
   expiredBookings: number;
