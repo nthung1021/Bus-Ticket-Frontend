@@ -48,6 +48,8 @@ import {
     createTrip,
     updateTrip,
     deleteTrip,
+    refundTrip,
+    getTripPayments,
     getRoutes,
     getBuses,
     Trip,
@@ -79,6 +81,14 @@ function TripManagementPage() {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 50;
+    const [showDeleted, setShowDeleted] = useState(false);
+
+    // deleted trips modal state
+    const [showDeletedModal, setShowDeletedModal] = useState(false);
+    const [selectedDeletedTrip, setSelectedDeletedTrip] = useState<Trip | null>(null);
+    const [deletedTripPayments, setDeletedTripPayments] = useState<any[]>([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [refunding, setRefunding] = useState(false);
 
     // Fetch data on component mount
     useEffect(() => {
@@ -86,12 +96,11 @@ function TripManagementPage() {
             try {
                 setIsInitialLoading(true);
                 const [tripsData, routesData, busesData] = await Promise.all([
-                    getTrips(),
+                    getTrips(showDeleted),
                     getRoutes(),
                     getBuses()
                 ]);
                 setTrips(tripsData);
-                console.log(tripsData)
                 setRoutes(routesData);
                 setBuses(busesData);
             } catch (error) {
@@ -103,7 +112,7 @@ function TripManagementPage() {
         };
 
         fetchData();
-    }, []);
+    }, [showDeleted]);
 
     // Filter trips based on search and multiple filters
     useEffect(() => {
@@ -222,32 +231,42 @@ function TripManagementPage() {
     const handleEditTrip = (trip: Trip) => {
         setEditingTrip(trip);
         setIsDialogOpen(true);
+        setShowDeletedModal(false);
     };
 
     const handleDeleteTrip = async (tripId: string) => {
         if (confirm("Are you sure you want to delete this trip?")) {
             try {
                 setIsLoading(true);
-                
-                // Get trip info before deletion for activity log
+
                 const tripToDelete = trips.find(t => t.id === tripId);
-                
-                await deleteTrip(tripId);
-                setTrips(trips.filter((t) => t.id !== tripId));
-                toast.success("Trip deleted successfully");
-                
+
+                // First call refund endpoint and show loading toast
+                await toast.promise(
+                    refundTrip(tripId),
+                    {
+                        loading: 'Refunding money...',
+                        success: 'Refunds processed and trip marked deleted',
+                        error: 'Failed to refund users',
+                    }
+                );
+
+                // Refresh trips list (non-deleted view)
+                const refreshed = await getTrips(false);
+                setTrips(refreshed);
+
                 // Log admin activity
                 if (tripToDelete) {
                     adminActivityService.addActivity(
                         'deleted',
                         'trip',
                         `${tripToDelete.route?.name || 'Route'} - ${new Date(tripToDelete.departureTime).toLocaleDateString()}`,
-                        `Removed scheduled trip`
+                        `Removed scheduled trip and issued refunds`
                     );
                 }
             } catch (error) {
                 console.error("Error deleting trip:", error);
-                toast.error("Failed to delete trip");
+                toast.error("Failed to delete and refund trip");
             } finally {
                 setIsLoading(false);
             }
@@ -354,25 +373,107 @@ function TripManagementPage() {
                                 Create, edit, and manage trip schedules
                             </p>
                         </div>
-                        <Button onClick={handleCreateTrip} className="w-full sm:w-auto shrink-0 cursor-pointer">
+                        {/* <Button onClick={handleCreateTrip} className="w-full sm:w-auto shrink-0 cursor-pointer">
                             <Plus className="h-4 w-4 mr-2" />
                             Create Trip
-                        </Button>
+                        </Button> */}
                     </div>
 
                     {/* Compact Filters */}
                     <div className="bg-card rounded-lg p-4 mb-6 shadow-sm border border-border">
-                        <div className="space-y-4">
-                            {/* Search */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search trips..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10"
-                                />
+                        <div className="flex flex-col gap-4">
+                            {/* First row: Search and Create button */}
+                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                                <div className="relative flex-1 min-w-[200px]">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search routes, buses, origins, destinations..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                    <Button onClick={() => setShowDeleted((s) => !s)} variant={showDeleted ? 'destructive' : 'default'}>
+                                        {showDeleted ? 'Hide Deleted Trips' : 'Show Deleted Trips'}
+                                    </Button>
+                                    <Button onClick={handleCreateTrip} className="w-full md:w-auto">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Trip
+                                    </Button>
+                                </div>
                             </div>
+                            
+                            {/* Second row: All filters */}
+                            {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Status</SelectItem>
+                                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                                        <SelectItem value="in_progress">In Progress</SelectItem>
+                                        <SelectItem value="completed">Completed</SelectItem>
+                                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                                        <SelectItem value="delayed">Delayed</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={routeFilter} onValueChange={setRouteFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Routes" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Routes</SelectItem>
+                                        {routes.map((route) => (
+                                            <SelectItem key={route.id} value={route.id}>
+                                                {route.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={dateFilter} onValueChange={setDateFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Dates" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Dates</SelectItem>
+                                        <SelectItem value="today">Today</SelectItem>
+                                        <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                                        <SelectItem value="thisWeek">This Week</SelectItem>
+                                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                                        <SelectItem value="past">Past</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={priceFilter} onValueChange={setPriceFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Prices" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Prices</SelectItem>
+                                        <SelectItem value="low">Low (≤500k VND)</SelectItem>
+                                        <SelectItem value="medium">Medium (500k-1M VND)</SelectItem>
+                                        <SelectItem value="high">High (&gt;1M VND)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select value={sortBy} onValueChange={setSortBy}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="departureTime">Departure Time</SelectItem>
+                                        <SelectItem value="route">Route</SelectItem>
+                                        <SelectItem value="price">Price</SelectItem>
+                                        <SelectItem value="status">Status</SelectItem>
+                                        <SelectItem value="bus">Bus</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div> */}
                             
                             {/* Filters Row */}
                             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
@@ -452,7 +553,7 @@ function TripManagementPage() {
                                     )}
                                 </div>
                             </div>
-                            
+
                             {/* Sort Options */}
                             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 pt-3 border-t">
                                 <span className="text-sm font-medium shrink-0">Sort by:</span>
@@ -574,8 +675,21 @@ function TripManagementPage() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        paginatedTrips.map((trip) => (
-                                            <TableRow key={trip.id} className="hover:bg-muted/50">
+                                        filteredTrips.map((trip) => (
+                                            <TableRow key={trip.id} className={`hover:bg-muted/50 ${showDeleted ? 'cursor-pointer' : ''}`} onClick={showDeleted ? async () => {
+                                                try {
+                                                    setPaymentsLoading(true);
+                                                    setSelectedDeletedTrip(trip);
+                                                    setShowDeletedModal(true);
+                                                    const payments = await getTripPayments(trip.id);
+                                                    setDeletedTripPayments(payments);
+                                                } catch (err) {
+                                                    console.error('Failed to fetch trip payments', err);
+                                                    toast.error('Failed to load payments');
+                                                } finally {
+                                                    setPaymentsLoading(false);
+                                                }
+                                            } : undefined}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <MapPin className="h-4 w-4 text-primary" />
@@ -630,18 +744,23 @@ function TripManagementPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => handleEditTrip(trip)}
+                                                            onClick={(e) => { e.stopPropagation(); handleEditTrip(trip); }}
                                                         >
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => handleDeleteTrip(trip.id)}
-                                                            className="text-destructive hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                        {!showDeleted && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    await handleDeleteTrip(trip.id);
+                                                                }}
+                                                                className="text-destructive hover:text-destructive"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -700,6 +819,76 @@ function TripManagementPage() {
                     </div>
                 </main>
             </div>
+
+            {/* Deleted Trip Payments Dialog */}
+            <Dialog open={showDeletedModal} onOpenChange={(open) => { if (!open) { setShowDeletedModal(false); setSelectedDeletedTrip(null); setDeletedTripPayments([]); } }}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Deleted Trip Payments</DialogTitle>
+                        <DialogDescription>
+                            {selectedDeletedTrip ? `${selectedDeletedTrip.route?.name || ''} - ${new Date(selectedDeletedTrip.departureTime).toLocaleString()}` : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="mt-4">
+                        {paymentsLoading ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                <p className="mt-2">Loading payments...</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="text-sm text-muted-foreground">{deletedTripPayments.length} payments</div>
+                                    <div>
+                                        <Button
+                                            onClick={async () => {
+                                                if (!selectedDeletedTrip) return;
+                                                try {
+                                                    setRefunding(true);
+                                                    await toast.promise(refundTrip(selectedDeletedTrip.id), {
+                                                        loading: 'Refunding money...',
+                                                        success: 'Refund attempt finished',
+                                                        error: 'Refund failed',
+                                                    });
+                                                    // refresh payments
+                                                    const payments = await getTripPayments(selectedDeletedTrip.id);
+                                                    setDeletedTripPayments(payments);
+                                                } catch (err) {
+                                                    console.error('Refund failed', err);
+                                                    toast.error('Refund failed');
+                                                } finally {
+                                                    setRefunding(false);
+                                                }
+                                            }}
+                                            disabled={refunding}
+                                        >
+                                            {refunding ? 'Refunding...' : 'Refund payments again'}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {deletedTripPayments.map((p) => (
+                                        <div key={p.id} className="p-3 border rounded-md flex justify-between items-center">
+                                            <div>
+                                                <div className="font-medium">Payment {p.id}</div>
+                                                <div className="text-xs text-muted-foreground">Booking: {p.bookingId || 'N/A'}</div>
+                                                <div className="text-xs text-muted-foreground">Bank: {p.bankId || 'N/A'} / {p.bankNumber || 'N/A'}</div>
+                                                <div className="text-xs text-muted-foreground">Created: {new Date(p.createdAt).toLocaleString()}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-medium">{p.amount?.toFixed?.(2) ?? p.amount}</div>
+                                                <div className="text-xs text-muted-foreground">{p.status}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
