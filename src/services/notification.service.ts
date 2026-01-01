@@ -17,8 +17,10 @@ export interface Notification {
 class NotificationService {
   async getNotifications(): Promise<Notification[]> {
     try {
-      const response = await api.get<Notification[]>("/notifications");
-      return response.data;
+      const response = await api.get<{ data: Notification[] }>(
+        "/notifications",
+      );
+      return response.data.data;
     } catch (error) {
       console.error("Error fetching notifications:", error);
       throw error;
