@@ -213,6 +213,7 @@ function TripManagementPage() {
     const handleEditTrip = (trip: Trip) => {
         setEditingTrip(trip);
         setIsDialogOpen(true);
+        setShowDeletedModal(false);
     };
 
     const handleDeleteTrip = async (tripId: string) => {
@@ -564,21 +565,23 @@ function TripManagementPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => handleEditTrip(trip)}
+                                                            onClick={(e) => { e.stopPropagation(); handleEditTrip(trip); }}
                                                         >
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={async (e) => {
-                                                                e.stopPropagation();
-                                                                await handleDeleteTrip(trip.id);
-                                                            }}
-                                                            className="text-destructive hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                        {!showDeleted && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    await handleDeleteTrip(trip.id);
+                                                                }}
+                                                                className="text-destructive hover:text-destructive"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
