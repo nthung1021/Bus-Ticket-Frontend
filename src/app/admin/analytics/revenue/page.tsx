@@ -23,9 +23,10 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { format, startOfToday, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth } from "date-fns";
-import { analyticsService, BookingsSummary, BookingTrend, RouteAnalytics } from "@/services/analytics.service";
+import { format, startOfToday, startOfWeek, startOfMonth, startOfYear, endOfDay, endOfWeek, endOfMonth, endOfYear, subMonths, subYears } from "date-fns";
+import { analyticsService, BookingsSummary, BookingTrend, RouteAnalytics, PaymentMethodAnalytics } from "@/services/analytics.service";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function RevenueAnalyticsPage() {
   return (
@@ -38,11 +39,14 @@ export default function RevenueAnalyticsPage() {
 }
 
 function RevenueAnalyticsContent() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('month');
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const [selectedYear, setSelectedYear] = useState<string>(format(new Date(), 'yyyy'));
   const [isLoading, setIsLoading] = useState(true);
   const [bookingsSummary, setBookingsSummary] = useState<BookingsSummary | null>(null);
   const [bookingsTrends, setBookingsTrends] = useState<BookingTrend[]>([]);
   const [routeAnalytics, setRouteAnalytics] = useState<RouteAnalytics[]>([]);
+  const [paymentMethodAnalytics, setPaymentMethodAnalytics] = useState<PaymentMethodAnalytics | null>(null);
   const [totalBookings, setTotalBookings] = useState<number>(0);
   const [bookingGrowth, setBookingGrowth] = useState<number>(0);
   const [seatOccupancy, setSeatOccupancy] = useState<number>(0);
@@ -50,7 +54,7 @@ function RevenueAnalyticsContent() {
   // Fetch analytics data
   useEffect(() => {
     fetchAnalyticsData();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, selectedMonth, selectedYear]);
 
   const fetchAnalyticsData = async () => {
     try {
@@ -70,18 +74,28 @@ function RevenueAnalyticsContent() {
           endDate = endOfWeek(new Date()).toISOString();
           break;
         case 'month':
-          startDate = startOfMonth(new Date()).toISOString();
-          endDate = endOfMonth(new Date()).toISOString();
+          // Use selected month
+          const monthDate = new Date(selectedMonth + '-01');
+          startDate = startOfMonth(monthDate).toISOString();
+          endDate = endOfMonth(monthDate).toISOString();
+          break;
+        case 'year':
+          // Use selected year
+          const yearDate = new Date(selectedYear + '-01-01');
+          startDate = startOfYear(yearDate).toISOString();
+          endDate = endOfYear(yearDate).toISOString();
           break;
         default:
-          startDate = startOfToday().toISOString();
+          startDate = startOfMonth(new Date()).toISOString();
+          endDate = endOfMonth(new Date()).toISOString();
       }
 
       const queryParams = {
         startDate: startDate.split('T')[0],
         endDate: endDate.split('T')[0],
         timeframe: selectedPeriod === 'today' ? 'daily' as const : 
-                  selectedPeriod === 'week' ? 'weekly' as const : 'monthly' as const
+                  selectedPeriod === 'week' ? 'daily' as const :
+                  selectedPeriod === 'month' ? 'daily' as const : 'monthly' as const
       };
 
       // Fetch all analytics data
@@ -91,22 +105,38 @@ function RevenueAnalyticsContent() {
         routesData,
         totalBookingsData,
         growthData,
-        occupancyData
+        occupancyData,
+        paymentData
       ] = await Promise.all([
         analyticsService.getBookingsSummary(queryParams).catch(() => null),
         analyticsService.getBookingsTrends(queryParams).catch(() => []),
         analyticsService.getRouteAnalytics(queryParams).catch(() => []),
         analyticsService.getTotalBookingsCount(queryParams).catch(() => ({ totalBookings: 0 })),
         analyticsService.getBookingGrowth(queryParams).catch(() => ({ bookingGrowth: 0 })),
-        analyticsService.getSeatOccupancyRate(queryParams).catch(() => ({ seatOccupancyRate: 0 }))
+        analyticsService.getSeatOccupancyRate(queryParams).catch(() => ({ seatOccupancyRate: 0 })),
+        analyticsService.getPaymentMethodAnalytics(queryParams).catch(() => null)
       ]);
 
       setBookingsSummary(summaryData);
       setBookingsTrends(trendsData);
       setRouteAnalytics(routesData);
+      setPaymentMethodAnalytics(paymentData);
       setTotalBookings(totalBookingsData.totalBookings);
       setBookingGrowth(growthData.bookingGrowth);
       setSeatOccupancy(occupancyData.seatOccupancyRate);
+      
+      // Debug: Log the actual data received from the backend
+      console.log('Analytics Data Received:', {
+        summary: summaryData,
+        trends: trendsData,
+        routes: routesData,
+        payments: paymentData,
+        totalBookings: totalBookingsData,
+        growth: growthData,
+        occupancy: occupancyData,
+        selectedPeriod,
+        queryParams
+      });
       
     } catch (error) {
       console.error('Error fetching analytics data:', error);
@@ -116,6 +146,7 @@ function RevenueAnalyticsContent() {
       setBookingsSummary(null);
       setBookingsTrends([]);
       setRouteAnalytics([]);
+      setPaymentMethodAnalytics(null);
       setTotalBookings(0);
       setBookingGrowth(0);
       setSeatOccupancy(0);
@@ -140,6 +171,18 @@ function RevenueAnalyticsContent() {
       transactions: totalBookings || 0
     },
     month: {
+      revenue: bookingsSummary?.totalRevenue ?? 0,
+      growth: bookingGrowth ?? 0,
+      tickets: totalBookings || 0,
+      transactions: totalBookings || 0
+    },
+    year: {
+      revenue: bookingsSummary?.totalRevenue ?? 0,
+      growth: bookingGrowth ?? 0,
+      tickets: totalBookings || 0,
+      transactions: totalBookings || 0
+    },
+    custom: {
       revenue: bookingsSummary?.totalRevenue ?? 0,
       growth: bookingGrowth ?? 0,
       tickets: totalBookings || 0,
@@ -179,13 +222,25 @@ function RevenueAnalyticsContent() {
       }))
     : [];
 
-  // Payment method distribution data (placeholder - no API available yet)
-  const paymentMethodData = [
-    { method: 'Credit Card', amount: revenueData[selectedPeriod].revenue * 0.45, percentage: 45, color: '#0088FE' },
-    { method: 'Bank Transfer', amount: revenueData[selectedPeriod].revenue * 0.35, percentage: 35, color: '#00C49F' },
-    { method: 'Digital Wallet', amount: revenueData[selectedPeriod].revenue * 0.15, percentage: 15, color: '#FFBB28' },
-    { method: 'Cash', amount: revenueData[selectedPeriod].revenue * 0.05, percentage: 5, color: '#FF8042' },
-  ];
+  // Payment method distribution data from actual database
+  const paymentMethodData = paymentMethodAnalytics?.methods.map(method => {
+    // Map colors for different payment providers
+    const colorMap: Record<string, string> = {
+      'PayOS': '#0088FE',
+      'MoMo': '#00C49F',
+      'ZaloPay': '#FFBB28',
+      'VNPay': '#FF8042',
+      'Bank Transfer': '#8884d8',
+      'Cash': '#82ca9d'
+    };
+    
+    return {
+      method: method.provider,
+      amount: method.totalAmount,
+      percentage: Math.round(method.percentage * 100) / 100,
+      color: colorMap[method.provider] || '#999999'
+    };
+  }) || [];
 
   // Use real trends data only
   const revenueOverTimeData = dailyRevenueData;
@@ -208,17 +263,23 @@ function RevenueAnalyticsContent() {
   };
 
   const formatCurrency = (amount: number) => {
-    // Smart currency detection - if amount is too high, it might be in cents
-    const displayAmount = amount > 100000 ? amount / 100 : amount;
+    // Round to 2 decimal places
+    const roundedAmount = Math.round(amount * 100) / 100;
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'VND'
-    }).format(displayAmount);
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(roundedAmount);
   };
 
-  // Helper function to safely format numbers
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('vi-VN').format(num);
+  // Helper function to safely format numbers with 2 decimal places
+  const formatNumber = (num: number, decimals: number = 2) => {
+    const rounded = Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+    return new Intl.NumberFormat('vi-VN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    }).format(rounded);
   };
 
   // Loading component
@@ -273,28 +334,87 @@ function RevenueAnalyticsContent() {
             </div>
 
             {/* Period Selection */}
-            <div className="flex space-x-2">
-              <Button
-                variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-                onClick={() => setSelectedPeriod('today')}
-                size="sm"
-              >
-                Today
-              </Button>
-              <Button
-                variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-                onClick={() => setSelectedPeriod('week')}
-                size="sm"
-              >
-                This Week
-              </Button>
-              <Button
-                variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-                onClick={() => setSelectedPeriod('month')}
-                size="sm"
-              >
-                This Month
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={selectedPeriod === 'today' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPeriod('today')}
+                  size="sm"
+                  className="cursor-pointer"
+                >
+                  Today
+                </Button>
+                <Button
+                  variant={selectedPeriod === 'week' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPeriod('week')}
+                  size="sm"
+                  className="cursor-pointer"
+                >
+                  This Week
+                </Button>
+                <Button
+                  variant={selectedPeriod === 'month' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPeriod('month')}
+                  size="sm"
+                  className="cursor-pointer"
+                >
+                  By Month
+                </Button>
+                <Button
+                  variant={selectedPeriod === 'year' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPeriod('year')}
+                  size="sm"
+                  className="cursor-pointer"
+                >
+                  By Year
+                </Button>
+              </div>
+
+              {/* Month Selector */}
+              {selectedPeriod === 'month' && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Month:</label>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const date = subMonths(new Date(), i);
+                        const value = format(date, 'yyyy-MM');
+                        const label = format(date, 'MMMM yyyy');
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Year Selector */}
+              {selectedPeriod === 'year' && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Year:</label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const year = new Date().getFullYear() - i;
+                        return (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Revenue Summary Cards */}
@@ -310,12 +430,12 @@ function RevenueAnalyticsContent() {
                     {currentData.growth > 0 ? (
                       <>
                         <TrendingUp className="h-3 w-3 text-green-500" />
-                        <span className="text-green-500">+{currentData.growth}%</span>
+                        <span className="text-green-500">+{formatNumber(currentData.growth, 2)}%</span>
                       </>
                     ) : (
                       <>
                         <TrendingDown className="h-3 w-3 text-red-500" />
-                        <span className="text-red-500">{currentData.growth}%</span>
+                        <span className="text-red-500">{formatNumber(currentData.growth, 2)}%</span>
                       </>
                     )}
                     <span className="text-muted-foreground">from last period</span>
@@ -331,7 +451,7 @@ function RevenueAnalyticsContent() {
                 <CardContent>
                   <div className="text-2xl font-bold">{currentData.tickets.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
-                    Avg: {formatCurrency(currentData.revenue / currentData.tickets)}/ticket
+                    Avg: {currentData.tickets > 0 ? formatCurrency(currentData.revenue / currentData.tickets) : formatCurrency(0)}/ticket
                   </p>
                 </CardContent>
               </Card>
@@ -344,7 +464,7 @@ function RevenueAnalyticsContent() {
                 <CardContent>
                   <div className="text-2xl font-bold">{currentData.transactions.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
-                    Success rate: {((currentData.transactions / currentData.tickets) * 100).toFixed(1)}%
+                    Success rate: {currentData.tickets > 0 ? formatNumber((currentData.transactions / currentData.tickets) * 100, 2) : '0.00'}%
                   </p>
                 </CardContent>
               </Card>
@@ -358,12 +478,14 @@ function RevenueAnalyticsContent() {
                   <div className="text-2xl font-bold">
                     {formatCurrency(selectedPeriod === 'today' ? currentData.revenue : 
                       selectedPeriod === 'week' ? currentData.revenue / 7 : 
-                      currentData.revenue / 30)}
+                      selectedPeriod === 'month' ? currentData.revenue / 30 :
+                      currentData.revenue / 365)}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {selectedPeriod === 'today' ? 'Today only' : 
                      selectedPeriod === 'week' ? 'Last 7 days' : 
-                     'Last 30 days'}
+                     selectedPeriod === 'month' ? 'Per month' :
+                     'Per year'}
                   </p>
                 </CardContent>
               </Card>
@@ -575,7 +697,7 @@ function RevenueAnalyticsContent() {
                               {formatCurrency(route.revenue)}
                             </td>
                             <td className="text-right p-3">
-                              {route.percentage}%
+                              {route.percentage.toFixed(2)}%
                             </td>
                             <td className="text-center p-3">
                               <Badge variant={

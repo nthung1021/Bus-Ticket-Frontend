@@ -58,7 +58,22 @@ export interface MetricsData {
   popularRoutes: RouteAnalytics[];
   seatOccupancyRate: number;
 }
+export interface PaymentMethodStats {
+  provider: string;
+  count: number;
+  totalAmount: number;
+  percentage: number;
+}
 
+export interface PaymentMethodAnalytics {
+  methods: PaymentMethodStats[];
+  totalTransactions: number;
+  totalRevenue: number;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+}
 // Legacy Revenue Analytics Types (kept for backward compatibility)
 export interface TotalRevenueResponse {
   totalRevenue: number;
@@ -215,6 +230,10 @@ export class AnalyticsService {
     if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
 
     const response = await api.get(`/admin/analytics/metrics/booking-growth${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+    // Backend returns complex BookingGrowthDto with growth.bookingsGrowthRate, transform to expected format
+    if (response.data.growth) {
+      return { bookingGrowth: response.data.growth.bookingsGrowthRate || 0 };
+    }
     return response.data;
   }
 
@@ -240,6 +259,21 @@ export class AnalyticsService {
       return { seatOccupancyRate: response.data.overall.occupancyRate };
     }
     return response.data;
+  }
+
+  async getPaymentMethodAnalytics(params?: AnalyticsQueryDto): Promise<PaymentMethodAnalytics> {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append('startDate', params.startDate);
+      if (params?.endDate) searchParams.append('endDate', params.endDate);
+      if (params?.timeframe) searchParams.append('timeframe', params.timeframe);
+
+      const response = await api.get(`/admin/analytics/metrics/payment-methods${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment method analytics:', error);
+      throw error;
+    }
   }
 
   // Legacy Revenue Analytics (kept for backward compatibility)

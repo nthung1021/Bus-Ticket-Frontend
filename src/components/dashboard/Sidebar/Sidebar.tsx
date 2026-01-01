@@ -31,7 +31,6 @@ const menuItems = [
   { icon: Users, label: "Manage Passengers", href: "/admin/passengers" },
   { icon: FileText, label: "Manage FAQs", href: "/admin/faqs" },
   { icon: BarChart3, label: "Revenue Analytics", href: "/admin/analytics/revenue" },
-  { icon: FileText, label: "Reports", href: "/admin/reports" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
