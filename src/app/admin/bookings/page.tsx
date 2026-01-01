@@ -264,7 +264,8 @@ function BookingsManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleViewDetails(booking)}
-                                className="cursor-pointer"
+                                className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950"
+                                title="View Details"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -277,7 +278,8 @@ function BookingsManagement() {
                                     setNewStatus("paid");
                                     setIsStatusUpdateDialogOpen(true);
                                   }}
-                                  className="cursor-pointer"
+                                  className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-950"
+                                  title="Confirm Payment"
                                 >
                                   <CheckCircle className="h-4 w-4" />
                                 </Button>
@@ -292,7 +294,8 @@ function BookingsManagement() {
                                       setNewStatus("completed");
                                       setIsStatusUpdateDialogOpen(true);
                                     }}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-950"
+                                    title="Mark as Completed"
                                   >
                                     <CheckCircle className="h-4 w-4 text-green-600" />
                                   </Button>
@@ -303,7 +306,8 @@ function BookingsManagement() {
                                       setSelectedBooking(booking);
                                       setIsRefundDialogOpen(true);
                                     }}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-950"
+                                    title="Process Refund"
                                   >
                                     <RefreshCw className="h-4 w-4 text-orange-600" />
                                   </Button>
@@ -368,9 +372,9 @@ function BookingsManagement() {
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="font-semibold mb-2">Passengers ({selectedBooking.passengers.length})</h4>
+                <h4 className="font-semibold mb-2">Passengers ({selectedBooking.passengers?.length || 0})</h4>
                 <div className="space-y-2">
-                  {selectedBooking.passengers.map((passenger) => (
+                  {selectedBooking.passengers?.map((passenger) => (
                     <div key={passenger.id} className="flex justify-between items-center p-2 bg-muted rounded">
                       <div>
                         <p className="font-medium">{passenger.fullName}</p>
@@ -381,6 +385,9 @@ function BookingsManagement() {
                       <Badge variant="outline">{passenger.seatCode}</Badge>
                     </div>
                   ))}
+                  {(!selectedBooking.passengers || selectedBooking.passengers.length === 0) && (
+                    <p className="text-sm text-muted-foreground">No passenger information available</p>
+                  )}
                 </div>
               </div>
 
