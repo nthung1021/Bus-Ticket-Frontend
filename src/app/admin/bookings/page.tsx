@@ -171,16 +171,25 @@ function BookingsManagement() {
         </div>
 
         <main className="flex-1 pt-6 lg:pt-10 px-4 sm:px-6 pb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                 Booking Management
-              </CardTitle>
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                View and manage all bookings
+              </p>
+            </div>
+          </div>
 
-              {/* Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                <div className="relative sm:col-span-2 lg:col-span-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          {/* Compact Filters */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search bookings..."
                     value={searchTerm}
@@ -188,43 +197,65 @@ function BookingsManagement() {
                     className="pl-10"
                   />
                 </div>
+                
+                {/* Filters Row */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                  <span className="text-sm font-medium shrink-0">Filters:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      placeholder="Start Date"
+                      className="w-[150px]"
+                    />
 
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    placeholder="Start Date"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    placeholder="End Date"
-                  />
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      placeholder="End Date"
+                      className="w-[150px]"
+                    />
+                    
+                    {/* Clear Filters Button */}
+                    {(searchTerm || statusFilter !== "all" || startDate || endDate) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("all");
+                          setStartDate("");
+                          setEndDate("");
+                        }}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </CardHeader>
+            </CardContent>
+          </Card>
 
+          <Card>
             <CardContent>
               {loading ? (
                 <div className="text-center py-8">Loading bookings...</div>

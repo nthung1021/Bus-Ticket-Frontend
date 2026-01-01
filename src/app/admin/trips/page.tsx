@@ -344,170 +344,182 @@ function TripManagementPage() {
 
                 {/* Content Area */}
                 <main className="flex-1 pt-6 lg:pt-10 px-4 sm:px-6 pb-6">
-                    {/* Page Header */}
-                    <div className="mb-6">
-                        <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                            Trip Management
-                        </h1>
-                        <p className="text-sm sm:text-base text-muted-foreground">
-                            Create, edit, and manage trip schedules
-                        </p>
+                    {/* Page Header with Create Button */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                Trip Management
+                            </h1>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Create, edit, and manage trip schedules
+                            </p>
+                        </div>
+                        <Button onClick={handleCreateTrip} className="w-full sm:w-auto shrink-0 cursor-pointer">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Trip
+                        </Button>
                     </div>
 
-                    {/* Enhanced Filters and Actions */}
-                    <div className="bg-card rounded-lg p-3 sm:p-4 mb-6 shadow-sm border border-border">
-                        <div className="flex flex-col gap-3 sm:gap-4">
-                            {/* First row: Search and Create button */}
-                            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-                                <div className="relative flex-1 min-w-0">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Search trips..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10 h-9 sm:h-10"
-                                    />
-                                </div>
-                                
-                                <Button onClick={handleCreateTrip} className="w-full sm:w-auto h-9 sm:h-10 shrink-0 cursor-pointer">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Create Trip
-                                </Button>
+                    {/* Compact Filters */}
+                    <div className="bg-card rounded-lg p-4 mb-6 shadow-sm border border-border">
+                        <div className="space-y-4">
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search trips..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10"
+                                />
                             </div>
                             
-                            {/* Second row: Filters only */}
-                            <div className="space-y-2">
-                                <span className="text-xs sm:text-sm font-medium text-foreground block">Filter by:</span>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Status</SelectItem>
-                                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                                        <SelectItem value="in_progress">In Progress</SelectItem>
-                                        <SelectItem value="completed">Completed</SelectItem>
-                                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                                        <SelectItem value="delayed">Delayed</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={routeFilter} onValueChange={setRouteFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Routes" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Routes</SelectItem>
-                                        {routes.map((route) => (
-                                            <SelectItem key={route.id} value={route.id}>
-                                                {route.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={dateFilter} onValueChange={setDateFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Dates" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Dates</SelectItem>
-                                        <SelectItem value="today">Today</SelectItem>
-                                        <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                                        <SelectItem value="thisWeek">This Week</SelectItem>
-                                        <SelectItem value="upcoming">Upcoming</SelectItem>
-                                        <SelectItem value="past">Past</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={priceFilter} onValueChange={setPriceFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Prices" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Prices</SelectItem>
-                                        <SelectItem value="low">Low (≤500k VND)</SelectItem>
-                                        <SelectItem value="medium">Medium (500k-1M VND)</SelectItem>
-                                        <SelectItem value="high">High (&gt;1M VND)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                            
-                            {/* Third row: Sort options */}
-                            <div className="border-t border-border pt-3 sm:pt-4">
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                        <span className="text-xs sm:text-sm font-medium text-foreground shrink-0">Sort by:</span>
-                                        <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                                            <Button
-                                                variant={sortBy === "departureTime" ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSortBy("departureTime")}
-                                                className="h-7 sm:h-8 text-xs cursor-pointer"
-                                            >
-                                                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-                                                <span className="hidden xs:inline">Departure</span>
-                                                <span className="xs:hidden">Dept</span>
-                                            </Button>
-                                            <Button
-                                                variant={sortBy === "bookings" ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSortBy("bookings")}
-                                                className="h-7 sm:h-8 text-xs cursor-pointer"
-                                            >
-                                                <BusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-                                                <span className="hidden xs:inline">Bookings</span>
-                                                <span className="xs:hidden">Book</span>
-                                            </Button>
-                                            <Button
-                                                variant={sortBy === "route" ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSortBy("route")}
-                                                className="h-7 sm:h-8 text-xs cursor-pointer"
-                                            >
-                                                <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-                                                Route
-                                            </Button>
-                                            <Button
-                                                variant={sortBy === "price" ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSortBy("price")}
-                                                className="h-7 sm:h-8 text-xs cursor-pointer"
-                                            >
-                                                <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-                                                Price
-                                            </Button>
-                                            <Button
-                                                variant={sortBy === "status" ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSortBy("status")}
-                                                className="h-7 sm:h-8 text-xs cursor-pointer"
-                                            >
-                                                Status
-                                            </Button>
-                                            <Button
-                                                variant={sortBy === "bus" ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSortBy("bus")}
-                                                className="h-8 cursor-pointer"
-                                            >
-                                                Bus
-                                            </Button>
-                                        </div>
+                            {/* Filters Row */}
+                            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                                <span className="text-sm font-medium shrink-0">Filters:</span>
+                                <div className="flex flex-wrap items-center gap-2 flex-1">
+                                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                        <SelectTrigger className="w-[130px]">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Status</SelectItem>
+                                            <SelectItem value="scheduled">Scheduled</SelectItem>
+                                            <SelectItem value="in_progress">In Progress</SelectItem>
+                                            <SelectItem value="completed">Completed</SelectItem>
+                                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                                            <SelectItem value="delayed">Delayed</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    
+                                    <Select value={routeFilter} onValueChange={setRouteFilter}>
+                                        <SelectTrigger className="w-[130px]">
+                                            <SelectValue placeholder="Route" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Routes</SelectItem>
+                                            {routes.map((route) => (
+                                                <SelectItem key={route.id} value={route.id}>
+                                                    {route.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    
+                                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                                        <SelectTrigger className="w-[130px]">
+                                            <SelectValue placeholder="Date" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Dates</SelectItem>
+                                            <SelectItem value="today">Today</SelectItem>
+                                            <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                                            <SelectItem value="thisWeek">This Week</SelectItem>
+                                            <SelectItem value="upcoming">Upcoming</SelectItem>
+                                            <SelectItem value="past">Past</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    
+                                    <Select value={priceFilter} onValueChange={setPriceFilter}>
+                                        <SelectTrigger className="w-[130px]">
+                                            <SelectValue placeholder="Price" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Prices</SelectItem>
+                                            <SelectItem value="low">Low (≤500k)</SelectItem>
+                                            <SelectItem value="medium">Medium (500k-1M)</SelectItem>
+                                            <SelectItem value="high">High (&gt;1M)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    
+                                    {/* Clear Filters Button - only show when filters are active */}
+                                    {(searchQuery || statusFilter !== "all" || routeFilter !== "all" || dateFilter !== "all" || priceFilter !== "all") && (
                                         <Button
-                                            variant="secondary"
+                                            variant="ghost"
                                             size="sm"
-                                            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                                            className="h-8 cursor-pointer"
+                                            onClick={() => {
+                                                setSearchQuery("");
+                                                setStatusFilter("all");
+                                                setRouteFilter("all");
+                                                setDateFilter("all");
+                                                setPriceFilter("all");
+                                            }}
+                                            className="text-muted-foreground hover:text-foreground cursor-pointer"
                                         >
-                                            {sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+                                            <Filter className="h-4 w-4 mr-1" />
+                                            Clear
                                         </Button>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground">
-                                        Showing {filteredTrips.length} of {trips.length} trips
-                                    </span>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Sort Options */}
+                            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 pt-3 border-t">
+                                <span className="text-sm font-medium shrink-0">Sort by:</span>
+                                <div className="flex flex-wrap items-center gap-2 flex-1">
+                                    <Button
+                                        variant={sortBy === "departureTime" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setSortBy("departureTime")}
+                                        className="cursor-pointer"
+                                    >
+                                        <Calendar className="h-3.5 w-3.5 mr-1" />
+                                        Departure
+                                    </Button>
+                                    <Button
+                                        variant={sortBy === "bookings" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setSortBy("bookings")}
+                                        className="cursor-pointer"
+                                    >
+                                        <BusIcon className="h-3.5 w-3.5 mr-1" />
+                                        Bookings
+                                    </Button>
+                                    <Button
+                                        variant={sortBy === "route" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setSortBy("route")}
+                                        className="cursor-pointer"
+                                    >
+                                        <MapPin className="h-3.5 w-3.5 mr-1" />
+                                        Route
+                                    </Button>
+                                    <Button
+                                        variant={sortBy === "price" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setSortBy("price")}
+                                        className="cursor-pointer"
+                                    >
+                                        <DollarSign className="h-3.5 w-3.5 mr-1" />
+                                        Price
+                                    </Button>
+                                    <Button
+                                        variant={sortBy === "status" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setSortBy("status")}
+                                        className="cursor-pointer"
+                                    >
+                                        Status
+                                    </Button>
+                                    <Button
+                                        variant={sortBy === "bus" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setSortBy("bus")}
+                                        className="cursor-pointer"
+                                    >
+                                        Bus
+                                    </Button>
+                                    
+                                    <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                                    
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                        className="cursor-pointer"
+                                    >
+                                        {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+                                    </Button>
                                 </div>
                             </div>
                         </div>

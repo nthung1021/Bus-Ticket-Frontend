@@ -292,35 +292,44 @@ function OperatorsManagement() {
           </button>
         </div>
         <main className="flex-1 pt-6 lg:pt-10 px-4 pb-4">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-start sm:items-center">
-                <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Operator Management</CardTitle>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Operator
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Operator</DialogTitle>
-                    </DialogHeader>
-                    <OperatorForm
-                      formData={formData}
-                      setFormData={setFormData}
-                      onCancel={() => setIsCreateDialogOpen(false)}
-                      onSubmit={handleCreateOperator}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              {/* Enhanced Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
-                <div className="relative sm:col-span-2">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                Operator Management
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage bus operators
+              </p>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto shrink-0 cursor-pointer">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Operator
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Operator</DialogTitle>
+                </DialogHeader>
+                <OperatorForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onCancel={() => setIsCreateDialogOpen(false)}
+                  onSubmit={handleCreateOperator}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Compact Filters */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search operators, emails, phones..."
                     value={searchTerm}
@@ -329,54 +338,116 @@ function OperatorsManagement() {
                   />
                 </div>
                 
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as OperatorStatus | "all")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
-                    <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
-                    <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Filters Row */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                  <span className="text-sm font-medium shrink-0">Filters:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as OperatorStatus | "all")}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
+                        <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
+                        <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Date" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Time</SelectItem>
+                        <SelectItem value="recent">Last 7 days</SelectItem>
+                        <SelectItem value="thisMonth">This month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Clear Filters Button */}
+                    {(searchTerm || statusFilter !== "all" || dateFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("all");
+                          setDateFilter("all");
+                        }}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="recent">Last 7 days</SelectItem>
-                    <SelectItem value="thisMonth">This month</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="approved">Approved Date</SelectItem>
-                    <SelectItem value="busCount">Bus Count</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Sort Options */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 pt-3 border-t">
+                  <span className="text-sm font-medium shrink-0">Sort by:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Button
+                      variant={sortBy === "name" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("name")}
+                      className="cursor-pointer"
+                    >
+                      Name
+                    </Button>
+                    <Button
+                      variant={sortBy === "email" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("email")}
+                      className="cursor-pointer"
+                    >
+                      Email
+                    </Button>
+                    <Button
+                      variant={sortBy === "status" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("status")}
+                      className="cursor-pointer"
+                    >
+                      Status
+                    </Button>
+                    <Button
+                      variant={sortBy === "approved" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("approved")}
+                      className="cursor-pointer"
+                    >
+                      Approved
+                    </Button>
+                    <Button
+                      variant={sortBy === "busCount" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("busCount")}
+                      className="cursor-pointer"
+                    >
+                      Bus Count
+                    </Button>
+                    
+                    <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                    
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="cursor-pointer"
+                    >
+                      {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+                    </Button>
+                  </div>
+                </div>
               </div>
-              
-              {/* Results count and sort order */}
-              <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8 cursor-pointer"
-                >
-                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Operators</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -477,8 +548,8 @@ function OperatorsManagement() {
                     showingTo={showingTo}
                   />
                 )}
-                </>
-              )}
+              </>
+            )}
             </CardContent>
           </Card>
 
@@ -497,7 +568,7 @@ function OperatorsManagement() {
             </DialogContent>
           </Dialog>
         </main>
-      </div>
     </div>
+  </div>
   );
 }

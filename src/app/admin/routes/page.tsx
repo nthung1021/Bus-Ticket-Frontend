@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler, ChevronDown, Wifi, Car } from "lucide-react";
+import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler, ChevronDown, Wifi, Car, XCircle } from "lucide-react";
 import { routeService, Route, CreateRouteDto, UpdateRouteDto } from "@/services/route.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
@@ -296,38 +296,45 @@ function RoutesManagement() {
           </button>
         </div>
         <main className="flex-1 pt-6 lg:pt-10 px-4 pb-4 overflow-auto">
-          <Card className="min-w-0">
-            <CardHeader>
-              <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
-                <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Route Management</CardTitle>
-                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Route
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-5xl max-h-[95vh] w-[98vw] sm:w-full flex flex-col">
-                      <DialogHeader className="flex-shrink-0">
-                        <DialogTitle>Create New Route</DialogTitle>
-                      </DialogHeader>
-                      <RouteForm
-                        formData={formData}
-                        setFormData={setFormData}
-                        onCancel={() => setIsCreateDialogOpen(false)}
-                        onSubmit={handleCreateRoute}
-                        operators={operators}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-              
-              {/* Enhanced Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-4">
-                <div className="relative sm:col-span-2">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          {/* Page Header with Add Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                Route Management
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create and manage routes
+              </p>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto shrink-0 cursor-pointer">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Route
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-5xl max-h-[95vh] w-[98vw] sm:w-full flex flex-col">
+                <DialogHeader className="flex-shrink-0">
+                  <DialogTitle>Create New Route</DialogTitle>
+                </DialogHeader>
+                <RouteForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onCancel={() => setIsCreateDialogOpen(false)}
+                  onSubmit={handleCreateRoute}
+                  operators={operators}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Compact Filters */}
+          <Card className="mb-6 min-w-0">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search routes, origins, destinations..."
                     value={searchTerm}
@@ -336,69 +343,137 @@ function RoutesManagement() {
                   />
                 </div>
                 
-                <Select value={operatorFilter} onValueChange={setOperatorFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Operators" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Operators</SelectItem>
-                    {operators.map((operator) => (
-                      <SelectItem key={operator.id} value={operator.id}>
-                        {operator.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Filters Row */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                  <span className="text-sm font-medium shrink-0">Filters:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Operator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Operators</SelectItem>
+                        {operators.map((operator) => (
+                          <SelectItem key={operator.id} value={operator.id}>
+                            {operator.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={distanceFilter} onValueChange={setDistanceFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Distance" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Distances</SelectItem>
+                        <SelectItem value="short">Short (≤100km)</SelectItem>
+                        <SelectItem value="medium">Medium (100-300km)</SelectItem>
+                        <SelectItem value="long">Long (&gt;300km)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={amenityFilter} onValueChange={setAmenityFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Amenity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Amenities</SelectItem>
+                        <SelectItem value="wifi">WiFi</SelectItem>
+                        <SelectItem value="ac">AC</SelectItem>
+                        <SelectItem value="restroom">Restroom</SelectItem>
+                        <SelectItem value="entertainment">Entertainment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Clear Filters Button */}
+                    {(searchTerm || operatorFilter !== "all" || statusFilter !== "all" || distanceFilter !== "all" || amenityFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setOperatorFilter("all");
+                          setStatusFilter("all");
+                          setDistanceFilter("all");
+                          setAmenityFilter("all");
+                        }}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={distanceFilter} onValueChange={setDistanceFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Distances" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Distances</SelectItem>
-                    <SelectItem value="short">Short (≤100km)</SelectItem>
-                    <SelectItem value="medium">Medium (100-300km)</SelectItem>
-                    <SelectItem value="long">Long (&gt;300km)</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="distance">Distance</SelectItem>
-                    <SelectItem value="duration">Duration</SelectItem>
-                    <SelectItem value="operator">Operator</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Sort Options */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 pt-3 border-t">
+                  <span className="text-sm font-medium shrink-0">Sort by:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Button
+                      variant={sortBy === "name" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("name")}
+                      className="cursor-pointer"
+                    >
+                      Name
+                    </Button>
+                    <Button
+                      variant={sortBy === "distance" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("distance")}
+                      className="cursor-pointer"
+                    >
+                      <Ruler className="h-3.5 w-3.5 mr-1" />
+                      Distance
+                    </Button>
+                    <Button
+                      variant={sortBy === "duration" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("duration")}
+                      className="cursor-pointer"
+                    >
+                      <Clock className="h-3.5 w-3.5 mr-1" />
+                      Duration
+                    </Button>
+                    <Button
+                      variant={sortBy === "operator" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("operator")}
+                      className="cursor-pointer"
+                    >
+                      Operator
+                    </Button>
+                    
+                    <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                    
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="cursor-pointer"
+                    >
+                      {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+                    </Button>
+                  </div>
+                </div>
               </div>
-              
-              {/* Results count and sort order */}
-              <div className="flex justify-between items-center text-sm text-muted-foreground">
-                <span>Showing {filteredRoutes.length} of {routes.length} routes</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8 cursor-pointer"
-                >
-                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
-            </CardHeader>
+            </CardContent>
+          </Card>
+
+          <Card className="min-w-0">
             <CardContent className="p-0">
               {loading ? (
                 <div className="text-center py-8 px-6">Loading routes...</div>
