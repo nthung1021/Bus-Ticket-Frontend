@@ -48,6 +48,8 @@ const sortOptions = [
   { value: "price-asc", label: "Price: Low to High" },
   { value: "price-desc", label: "Price: High to Low" },
   { value: "rating", label: "Highest Rated" },
+  { value: "departure-asc", label: "Departure: Earliest First" },
+  { value: "departure-desc", label: "Departure: Latest First" },
 ];
 
 // Helper function to format bus type labels
@@ -234,7 +236,7 @@ function SearchPageContent() {
                 ? `${trip.bus.model} • ${Object.entries(trip.bus.amenities).filter(([_, v]) => v).map(([k, _]) => k.replace('_', ' ')).join(", ")}`
                 : trip.bus?.model || "",
             category: trip.bus?.busType || "standard",
-            rating: trip.operator?.rating ?? 0.0,
+            rating: trip.averageRating ?? trip.operator?.averageRating ?? 0.0,
           };
         });
 
@@ -314,6 +316,22 @@ function SearchPageContent() {
         break;
       case "rating":
         filteredResults.sort((a, b) => b.rating - a.rating);
+        break;
+      case "departure-asc":
+        filteredResults.sort((a, b) => {
+          // Sort by departure time (earliest first)
+          const timeA = a.departure || "";
+          const timeB = b.departure || "";
+          return timeA.localeCompare(timeB);
+        });
+        break;
+      case "departure-desc":
+        filteredResults.sort((a, b) => {
+          // Sort by departure time (latest first)
+          const timeA = a.departure || "";
+          const timeB = b.departure || "";
+          return timeB.localeCompare(timeA);
+        });
         break;
       case "newest":
       default:
@@ -441,7 +459,7 @@ function SearchPageContent() {
                   </svg>
                   Bus Type
                 </h4>
-                <div className="space-y-1">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                   {categories.map((type) => (
                     <div key={type} className="flex items-center space-x-2 text-sm">
                       <Checkbox
@@ -801,77 +819,101 @@ function SearchPageContent() {
               </Card>
             ) : !isLoading && currentResults.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="space-y-4">
                   {currentResults.map((result) => (
                     <Link key={result.id} href={`/trips/${result.id}`} className="block">
-                      <Card
-                        className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
-                      >
-                        <div className="aspect-[4/3] relative overflow-hidden">
-                          <img
-                            src={result.image}
-                            alt={result.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          <div className="absolute top-4 right-4">
-                            <span className="bg-primary/90 text-primary-foreground px-2 py-1 rounded-full text-caption font-medium backdrop-blur-sm">
-                              {result.category}
-                            </span>
-                          </div>
-                          <div className="absolute bottom-4 left-4 text-white">
-                            <div className="flex items-center gap-2 mb-1">
-                              <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                              <span className="text-caption font-medium">
-                                {result.rating.toFixed(1)}
-                              </span>
+                      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
+                        <CardContent className="p-3">
+                          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            {/* Trip Image */}
+                            <div className="w-full lg:w-40 h-24 lg:h-24 relative overflow-hidden rounded-xl flex-shrink-0">
+                              <img
+                                src={result.image}
+                                alt={result.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                              <div className="absolute top-2 left-2">
+                                <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-lg text-xs font-medium">
+                                  {result.category}
+                                </span>
+                              </div>
+                              {result.rating > 0 && (
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 px-2 py-0.5 rounded">
+                                  <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                  <span className="text-white text-xs font-medium">{result.rating.toFixed(1)}</span>
+                                </div>
+                              )}
                             </div>
-                            <p className="text-caption bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
-                              {result.distance} km • {result.duration}
-                            </p>
-                          </div>
-                        </div>
-                        <CardContent className="p-6">
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <h3 className="text-h5 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                                {result.title}
-                              </h3>
-                              <p className="text-body text-muted-foreground flex items-center gap-2">
-                                <svg
-                                  className="w-4 h-4 flex-shrink-0"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                  />
+
+                            {/* Trip Details */}
+                            <div className="flex-1 space-y-2">
+                              <div className="space-y-1">
+                                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                                  {result.title}
+                                </h3>
+                                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <span className="font-medium">{result.origin}</span>
+                                  </div>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
+                                  </svg>
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <span className="font-medium">{result.destination}</span>
+                                  </div>
+                                </div>
+                                {result.departure && (
+                                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-xs">{result.departure}</span>
+                                    {result.arrival && <span className="text-xs"> • {result.arrival}</span>}
+                                  </div>
+                                )}
+                                <p className="text-sm text-muted-foreground line-clamp-1">
+                                  {result.description}
+                                </p>
+                              </div>
+
+                              {/* Trip Stats */}
+                              <div className="flex items-center gap-3 text-xs">
+                                <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-lg">
+                                  <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                  </svg>
+                                  <span className="font-medium">{result.distance} km</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-lg">
+                                  <svg className="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-medium">{result.duration}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-1 rounded-lg">
+                                  <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-bold text-primary">{formatCurrency(result.price)}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Arrow */}
+                            <div className="flex-shrink-0">
+                              <div className="bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary p-2 rounded-xl transition-all duration-300">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
                                 </svg>
-                                {result.origin} → {result.destination}
-                              </p>
-                              <p className="text-body text-muted-foreground line-clamp-2">
-                                {result.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-between pt-2">
-                              {/* Show price for trips only */}
-                              <span className="text-h5 font-bold text-primary">
-                                {formatCurrency(result.price)}
-                              </span>
-                              
-                              {/* Action indicator */}
-                              <div className="bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary p-2 rounded-lg transition-all duration-300">
-                                View Details
                               </div>
                             </div>
                           </div>
