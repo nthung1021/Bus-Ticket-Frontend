@@ -955,33 +955,58 @@ function PassengerInfoPageContent() {
                 <div className="bg-muted/20 rounded-lg p-3">
                   {seatLayout ? (
                     <div className="space-y-3">
-                      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${seatLayout.seatsPerRow || 4}, 1fr)` }}>
-                        {seatLayout.layoutConfig?.seats?.map((seat: any) => {
-                          const isSelected = selectedSeats.some(s => s.id === seat.id);
-                          const isBooked = bookedSeats.has(seat.id);
-
-                          let seatClass = "w-8 h-8 text-[10px] font-bold rounded border-2 flex items-center justify-center transition-colors";
-
-                          if (isSelected) {
-                            seatClass += " bg-blue-500 text-white border-blue-600";
-                          } else if (isBooked || !seat.isAvailable) {
-                            seatClass += " bg-gray-300 text-gray-500 border-gray-400";
-                          } else {
-                            if (seat.type === "vip") {
-                              seatClass += " bg-purple-100 text-purple-800 border-purple-300";
-                            } else if (seat.type === "business") {
-                              seatClass += " bg-orange-100 text-orange-800 border-orange-300";
-                            } else {
-                              seatClass += " bg-green-100 text-green-800 border-green-300";
+                      {/* Group seats by row and display row by row */}
+                      <div className="space-y-1">
+                        {(() => {
+                          // Group seats by row
+                          const seatsByRow: Record<number, any[]> = {};
+                          seatLayout.layoutConfig?.seats?.forEach((seat: any) => {
+                            const row = seat.position.row;
+                            if (!seatsByRow[row]) {
+                              seatsByRow[row] = [];
                             }
-                          }
+                            seatsByRow[row].push(seat);
+                          });
 
-                          return (
-                            <div key={seat.id} className={seatClass} title={`Seat ${seat.code} (${seat.type}) - ${isSelected ? 'Selected' : isBooked ? 'Booked' : 'Available'}`}>
-                              {seat.code}
-                            </div>
-                          );
-                        })}
+                          // Sort seats within each row by position
+                          Object.keys(seatsByRow).forEach(row => {
+                            seatsByRow[Number(row)].sort((a, b) => a.position.position - b.position.position);
+                          });
+
+                          // Render rows in order
+                          return Object.keys(seatsByRow)
+                            .sort((a, b) => Number(a) - Number(b))
+                            .map(rowNum => (
+                              <div key={rowNum} className="flex gap-1 justify-center">
+                                {seatsByRow[Number(rowNum)].map((seat: any) => {
+                                  const isSelected = selectedSeats.some(s => s.id === seat.id);
+                                  const isBooked = bookedSeats.has(seat.id);
+
+                                  let seatClass = "w-8 h-8 text-[10px] font-bold rounded border-2 flex items-center justify-center transition-colors";
+
+                                  if (isSelected) {
+                                    seatClass += " bg-blue-500 text-white border-blue-600";
+                                  } else if (isBooked || !seat.isAvailable) {
+                                    seatClass += " bg-gray-300 text-gray-500 border-gray-400";
+                                  } else {
+                                    if (seat.type === "vip") {
+                                      seatClass += " bg-purple-100 text-purple-800 border-purple-300";
+                                    } else if (seat.type === "business") {
+                                      seatClass += " bg-orange-100 text-orange-800 border-orange-300";
+                                    } else {
+                                      seatClass += " bg-green-100 text-green-800 border-green-300";
+                                    }
+                                  }
+
+                                  return (
+                                    <div key={seat.id} className={seatClass} title={`Seat ${seat.code} (${seat.type}) - ${isSelected ? 'Selected' : isBooked ? 'Booked' : 'Available'}`}>
+                                      {seat.code}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ));
+                        })()}
                       </div>
 
                       <div className="flex flex-wrap gap-2 justify-center text-xs">
