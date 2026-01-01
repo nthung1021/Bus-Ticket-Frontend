@@ -356,7 +356,7 @@ function TripManagementPage() {
                                 </div>
                                 
                                 <div className="flex items-center gap-2">
-                                    <Button onClick={() => setShowDeleted((s) => !s)} variant={showDeleted ? 'destructive' : 'default'} size="sm">
+                                    <Button onClick={() => setShowDeleted((s) => !s)} variant={showDeleted ? 'destructive' : 'default'}>
                                         {showDeleted ? 'Hide Deleted Trips' : 'Show Deleted Trips'}
                                     </Button>
                                     <Button onClick={handleCreateTrip} className="w-full md:w-auto">
