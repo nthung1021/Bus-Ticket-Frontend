@@ -102,6 +102,12 @@ export const authService = {
     return response.data;
   },
 
+  // Request a password reset email. Server should send reset instructions to the provided email.
+  forgotPassword: async (data: { email: string }) => {
+    const response = await api.post("/auth/forgot-password", data);
+    return response.data;
+  },
+
   getCurrentUser: async () => {
     try {
       // Try to fetch current user from backend
@@ -118,5 +124,17 @@ export const authService = {
     // Refresh token is sent automatically via cookie
     const response = await api.post("/auth/refresh-token", {});
     return response.data.data;
+  },
+
+  // Verify raw token exists and is valid (backend compares hashed tokens)
+  verifyResetToken: async (data: { token: string }) => {
+    const response = await api.post("/auth/verify-reset-token", data);
+    return response.data;
+  },
+
+  // Reset password using token
+  resetPassword: async (data: { token: string; newPassword: string }) => {
+    const response = await api.post("/auth/reset-password", data);
+    return response.data;
   },
 };

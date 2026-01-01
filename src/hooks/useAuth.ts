@@ -61,11 +61,35 @@ export const useLogout = () => {
   });
 };
 
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: (data: { email: string }) => authService.forgotPassword(data),
+  });
+};
+
 export const useCurrentUser = () => {
   return useQuery({
     queryKey: ["currentUser"],
     queryFn: authService.getCurrentUser,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
+  });
+};
+
+export const useVerifyResetToken = () => {
+  return useMutation({
+    mutationFn: (data: { token: string }) => authService.verifyResetToken(data),
+  });
+};
+
+export const useResetPassword = () => {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (data: { token: string; newPassword: string }) =>
+      authService.resetPassword(data),
+    onSuccess: () => {
+      router.push("/login");
+    },
   });
 };
