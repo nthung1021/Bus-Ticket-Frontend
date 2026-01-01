@@ -10,18 +10,18 @@ export const showToast = {
   },
 
   warning: (message: string) => {
-    toast.warning(message);
+    toast(message, { icon: "⚠️" });
   },
 
   info: (message: string) => {
-    toast.info(message);
+    toast(message, { icon: "ℹ️" });
   },
 
   loading: (message: string) => {
     return toast.loading(message);
   },
 
-  dismiss: (toastId: string | number) => {
+  dismiss: (toastId?: string) => {
     toast.dismiss(toastId);
   },
 
