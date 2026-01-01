@@ -92,12 +92,7 @@ function PassengerInfoPageContent() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactErrors, setContactErrors] = useState<{
-    email?: string;
-    phone?: string;
-  }>({});
+  // Remove separate contact fields as they're now merged into passenger form
 
   // WebSocket to maintain seat locks during passenger info process
   const { lockSeat, unlockSeat, unlockAllMySeats, bookedSeats } =
@@ -455,33 +450,7 @@ function PassengerInfoPageContent() {
     return seatsPrice + basePrice;
   };
 
-  const validateContactInfo = () => {
-    const errors: { email?: string; phone?: string } = {};
-
-    if (isGuest) {
-      if (!contactEmail.trim()) {
-        errors.email = "Contact email is required for guest checkout";
-      } else {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-        if (!emailRegex.test(contactEmail)) {
-          errors.email = "Please enter a valid email address";
-        }
-      }
-
-      if (!contactPhone.trim()) {
-        errors.phone = "Contact phone is required for guest checkout";
-      } else {
-        const phoneRegex = /^(\+84|84|0)([3-9]\d{8})$/;
-        const cleanPhone = contactPhone.replace(/[\s-()]/g, "");
-        if (!phoneRegex.test(cleanPhone)) {
-          errors.phone = "Invalid Vietnamese phone number (e.g., 0912345678)";
-        }
-      }
-    }
-
-    setContactErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  // Remove validateContactInfo function as it's no longer needed
 
   const handleConfirmPayment = async () => {
     // Validate pickup/dropoff not equal
@@ -498,7 +467,7 @@ function PassengerInfoPageContent() {
         throw new Error("Booking service is not connected. Please try again.");
       }
 
-      // Create booking data - replicate single passenger for all seats
+      // Create booking data - use passenger email and phone as contact info
       const singlePassenger = passengersData[0];
       const passengersForAllSeats = selectedSeats.map((seat, index) => ({
         ...singlePassenger,
@@ -511,8 +480,8 @@ function PassengerInfoPageContent() {
         passengers: passengersForAllSeats,
         totalPrice: calculateTotalPrice(),
         isGuestCheckout: isGuest,
-        contactEmail: isGuest ? contactEmail : undefined,
-        contactPhone: isGuest ? contactPhone : undefined,
+        contactEmail: singlePassenger.email, // Use passenger email as contact email
+        contactPhone: singlePassenger.phoneNumber, // Use passenger phone as contact phone
         pickupPointId: pickupPointIdParam || undefined,
         dropoffPointId: dropoffPointIdParam || undefined,
       };
@@ -641,18 +610,14 @@ function PassengerInfoPageContent() {
   };
 
   const isFormValid = useCallback(() => {
-    // Only need to check the first (and only) passenger form
-    return passengerValidations.length > 0 && passengerValidations[0];
-  }, [passengerValidations]);
+    // Check if passenger form has all required fields (name, phone, email)  
+    const passenger = passengersData[0];
+    return passenger && passenger.fullName.trim() && passenger.phoneNumber?.trim() && passenger.email?.trim();
+  }, [passengersData]);
 
   const handleContinue = async () => {
     if (!isFormValid()) {
-      alert("Please complete the passenger information");
-      return;
-    }
-
-    if (isGuest && !validateContactInfo()) {
-      alert("Please complete valid contact information for guest checkout.");
+      alert("Please complete all passenger information (Name, Phone, Email are all required)");
       return;
     }
 
@@ -768,104 +733,7 @@ function PassengerInfoPageContent() {
               </CardContent>
             </Card>
 
-            {/* Contact Form (for Guest only) */}
-            {isGuest && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Contact Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Please provide your contact information so we can send your
-                    booking confirmation and updates.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="contact-email"
-                        className="text-sm font-medium"
-                      >
-                        Contact Email{" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="contact-email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        className={
-                          contactErrors.email
-                            ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                            : ""
-                        }
-                        aria-invalid={Boolean(contactErrors.email)}
-                        aria-describedby={
-                          contactErrors.email
-                            ? "contact-email-error"
-                            : undefined
-                        }
-                      />
-                      {contactErrors.email && (
-                        <p
-                          id="contact-email-error"
-                          className="text-destructive text-xs font-medium flex items-center gap-1"
-                          role="alert"
-                        >
-                          <span className="text-destructive">⚠</span>
-                          {contactErrors.email}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="contact-phone"
-                        className="text-sm font-medium"
-                      >
-                        Contact Phone{" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="contact-phone"
-                        type="tel"
-                        placeholder="0912345678 or +84912345678"
-                        value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
-                        className={
-                          contactErrors.phone
-                            ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                            : ""
-                        }
-                        aria-invalid={Boolean(contactErrors.phone)}
-                        aria-describedby={
-                          contactErrors.phone
-                            ? "contact-phone-error"
-                            : undefined
-                        }
-                      />
-                      {contactErrors.phone && (
-                        <p
-                          id="contact-phone-error"
-                          className="text-destructive text-xs font-medium flex items-center gap-1"
-                          role="alert"
-                        >
-                          <span className="text-destructive">⚠</span>
-                          {contactErrors.phone}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your contact details will only be used for booking-related
-                    notifications.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            {/* Contact Form removed - now integrated into passenger form */}
 
             {/* Passenger Forms (no card wrapper) */}
             <div className="space-y-6">

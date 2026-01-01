@@ -82,7 +82,10 @@ export default function PassengerFormItem({
           break;
           
         case 'email':
-          if (value) {
+          // Email is now required for all passengers
+          if (!value || !value.trim()) {
+            newErrors.email = 'Email address is required';
+          } else {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRegex.test(value)) {
               newErrors.email = 'Please enter a valid email address';
@@ -91,8 +94,6 @@ export default function PassengerFormItem({
             } else {
               delete newErrors.email;
             }
-          } else {
-            delete newErrors.email;
           }
           break;
       }
@@ -102,12 +103,16 @@ export default function PassengerFormItem({
   }, []); // validation logic is self-contained
 
   const isValidForm = useCallback((): boolean => {
-    // Required fields must be filled and have no errors
-    const hasRequiredFields = Boolean(safePassengerData.fullName.trim() && (safePassengerData.phoneNumber || '').trim());
+    // Required fields must be filled and have no errors (fullName, phoneNumber, email)
+    const hasRequiredFields = Boolean(
+      safePassengerData.fullName.trim() && 
+      (safePassengerData.phoneNumber || '').trim() &&
+      (safePassengerData.email || '').trim()
+    );
     const errorCount = Object.keys(errors).length;
     const hasNoErrors = errorCount === 0;
     return hasRequiredFields && hasNoErrors;
-  }, [safePassengerData.fullName, safePassengerData.phoneNumber, errors]);
+  }, [safePassengerData.fullName, safePassengerData.phoneNumber, safePassengerData.email, errors]);
 
   // Memoize the validation check to prevent unnecessary re-renders
   const checkAndNotifyValidation = useCallback(() => {
@@ -135,7 +140,7 @@ export default function PassengerFormItem({
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2">
           <User className="w-5 h-5" />
-          <span>Passenger Information</span>
+          <span>Passenger & Contact Information</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -199,10 +204,10 @@ export default function PassengerFormItem({
           </div>
         </div>
 
-        {/* Email (Optional) - Full Width */}
+        {/* Email (Required) - Full Width */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium">
-            Email Address (Optional)
+            Email Address <span className="text-destructive">*</span>
           </Label>
           <Input
             id="email"
@@ -226,7 +231,7 @@ export default function PassengerFormItem({
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            Optional: Receive booking confirmation and updates via email
+            Required for booking confirmation and updates
           </p>
         </div>
 
