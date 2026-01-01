@@ -11,11 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Plus, Search, Settings } from "lucide-react";
+import { Trash2, Edit, Plus, Search, Settings, Camera, Loader2 } from "lucide-react";
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import BusForm from "@/components/bus/BusForm";
 import SeatLayoutDialog from "@/components/seat-layout/SeatLayoutDialog";
 import { seatLayoutService, SeatLayout } from "@/services/seat-layout.service";
@@ -44,6 +44,7 @@ function BusesManagement() {
   const [seatLayoutDialogOpen, setSeatLayoutDialogOpen] = useState(false);
   const [selectedBusForLayout, setSelectedBusForLayout] = useState<Bus | null>(null);
   const [busSeatLayouts, setBusSeatLayouts] = useState<{ [busId: string]: SeatLayout }>({});
+  const [uploadingBusId, setUploadingBusId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateBusDto>({
     operatorId: "",
     plateNumber: "",
@@ -208,6 +209,38 @@ function BusesManagement() {
     buses.forEach(bus => {
       fetchBusSeatLayout(bus.id);
     });
+  };
+  
+  const handlePhotoUpload = async (busId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setUploadingBusId(busId);
+      const fileArray = Array.from(files);
+      await busService.uploadPhotos(busId, fileArray);
+      
+      toast.success(`${fileArray.length} photo(s) uploaded successfully`);
+      
+      const bus = buses.find(b => b.id === busId);
+      if (bus) {
+        adminActivityService.addActivity(
+          'updated',
+          'bus',
+          bus.plateNumber,
+          `Uploaded ${fileArray.length} bus photos`
+        );
+      }
+      
+      fetchBuses(); // Refresh to show new photos if we were displaying them
+    } catch (error) {
+      toast.error("Failed to upload photos");
+      console.error("Error uploading photos:", error);
+    } finally {
+      setUploadingBusId(null);
+      // Reset input
+      event.target.value = '';
+    }
   };
 
   const handleBusSeatLayoutUpdate = (busId: string, layout: SeatLayout) => {
@@ -380,13 +413,14 @@ function BusesManagement() {
                       <TableHead>Amenities</TableHead>
                       <TableHead>Operator</TableHead>
                       <TableHead>Seat Layout</TableHead>
+                      <TableHead>Photos</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredBuses.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           No buses found
                         </TableCell>
                       </TableRow>
@@ -424,6 +458,14 @@ function BusesManagement() {
                               </Badge>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {bus.photo && bus.photo.length > 0 ? (
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                                <Camera className="w-3 h-3 mr-1" />
+                                {bus.photo.length}
+                              </Badge>
+                            ) : null}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
                               <Button
@@ -442,6 +484,29 @@ function BusesManagement() {
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
+                              <div className="relative">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={uploadingBusId === bus.id}
+                                  className="text-amber-600 hover:text-amber-700"
+                                  onClick={() => document.getElementById(`photo-upload-${bus.id}`)?.click()}
+                                >
+                                  {uploadingBusId === bus.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Camera className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                <input
+                                  id={`photo-upload-${bus.id}`}
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handlePhotoUpload(bus.id, e)}
+                                />
+                              </div>
                               <Button
                                 variant="outline"
                                 size="sm"

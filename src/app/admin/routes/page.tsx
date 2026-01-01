@@ -14,7 +14,7 @@ import { Trash2, Edit, Plus, Search, MapPin, Clock, Ruler, ChevronDown, Wifi, Ca
 import { routeService, Route, CreateRouteDto, UpdateRouteDto } from "@/services/route.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import RouteForm from "@/components/route/RouteForm";
 
 export default function RoutesPage() {

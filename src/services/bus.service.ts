@@ -11,6 +11,7 @@ export interface Bus {
     id: string;
     name: string;
   };
+  photo?: string[];
 }
 
 export interface CreateBusDto {
@@ -52,5 +53,19 @@ export const busService = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/buses/${id}`);
+  },
+
+  uploadPhotos: async (id: string, files: File[]): Promise<Bus> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    const response = await api.post(`/buses/${id}/photos`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
   },
 };

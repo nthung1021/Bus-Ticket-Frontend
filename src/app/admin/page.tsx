@@ -40,7 +40,7 @@ import { routeService } from "@/services/route.service";
 import { operatorService } from "@/services/operator.service";
 import { busService } from "@/services/bus.service";
 import { adminActivityService, AdminActivity } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 interface DashboardData {
   stats: {

@@ -208,14 +208,12 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           price,
           originalPrice: undefined,
           image:
-            "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
-          images: (trip.media && Array.isArray(trip.media.images) && trip.media.images.filter((u:any)=>typeof u === 'string' && u.length > 0).length > 0)
-            ? trip.media.images.filter((u:any)=>typeof u === 'string' && u.length > 0)
-            : [
-                "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
-                "https://www.travelalaska.com/sites/default/files/2022-02/GettingAround_Motorcoach_Hero_%28Design%20Pics%20Inc%2C%20Alamy%20Stock%20Photo%29%20crop.jpg",
-                "https://images.unsplash.com/photo-1694671295667-6fe824195756?fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000",
-              ],
+            trip.bus?.photo && trip.bus.photo.length > 0
+              ? trip.bus.photo[0]
+              : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+          images: trip.bus?.photo && trip.bus.photo.length > 0
+            ? trip.bus.photo
+            : ["https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop"],
           description:
             descriptionParts.length > 0
               ? descriptionParts.join(" • ")
@@ -335,7 +333,9 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             name: `${t.operator?.name || "Bus"} ${t.route?.origin} - ${t.route?.destination}`,
             category: "Bus Route",
             price: t.pricing?.basePrice || 0,
-            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            image: (t.bus?.photo && t.bus.photo.length > 0)
+              ? t.bus.photo[0]
+              : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
             departure: t.route?.origin || "",
             arrival: t.route?.destination || "",
             duration: t.schedule?.duration ? `${Math.floor(t.schedule.duration / 60)}h${t.schedule.duration % 60 ? ` ${t.schedule.duration % 60}m` : ""}` : "N/A",

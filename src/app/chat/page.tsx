@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { chatService, Message } from "@/services/chat.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
