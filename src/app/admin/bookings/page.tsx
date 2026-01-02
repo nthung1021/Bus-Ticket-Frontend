@@ -15,6 +15,7 @@ import { adminBookingService, AdminBooking } from "@/services/admin-booking.serv
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Pagination } from "@/components/ui/pagination";
+import { NotificationBell } from "@/components/admin/NotificationBell";
 
 export default function BookingsPage() {
   return (
@@ -67,6 +68,25 @@ function BookingsManagement() {
   const handleViewDetails = (booking: AdminBooking) => {
     setSelectedBooking(booking);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleSearchBooking = (bookingReference: string) => {
+    setSearchTerm(bookingReference);
+    setCurrentPage(1);
+    
+    // Small delay to ensure the search term is set before scrolling
+    setTimeout(() => {
+      // Find and scroll to the booking row if it exists
+      const bookingRow = document.querySelector(`[data-booking-reference="${bookingReference}"]`);
+      if (bookingRow) {
+        bookingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Highlight the row briefly
+        bookingRow.classList.add('bg-blue-100', 'dark:bg-blue-900/30');
+        setTimeout(() => {
+          bookingRow.classList.remove('bg-blue-100', 'dark:bg-blue-900/30');
+        }, 2000);
+      }
+    }, 100);
   };
 
   const handleUpdateStatus = async () => {
@@ -181,6 +201,18 @@ function BookingsManagement() {
                 View and manage all bookings
               </p>
             </div>
+            <div className="flex items-center gap-3">
+              <NotificationBell onSearchBooking={handleSearchBooking} />
+              <Button
+                onClick={fetchBookings}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700"
+                size="sm"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Compact Filters */}
@@ -282,7 +314,7 @@ function BookingsManagement() {
                     </TableHeader>
                     <TableBody>
                       {paginatedBookings.map((booking) => (
-                        <TableRow key={booking.id}>
+                        <TableRow key={booking.id} data-booking-reference={booking.bookingReference}>
                           <TableCell className="font-medium">
                             {booking.bookingReference}
                           </TableCell>
