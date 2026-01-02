@@ -170,11 +170,11 @@ export function AuthenticatedReviewForm({
   // Show loading state
   if (isLoading) {
     return (
-      <Card className={cn("w-full max-w-2xl", className)}>
-        <CardContent className="flex items-center justify-center py-12">
+      <Card className={cn("w-full", className)}>
+        <CardContent className="flex items-center justify-center py-8">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Loading review form...</span>
+            <span className="text-sm">Loading...</span>
           </div>
         </CardContent>
       </Card>
@@ -184,24 +184,20 @@ export function AuthenticatedReviewForm({
   // User not authenticated
   if (!user) {
     return (
-      <Card className={cn("w-full max-w-2xl", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5 text-muted-foreground" />
-            Authentication Required
+      <Card className={cn("w-full", className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            Login Required
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Alert>
             <User className="h-4 w-4" />
-            <AlertDescription>
-              You need to be logged in to leave a review. 
-              <Link 
-                href="/login" 
-                className="ml-1 text-primary hover:underline font-medium"
-              >
-                Please log in
-              </Link> to continue.
+            <AlertDescription className="text-sm">
+              <Link href="/login" className="text-primary hover:underline font-medium">
+                Log in
+              </Link> to leave a review.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -212,71 +208,47 @@ export function AuthenticatedReviewForm({
   // C4: User already has feedback (either existing feedback or detected through hasUserReviewed)
   if (existingFeedback || hasUserReviewed) {
     return (
-      <Card className={cn("w-full max-w-2xl", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
+      <Card className={cn("w-full", className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" />
             Review Submitted
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {tripDetails && (
-            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-              <h3 className="font-medium">{tripDetails.routeName}</h3>
-              <div className="flex gap-2 text-sm text-muted-foreground">
-                <span>{tripDetails.date}</span>
-                <span>•</span>
-                <span>{tripDetails.busOperator}</span>
+        <CardContent className="space-y-3">
+          {existingFeedback ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Your Rating:</span>
+                <RatingStars 
+                  rating={existingFeedback.rating} 
+                  readonly
+                  size="sm"
+                  showLabel={false}
+                />
               </div>
-            </div>
-          )}
 
-          <div className="space-y-3">
-            {existingFeedback ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Your Rating:</span>
-                  <RatingStars 
-                    rating={existingFeedback.rating} 
-                    readonly
-                    size="default"
-                    showLabel
-                  />
-                </div>
-
-                {existingFeedback.comment && (
-                  <div className="space-y-2">
-                    <span className="text-sm font-medium flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Your Feedback:
-                    </span>
-                    <div className="bg-muted/50 rounded-md p-3">
-                      <p className="text-sm leading-relaxed">{existingFeedback.comment}</p>
-                    </div>
+              {existingFeedback.comment && (
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground">Your Comment:</span>
+                  <div className="bg-muted/50 rounded-md p-2">
+                    <p className="text-sm leading-relaxed">{existingFeedback.comment}</p>
                   </div>
-                )}
-              </>
-            ) : (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Thank you for your review! Your feedback has been submitted and will appear in the reviews section shortly.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {existingFeedback && (
-              <div className="flex items-center justify-between pt-2 border-t">
-                <span className="text-xs text-muted-foreground">
-                  Submitted on {new Date(existingFeedback.createdAt).toLocaleDateString()}
-                </span>
-                <Badge variant="secondary" className="text-xs">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Completed
-                </Badge>
+                </div>
+              )}
+              
+              <div className="text-xs text-muted-foreground pt-2 border-t">
+                Submitted on {new Date(existingFeedback.createdAt).toLocaleDateString()}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Thank you for your review!
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
     );
@@ -285,32 +257,18 @@ export function AuthenticatedReviewForm({
   // Check if user can review
   if (canReviewData && !canReviewData.canReview) {
     return (
-      <Card className={cn("w-full max-w-2xl", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-orange-500" />
+      <Card className={cn("w-full", className)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-orange-500" />
             Unable to Review
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {canReviewData.reason || "You cannot review this trip at this time."}
-              {canReviewData.tripStatus && (
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Trip Status: <Badge variant="outline" className="text-xs">
-                    {canReviewData.tripStatus}
-                  </Badge>
-                </div>
-              )}
-              {canReviewData.bookingStatus && (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Booking Status: <Badge variant="outline" className="text-xs">
-                    {canReviewData.bookingStatus}
-                  </Badge>
-                </div>
-              )}
+            <AlertDescription className="text-sm">
+              {canReviewData.reason || "You cannot review this trip at this time. Please complete your booking first."}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -320,53 +278,37 @@ export function AuthenticatedReviewForm({
 
   // Show review form
   return (
-    <Card className={cn("w-full max-w-2xl", className)}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Star className="h-5 w-5" />
-          Rate Your Experience
+    <Card className={cn("w-full", className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Star className="h-4 w-4" />
+          Share Your Review
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {tripDetails && (
-          <div className="mb-6 rounded-lg bg-muted/50 p-4 space-y-2">
-            <h3 className="font-medium">{tripDetails.routeName}</h3>
-            <div className="flex gap-2 text-sm text-muted-foreground">
-              <span>{tripDetails.date}</span>
-              <span>•</span>
-              <span>{tripDetails.busOperator}</span>
-            </div>
-            <div className="flex gap-2 text-xs text-muted-foreground">
-              <span>Departure: {tripDetails.departureTime}</span>
-              <span>•</span>
-              <span>Arrival: {tripDetails.arrivalTime}</span>
-            </div>
-          </div>
-        )}
-
         <Form {...form}>
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="rating"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base font-medium">
-                    How would you rate your experience?
-                  </FormLabel>
+                  <FormLabel className="text-sm font-medium">Rating</FormLabel>
                   <FormControl>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                       <RatingStars
                         rating={field.value || 0}
                         onRatingChange={field.onChange}
-                        size="lg"
-                        showLabel
+                        size="default"
+                        showLabel={false}
                       />
+                      {field.value > 0 && (
+                        <span className="text-sm text-muted-foreground">
+                          {field.value} {field.value === 1 ? 'star' : 'stars'}
+                        </span>
+                      )}
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    Select a rating from 1 to 5 stars
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -377,32 +319,21 @@ export function AuthenticatedReviewForm({
               name="comment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base font-medium">
-                    Share your feedback (optional)
-                  </FormLabel>
+                  <FormLabel className="text-sm font-medium">Comment (optional)</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Tell us about your experience..."
-                      className="min-h-32 resize-none"
+                      placeholder="Share your experience..."
+                      className="min-h-20 resize-none text-sm"
                       maxLength={maxCommentLength}
                       disabled={isFormSubmitting}
                     />
                   </FormControl>
-                  <div className="flex justify-between items-center">
-                    <FormDescription>
-                      Help others by sharing your detailed experience
-                    </FormDescription>
-                    <span
-                      className={cn(
-                        "text-xs tabular-nums",
-                        remainingChars < 50
-                          ? "text-orange-500"
-                          : remainingChars < 20
-                          ? "text-red-500"
-                          : "text-muted-foreground"
-                      )}
-                    >
+                  <div className="flex justify-end">
+                    <span className={cn(
+                      "text-xs tabular-nums",
+                      remainingChars < 50 ? "text-orange-500" : "text-muted-foreground"
+                    )}>
                       {commentLength}/{maxCommentLength}
                     </span>
                   </div>
@@ -411,22 +342,16 @@ export function AuthenticatedReviewForm({
               )}
             />
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 type="submit"
-                disabled={
-                  // C2: Disable submit when no rating selected or submitting
-                  isFormSubmitting || 
-                  !watchedRating || 
-                  watchedRating === 0 || 
-                  !completedBooking
-                }
-                className="min-w-32"
+                disabled={isFormSubmitting || !watchedRating || watchedRating === 0 || !completedBooking}
+                className="flex-1"
+                size="sm"
               >
-                {/* C2: Loading state during submission */}
                 {isFormSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                     Submitting...
                   </>
                 ) : (
@@ -437,6 +362,7 @@ export function AuthenticatedReviewForm({
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => reset()}
                 disabled={isFormSubmitting}
               >
@@ -444,23 +370,10 @@ export function AuthenticatedReviewForm({
               </Button>
             </div>
 
-            {/* C2: Validation messages */}
             {!watchedRating || watchedRating === 0 ? (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Please select a rating to submit your review
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            
-            {!completedBooking && !isLoading ? (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No completed booking found for this trip
-                </AlertDescription>
-              </Alert>
+              <p className="text-xs text-muted-foreground">
+                Please select a rating to submit your review
+              </p>
             ) : null}
           </form>
         </Form>

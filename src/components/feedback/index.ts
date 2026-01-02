@@ -3,6 +3,7 @@ export { RatingStars } from "@/components/ui/rating-stars";
 export { ReviewForm, type ReviewFormData } from "@/components/ui/review-form";
 export { UserReviewInterface } from "./user-review-interface";
 export { AuthenticatedReviewForm } from "./authenticated-review-form";
+export { InlineReviewForm } from "./inline-review-form";
 export { FeedbackPage } from "./feedback-page";
 export { ReviewList } from "./review-list";
 export { ReviewStats } from "./review-stats";

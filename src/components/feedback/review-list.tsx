@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { ReviewWithUser, SortBy, ReviewsListParams } from "@/services/feedback.service";
+import { InlineReviewForm } from "./inline-review-form";
 
 interface ReviewCardProps {
   review: ReviewWithUser;
@@ -293,6 +294,7 @@ interface ReviewListProps {
   showSortControls?: boolean;
   showPagination?: boolean;
   useInfiniteScroll?: boolean;
+  showReviewForm?: boolean; // NEW: Show inline review form at the top
   
   // Pagination settings
   initialLimit?: number;
@@ -311,6 +313,7 @@ export function ReviewList({
   showSortControls = true,
   showPagination = true,
   useInfiniteScroll = false,
+  showReviewForm = false,
   initialLimit = 10,
   className,
   cardClassName,
@@ -414,6 +417,14 @@ export function ReviewList({
     setCurrentPage(page);
   };
 
+  const handleReviewSubmitted = () => {
+    // Refresh reviews and check status
+    query.refetch();
+    if (tripStats) {
+      tripStats.refetch();
+    }
+  };
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -455,6 +466,14 @@ export function ReviewList({
             />
           )}
         </div>
+      )}
+
+      {/* Review Form - Show at the top if enabled */}
+      {showReviewForm && tripId && (
+        <InlineReviewForm 
+          tripId={tripId}
+          onSuccess={handleReviewSubmitted}
+        />
       )}
 
       {/* Loading State (only show skeleton when there are no reviews yet) */}

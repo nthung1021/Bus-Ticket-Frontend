@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { ReviewList, ReviewStats } from "@/components/feedback";
+import { ReviewList, ReviewStats, AuthenticatedReviewForm } from "@/components/feedback";
 import { feedbackService } from "@/services/feedback.service";
 import { Star, MessageSquare } from "lucide-react";
 
@@ -790,7 +790,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               />
             </div>
             
-            {/* Review List */}
+            {/* Review List with inline form */}
             <div className="lg:col-span-3">
               <ReviewList
                 tripId={resolvedParams.id}
@@ -798,6 +798,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 showHeader
                 showSortControls
                 showPagination
+                showReviewForm={true}
                 useInfiniteScroll={false}
                 initialLimit={5}
               />

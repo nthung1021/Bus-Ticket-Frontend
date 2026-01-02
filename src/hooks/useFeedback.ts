@@ -73,7 +73,7 @@ export const useCompletedBookingForTrip = (tripId: string) => {
     queryKey: ["completedBookingForTrip", tripId],
     queryFn: () => userBookingService.getCompletedBookingForTrip(tripId),
     enabled: !!user && !!tripId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 1000, // 10 seconds - shorter cache to quickly reflect review status
     retry: 1,
   });
 };
