@@ -58,12 +58,16 @@ export function filterWithVietnameseSearch<T>(
  */
 export const vietnameseCities = [
   // Major cities
-  'Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
-  'Biên Hòa', 'Huế', 'Nha Trang', 'Buôn Ma Thuột', 'Vũng Tàu',
-  'Quy Nhon', 'Thủ Dầu Một', 'Nam Định', 'Phan Thiết', 'Long Xuyên',
-  'Hạ Long', 'Thái Nguyên', 'Thanh Hóa', 'Rạch Giá', 'Cà Mau',
-  'Vinh', 'Mỹ Tho', 'Tây Ninh', 'Sóc Trăng', 'Kon Tum',
-  'Hội An', 'Sapa', 'Đà Lạt', 'Phú Quốc', 'Bạc Liêu'
+  'An Giang', 'Vũng Tàu', 'Bắc Giang', 'Bắc Kạn', 'Bạc Liêu', 'Bắc Ninh',
+        'Bến Tre', 'Bình Định', 'Bình Dương', 'Bình Phước', 'Bình Thuận', 'Cà Mau',
+        'Cần Thơ', 'Cao Bằng', 'Đắk Lắk', 'Đắk Nông', 'Điện Biên', 'Đồng Nai', 'Đồng Tháp',
+        'Gia Lai', 'Hà Giang', 'Hà Nam', 'Hà Nội', 'Hà Tĩnh', 'Hải Dương', 'Hải Phòng',
+        'Hậu Giang', 'Hòa Bình', 'Hưng Yên', 'Khánh Hòa', 'Kiên Giang', 'Kon Tum',
+        'Lai Châu', 'Lâm Đồng', 'Lạng Sơn', 'Lào Cai', 'Long An', 'Nam Định', 'Nghệ An',
+        'Ninh Bình', 'Ninh Thuận', 'Phú Thọ', 'Phú Yên', 'Quảng Bình', 'Quảng Nam',
+        'Quảng Ngãi', 'Quảng Ninh', 'Quảng Trị', 'Sóc Trăng', 'Sơn La', 'Tây Ninh',
+        'Thái Bình', 'Thái Nguyên', 'Thanh Hóa', 'Thừa Thiên Huế', 'Tiền Giang',
+        'Hồ Chí Minh', 'Trà Vinh', 'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái'
 ];
 
 /**

@@ -14,13 +14,14 @@ import { filterWithVietnameseSearch, matchesWithoutDiacritics } from "@/utils/vi
 // Search filters interface
 interface SearchFilters {
   query: string;
-  tripType: string[];
+  category: string[]; // Bus types: standard, vip, sleeper, etc.
   minPrice: number;
   maxPrice: number;
   from: string;
   to: string;
-  category: string[];
   operator: string;
+  departureTime: string; // morning|afternoon|evening|night
+  date: string; // yyyy-mm-dd
   sortBy: string;
 }
 
@@ -42,16 +43,27 @@ interface SearchResult {
   rating: number;
 }
 
-const categories = ["Premium", "Standard", "Tourist", "Cultural"];
-const operators = ["Phương Trang", "Tuấn Hưng", "Hoàng Long", "Mai Linh", "Thành Bưởi", "Hà Lan"];
-const tripTypes = ["One-way", "Round-trip"];
 const sortOptions = [
   { value: "newest", label: "Newest" },
   { value: "price-asc", label: "Price: Low to High" },
   { value: "price-desc", label: "Price: High to Low" },
   { value: "rating", label: "Highest Rated" },
+  { value: "departure-asc", label: "Departure: Earliest First" },
+  { value: "departure-desc", label: "Departure: Latest First" },
 ];
 
+// Helper function to format bus type labels
+const formatBusTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    'standard': 'Standard',
+    'vip': 'VIP',
+    'sleeper': 'Sleeper',
+    'limousine': 'Limousine',
+    'business': 'Business',
+    'seater': 'Seater',
+  };
+  return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+};
 
 
 function SearchPageContent() {
@@ -59,18 +71,21 @@ function SearchPageContent() {
 
   const [filters, setFilters] = useState<SearchFilters>({
     query: "",
-    tripType: [],
+    category: [],
     minPrice: 0,
     maxPrice: 500000,
     from: "",
     to: "",
-    category: [],
     operator: "",
+    departureTime: "",
+    date: "",
     sortBy: "newest",
   });
 
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [operators, setOperators] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,6 +98,50 @@ function SearchPageContent() {
   const date = searchParams.get("date") || "";
   // console.log(date);
   const passengers = searchParams.get("passengers") || "";
+
+  // Effective display values for date and time (prefer filter values)
+  const effectiveDateDisplay = filters.date || date;
+  const timeLabelMap: Record<string, string> = {
+    morning: "Morning (05:00-11:59)",
+    afternoon: "Afternoon (12:00-16:59)",
+    evening: "Evening (17:00-20:59)",
+    night: "Night (21:00-04:59)",
+  };
+  const effectiveTimeLabel = filters.departureTime
+    ? timeLabelMap[filters.departureTime] || filters.departureTime
+    : "Any time";
+
+  // Load bus types and operators from API
+  useEffect(() => {
+    // Fetch buses to get unique bus types
+    api.get("/buses")
+      .then((response) => {
+        const buses = response.data || [];
+        const uniqueBusTypes = Array.from(
+          new Set(buses.map((bus: any) => bus.busType).filter((type: any) => !!type))
+        ).sort();
+        setCategories(uniqueBusTypes as string[]);
+        console.log('✅ Loaded bus types:', uniqueBusTypes);
+      })
+      .catch((err) => {
+        console.error('❌ Failed to load bus types:', err);
+      });
+
+    // Fetch operators
+    api.get("/operators")
+      .then((response) => {
+        const ops = response.data || [];
+        const operatorNames = ops
+          .filter((op: any) => op.status === 'approved')
+          .map((op: any) => op.name)
+          .sort();
+        setOperators(operatorNames);
+        console.log('✅ Loaded operators:', operatorNames);
+      })
+      .catch((err) => {
+        console.error('❌ Failed to load operators:', err);
+      });
+  }, []);
 
   useEffect(() => {
     // Require at least origin and destination for trip searches
@@ -98,19 +157,29 @@ function SearchPageContent() {
     setIsLoading(true);
     setError(null);
 
-    // Convert date to ISO 8601 format (YYYY-MM-DD) if provided
+    // Convert date to ISO 8601 format (YYYY-MM-DD) if provided.
     const searchParams: any = {
       origin,
       destination,
     };
-    
-    if (date) {
-      const formattedDate = new Date(`${date}T00:00:00`).toISOString();
-      searchParams.date = formattedDate;
-      console.log('📅 Using specific date:', formattedDate);
+
+    // prefer filter date (if set) over URL param
+    const effectiveDate = filters.date || date;
+    if (effectiveDate) {
+      // Just send the date in YYYY-MM-DD format, backend will handle timezone
+      searchParams.date = effectiveDate;
+      console.log('📅 Using specific date:', effectiveDate);
     } else {
       console.log('📅 Searching all dates');
     }
+
+    // Include departure time bucket if selected (morning/afternoon/evening/night)
+    if (filters.departureTime) {
+      searchParams.departureTime = filters.departureTime;
+      console.log('⏱️ Filtering by departureTime bucket:', filters.departureTime);
+    }
+
+    // exact time filter removed — only using bucket + date
     api.get("/trips/search", {
       params: searchParams,
     })
@@ -149,8 +218,8 @@ function SearchPageContent() {
               departureCity && arrivalCity
                 ? `${departureCity} → ${arrivalCity}`
                 : "",
-            departure: departureCity || "",
-            arrival: arrivalCity || "",
+            departure: departureTime ? departureTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "",
+            arrival: arrivalTime ? arrivalTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "",
             // Ensure price is numeric so filters and sorting work correctly
             price: trip.pricing?.basePrice != null
               ? Number(trip.pricing.basePrice)
@@ -161,13 +230,15 @@ function SearchPageContent() {
                 ? Number(trip.route.distanceKm)
                 : 0,
             image:
-              "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+              trip.bus?.photo && trip.bus.photo.length > 0
+                ? trip.bus.photo[0]
+                : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
             description:
-              trip.bus?.model && trip.bus?.amenities?.length
-                ? `${trip.bus.model} • ${trip.bus.amenities.join(", ")}`
+              trip.bus?.model && trip.bus?.amenities
+                ? `${trip.bus.model} • ${Object.entries(trip.bus.amenities).filter(([_, v]) => v).map(([k, _]) => k.replace('_', ' ')).join(", ")}`
                 : trip.bus?.model || "",
-            category: trip.bus?.busType || "Standard",
-            rating: trip.operator?.rating ?? 0.0,
+            category: trip.bus?.busType || "standard",
+            rating: trip.averageRating ?? trip.operator?.averageRating ?? 0.0,
           };
         });
 
@@ -186,7 +257,7 @@ function SearchPageContent() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [origin, destination, date]);
+  }, [origin, destination, date, filters.departureTime, filters.date]);
 
   // Filter and sort results
   useEffect(() => {
@@ -248,6 +319,22 @@ function SearchPageContent() {
       case "rating":
         filteredResults.sort((a, b) => b.rating - a.rating);
         break;
+      case "departure-asc":
+        filteredResults.sort((a, b) => {
+          // Sort by departure time (earliest first)
+          const timeA = a.departure || "";
+          const timeB = b.departure || "";
+          return timeA.localeCompare(timeB);
+        });
+        break;
+      case "departure-desc":
+        filteredResults.sort((a, b) => {
+          // Sort by departure time (latest first)
+          const timeA = a.departure || "";
+          const timeB = b.departure || "";
+          return timeB.localeCompare(timeA);
+        });
+        break;
       case "newest":
       default:
         // Keep original order for newest
@@ -273,15 +360,6 @@ function SearchPageContent() {
       category: prev.category.includes(category)
         ? prev.category.filter((c) => c !== category)
         : [...prev.category, category],
-    }));
-  };
-
-  const handleTripTypeToggle = (tripType: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      tripType: prev.tripType.includes(tripType)
-        ? prev.tripType.filter((t) => t !== tripType)
-        : [...prev.tripType, tripType],
     }));
   };
 
@@ -359,7 +437,7 @@ function SearchPageContent() {
               className="bg-card/90 dark:bg-black/95 backdrop-blur-sm border border-border/70 dark:border-border/40 rounded-xl p-6 shadow-lg dark:shadow-2xl"
             >
               <h3 className="text-h5 font-semibold text-foreground flex items-center gap-2 pb-3 border-b border-border">
-                <svg
+                {/* <svg
                   className="w-5 h-5 text-primary"
                   fill="none"
                   stroke="currentColor"
@@ -371,11 +449,39 @@ function SearchPageContent() {
                     strokeWidth={2}
                     d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
                   />
-                </svg>
+                </svg> */}
                 Filters
               </h3>
 
-              {/* Trip Type */}
+              {/* Bus Type */}
+              <div className="space-y-3">
+                <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-ticket text-primary" viewBox="0 0 16 16">
+                    <path d="M0 4.5A1.5 1.5 0 0 1 1.5 3h13A1.5 1.5 0 0 1 16 4.5V6a.5.5 0 0 1-.5.5 1.5 1.5 0 0 0 0 3 .5.5 0 0 1 .5.5v1.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 11.5V10a.5.5 0 0 1 .5-.5 1.5 1.5 0 1 0 0-3A.5.5 0 0 1 0 6zM1.5 4a.5.5 0 0 0-.5.5v1.05a2.5 2.5 0 0 1 0 4.9v1.05a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-1.05a2.5 2.5 0 0 1 0-4.9V4.5a.5.5 0 0 0-.5-.5z"/>
+                  </svg>
+                  Bus Type
+                </h4>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                  {categories.map((type) => (
+                    <div key={type} className="flex items-center space-x-2 text-sm">
+                      <Checkbox
+                        id={type}
+                        checked={filters.category.includes(type)}
+                        onCheckedChange={() => handleCategoryToggle(type)}
+                        className="cursor-pointer h-4 w-4 bg-muted/60"
+                      />
+                      <label
+                        htmlFor={type}
+                        className="text-sm text-foreground cursor-pointer"
+                      >
+                        {formatBusTypeLabel(type)}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Departure Time */}
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
                   <svg
@@ -391,26 +497,54 @@ function SearchPageContent() {
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  Trip Type
+                  Departure Time
                 </h4>
-                <div className="space-y-2 bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
-                  {tripTypes.map((type) => (
-                    <div key={type} className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/50 dark:hover:bg-gray-800/50 transition-colors">
-                      <Checkbox
-                        id={type}
-                        checked={filters.tripType.includes(type)}
-                        onCheckedChange={() => handleTripTypeToggle(type)}
-                        className="cursor-pointer bg-secondary data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
+                  <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-2">
+                    <div>
+                      <Input
+                        type="date"
+                        value={filters.date}
+                        onChange={(e) => handleFilterChange('date', e.target.value)}
+                        className="h-9 bg-background/90 dark:bg-black/95 border-border/60 dark:border-border/40 focus:border-primary text-sm transition-colors"
                       />
-                      <label
-                        htmlFor={type}
-                        className="text-sm text-foreground cursor-pointer font-medium flex-1"
-                      >
-                        {type}
-                      </label>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="relative">
+                      <select
+                        value={filters.departureTime}
+                        onChange={(e) => handleFilterChange('departureTime', e.target.value)}
+                        className="
+                          w-full h-9
+                          bg-background/90 dark:bg-black/95
+                          border border-border/60 dark:border-border/40
+                          focus:border-primary
+                          text-sm rounded-md
+                          pl-4 pr-10
+                          transition-colors
+                          cursor-pointer
+                          appearance-none
+                        "
+                      >
+                        <option value="">Any time</option>
+                        <option value="morning">Morning (05:00-11:59)</option>
+                        <option value="afternoon">Afternoon (12:00-16:59)</option>
+                        <option value="evening">Evening (17:00-20:59)</option>
+                        <option value="night">Night (21:00-04:59)</option>
+                      </select>
+
+                      {/* Arrow */}
+                      <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                        <svg
+                          className="w-4 h-4 text-muted-foreground"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
               </div>
 
               {/* Price Range */}
@@ -429,9 +563,9 @@ function SearchPageContent() {
                       d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                     />
                   </svg>
-                  Price Range ({getCurrencySymbol()})
+                  Price Range 
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label
@@ -469,7 +603,7 @@ function SearchPageContent() {
                 </div>
               </div>
 
-              {/* From/To Locations */}
+              {/* From/To Locations
               <div className="space-y-3">
                 <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
                   <svg
@@ -493,7 +627,7 @@ function SearchPageContent() {
                   </svg>
                   Locations
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-3">
+                <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30 space-y-3">
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1.5 block">
                       From
@@ -517,7 +651,7 @@ function SearchPageContent() {
                     />
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Bus Operator */}
               <div className="space-y-3">
@@ -537,11 +671,11 @@ function SearchPageContent() {
                   </svg>
                   Bus Operator
                 </h4>
-                <div className="bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
+                <div className="bg-muted/40 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
                   <select
                     value={filters.operator}
                     onChange={(e) => handleFilterChange("operator", e.target.value)}
-                    className="w-full h-9 bg-background/90 dark:bg-black/95 border border-border/60 dark:border-border/40 focus:border-primary text-sm rounded-md px-2 transition-colors"
+                    className="w-full h-9 bg-background/90 dark:bg-black/95 border border-border/60 dark:border-border/40 focus:border-primary text-sm rounded-md px-2 transition-colors cursor-pointer"
                   >
                     <option value="">All Operators</option>
                     {operators.map((operator) => (
@@ -553,47 +687,6 @@ function SearchPageContent() {
                 </div>
               </div>
 
-              {/* Category */}
-              <div className="space-y-3">
-                <h4 className="text-h6 font-semibold text-foreground flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                    />
-                  </svg>
-                  Category
-                </h4>
-                <div className="space-y-2 bg-muted/30 dark:bg-black/40 p-3 rounded-lg border border-border/50 dark:border-border/30">
-                  {categories.map((category) => (
-                    <div
-                      key={category}
-                      className="flex items-center space-x-3 py-1.5 px-2 rounded-md hover:bg-muted/50 dark:hover:bg-gray-800/50 transition-colors"
-                    >
-                      <Checkbox
-                        id={category}
-                        checked={filters.category.includes(category)}
-                        onCheckedChange={() => handleCategoryToggle(category)}
-                        className="cursor-pointer bg-secondary data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4 border-2"
-                      />
-                      <label
-                        htmlFor={category}
-                        className="text-sm text-foreground cursor-pointer font-medium flex-1"
-                      >
-                        {category}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Clear Filters Button */}
               <div className="pt-2 border-t border-border">
                 <Button
@@ -601,13 +694,14 @@ function SearchPageContent() {
                   onClick={() => {
                     setFilters({
                       query: "",
-                      tripType: [],
+                      category: [],
                       minPrice: 0,
                       maxPrice: 500000,
                       from: "",
                       to: "",
-                      category: [],
                       operator: "",
+                      departureTime: "",
+                      date: "",
                       sortBy: "price-asc",
                     });
                   }}
@@ -643,13 +737,16 @@ function SearchPageContent() {
                     <span className="font-semibold text-foreground">
                       {origin} → {destination}
                     </span>
-                    {date && (
+                    {effectiveDateDisplay ? (
                       <>
                         {" "}on{" "}
                         <span className="font-semibold text-foreground">
-                          {date}
+                          {effectiveDateDisplay}
                         </span>
+                        <span className="text-muted-foreground ml-2">• {effectiveTimeLabel}</span>
                       </>
+                    ) : (
+                      <span className="text-muted-foreground ml-2">({effectiveTimeLabel})</span>
                     )}
                     {passengers && (
                       <span>
@@ -657,9 +754,6 @@ function SearchPageContent() {
                         for {passengers} passenger
                         {Number(passengers) > 1 ? "s" : ""}
                       </span>
-                    )}
-                    {!date && (
-                      <span className="text-muted-foreground ml-2">(all dates)</span>
                     )}
                   </>
                 ) : (
@@ -727,77 +821,101 @@ function SearchPageContent() {
               </Card>
             ) : !isLoading && currentResults.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="space-y-4">
                   {currentResults.map((result) => (
                     <Link key={result.id} href={`/trips/${result.id}`} className="block">
-                      <Card
-                        className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
-                      >
-                        <div className="aspect-[4/3] relative overflow-hidden">
-                          <img
-                            src={result.image}
-                            alt={result.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          <div className="absolute top-4 right-4">
-                            <span className="bg-primary/90 text-primary-foreground px-2 py-1 rounded-full text-caption font-medium backdrop-blur-sm">
-                              {result.category}
-                            </span>
-                          </div>
-                          <div className="absolute bottom-4 left-4 text-white">
-                            <div className="flex items-center gap-2 mb-1">
-                              <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                              <span className="text-caption font-medium">
-                                {result.rating}
-                              </span>
+                      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
+                        <CardContent className="p-3">
+                          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            {/* Trip Image */}
+                            <div className="w-full lg:w-40 h-24 lg:h-24 relative overflow-hidden rounded-xl flex-shrink-0">
+                              <img
+                                src={result.image}
+                                alt={result.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                              <div className="absolute top-2 left-2">
+                                <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-lg text-xs font-medium">
+                                  {result.category}
+                                </span>
+                              </div>
+                              {result.rating > 0 && (
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 px-2 py-0.5 rounded">
+                                  <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                  <span className="text-white text-xs font-medium">{result.rating.toFixed(1)}</span>
+                                </div>
+                              )}
                             </div>
-                            <p className="text-caption bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
-                              {result.distance} km • {result.duration}
-                            </p>
-                          </div>
-                        </div>
-                        <CardContent className="p-6">
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <h3 className="text-h5 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                                {result.title}
-                              </h3>
-                              <p className="text-body text-muted-foreground flex items-center gap-2">
-                                <svg
-                                  className="w-4 h-4 flex-shrink-0"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                  />
+
+                            {/* Trip Details */}
+                            <div className="flex-1 space-y-2">
+                              <div className="space-y-1">
+                                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                                  {result.title}
+                                </h3>
+                                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <span className="font-medium">{result.origin}</span>
+                                  </div>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
+                                  </svg>
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <span className="font-medium">{result.destination}</span>
+                                  </div>
+                                </div>
+                                {result.departure && (
+                                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-xs">{result.departure}</span>
+                                    {result.arrival && <span className="text-xs"> • {result.arrival}</span>}
+                                  </div>
+                                )}
+                                <p className="text-sm text-muted-foreground line-clamp-1">
+                                  {result.description}
+                                </p>
+                              </div>
+
+                              {/* Trip Stats */}
+                              <div className="flex items-center gap-3 text-xs">
+                                <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-lg">
+                                  <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                  </svg>
+                                  <span className="font-medium">{result.distance} km</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-lg">
+                                  <svg className="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-medium">{result.duration}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-1 rounded-lg">
+                                  <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-bold text-primary">{formatCurrency(result.price)}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Arrow */}
+                            <div className="flex-shrink-0">
+                              <div className="bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary p-2 rounded-xl transition-all duration-300">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
                                 </svg>
-                                {result.origin} → {result.destination}
-                              </p>
-                              <p className="text-body text-muted-foreground line-clamp-2">
-                                {result.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-between pt-2">
-                              {/* Show price for trips only */}
-                              <span className="text-h5 font-bold text-primary">
-                                {formatCurrency(result.price)}
-                              </span>
-                              
-                              {/* Action indicator */}
-                              <div className="bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground text-primary p-2 rounded-lg transition-all duration-300">
-                                View Details
                               </div>
                             </div>
                           </div>
@@ -899,14 +1017,15 @@ function SearchPageContent() {
                   <Button
                     onClick={() => setFilters({
                       query: "",
-                      tripType: [],
+                      category: [],
                       minPrice: 0,
                       maxPrice: 500000,
                       from: "",
                       to: "",
-                      category: [],
                       operator: "",
-                      sortBy: "newest"
+                      departureTime: "",
+                      date: "",
+                      sortBy: "newest",
                     })}
                     variant="outline"
                     className="cursor-pointer"

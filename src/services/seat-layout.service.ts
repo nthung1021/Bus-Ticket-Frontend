@@ -118,8 +118,15 @@ class SeatLayoutService {
     return response.data;
   }
 
-  async getByBusId(busId: string): Promise<SeatLayout> {
-    const response = await api.get(`/seat-layouts/bus/${busId}`);
+  async getByBusId(busId: string, tripId?: string): Promise<SeatLayout> {
+    // Use the new endpoint with proper pricing calculation
+    console.log(
+      `Fetching seat layout for bus ID: ${busId} with trip ID: ${tripId}`,
+    );
+    const url = tripId
+      ? `/seat-layouts/bus/${busId}/with-pricing?tripId=${tripId}`
+      : `/seat-layouts/bus/${busId}/with-pricing`;
+    const response = await api.get(url);
     return response.data;
   }
 

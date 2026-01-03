@@ -5,7 +5,7 @@
 
 interface PassengerData {
   fullName: string;
-  documentId: string;
+  documentId?: string;
   seatCode: string;
   documentType?: 'id' | 'passport' | 'license';
   phoneNumber?: string;
@@ -34,7 +34,7 @@ class PassengerStateManager {
     this.passengersState = seatCodes.map((seatCode) => ({
       data: {
         fullName: "",
-        documentId: "",
+        // documentId is optional now
         seatCode: seatCode,
         documentType: "id",
         phoneNumber: "",
@@ -65,7 +65,7 @@ class PassengerStateManager {
   updatePassengerValidation(index: number, isValid: boolean, errors: string[] = []): void {
     if (index >= 0 && index < this.passengersState.length) {
       const passengerData = this.passengersState[index].data;
-      const requiredFieldsFilled = Boolean(passengerData.fullName.trim() && passengerData.documentId.trim());
+      const requiredFieldsFilled = Boolean(passengerData.fullName.trim() && (passengerData.phoneNumber || '').trim());
       
       this.passengersState[index] = {
         ...this.passengersState[index],
@@ -96,17 +96,16 @@ class PassengerStateManager {
       
       if (!passenger.validation.requiredFieldsFilled) {
         allValid = false;
-        globalErrors.push(`Passenger ${index + 1}: Missing required fields (name, document ID)`);
+        globalErrors.push(`Passenger ${index + 1}: Missing required fields (name, phone number)`);
       }
     });
 
-    // Check for duplicate document IDs
-    const documentIds = this.passengersState.map(p => p.data.documentId.trim()).filter(id => id);
-    const duplicateIds = documentIds.filter((id, index) => documentIds.indexOf(id) !== index);
-    
-    if (duplicateIds.length > 0) {
+    // Check for duplicate phone numbers (if provided)
+    const phones = this.passengersState.map(p => (p.data.phoneNumber || '').trim()).filter(p => p);
+    const duplicatePhones = phones.filter((p, index) => phones.indexOf(p) !== index);
+    if (duplicatePhones.length > 0) {
       allValid = false;
-      globalErrors.push(`Duplicate document IDs found: ${[...new Set(duplicateIds)].join(', ')}`);
+      globalErrors.push(`Duplicate phone numbers found: ${[...new Set(duplicatePhones)].join(', ')}`);
     }
 
     return { isValid: allValid, errors: globalErrors };
@@ -126,20 +125,19 @@ function runTests() {
   
   // Test 1: Initialize with seats
   console.log("\n1. Initialize with 2 seats");
-  manager.initializePassengerState(["A1", "A2"]);
+  manager.initializePassengerState(["1A", "1B"]);
   console.log("✓ State initialized:", manager.getCurrentState().length, "passengers");
   
   // Test 2: Update passenger data
   console.log("\n2. Update passenger data");
   manager.updatePassengerData(0, {
     fullName: "Nguyen Van A",
-    documentId: "123456789012",
     phoneNumber: "0901234567"
   });
   
   manager.updatePassengerData(1, {
     fullName: "Tran Thi B", 
-    documentId: "987654321098",
+    phoneNumber: "0987654321",
     email: "b@example.com"
   });
   
@@ -158,8 +156,8 @@ function runTests() {
   console.log("✓ Errors:", validation.errors);
   
   // Test 5: Test duplicate detection
-  console.log("\n5. Test duplicate document ID detection");
-  manager.updatePassengerData(1, { documentId: "123456789012" }); // Same as passenger 1
+  console.log("\n5. Test duplicate phone number detection");
+  manager.updatePassengerData(1, { phoneNumber: "0901234567" }); // Same as passenger 1
   const duplicateValidation = manager.validateAllPassengers();
   console.log("✓ Duplicate detected:", !duplicateValidation.isValid);
   console.log("✓ Error message includes 'Duplicate':", duplicateValidation.errors.some(e => e.includes('Duplicate')));

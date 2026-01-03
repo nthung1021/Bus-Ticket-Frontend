@@ -6,10 +6,16 @@ interface Booking {
   tripId: string;
   reference: string;
   totalAmount: number;
-  status: "pending" | "paid" | "cancelled" | "expired";
+  status: "pending" | "paid" | "completed" | "cancelled" | "expired";
   bookedAt: string;
   cancelledAt?: string;
   expiresAt?: string;
+  review?: {
+    id: string;
+    rating: number;
+    comment?: string;
+    createdAt: string;
+  };
   trip: {
     id: string;
     departureTime: string;
@@ -35,7 +41,7 @@ interface Booking {
   passengers: {
     id: string;
     fullName: string;
-    documentId: string;
+    documentId?: string;
     seatCode: string;
   }[];
   seats: {
@@ -58,7 +64,7 @@ interface BookingApiResponse {
   data: Booking[];
 }
 
-export type BookingStatus = "pending" | "paid" | "cancelled" | "expired";
+export type BookingStatus = "pending" | "paid" | "completed" | "cancelled" | "expired";
 
 class UserBookingService {
   async getUserBookings(status?: BookingStatus): Promise<Booking[]> {
@@ -77,6 +83,24 @@ class UserBookingService {
     } catch (error) {
       console.error("Error fetching user bookings:", error);
       throw error;
+    }
+  }
+
+  async getCompletedBookingForTrip(tripId: string): Promise<Booking | null> {
+    try {
+      // Get all bookings (not filtered by status)
+      const bookings = await this.getUserBookings();
+      
+      // Find paid or completed booking for this trip (allow review for both statuses)
+      const completedBooking = bookings.find(booking => 
+        booking.tripId === tripId && 
+        (booking.status === 'paid' || booking.status === 'completed')
+      );
+      
+      return completedBooking || null;
+    } catch (error) {
+      console.error('Error fetching completed booking for trip:', error);
+      return null;
     }
   }
 
@@ -130,6 +154,8 @@ class UserBookingService {
     switch (status) {
       case "paid":
         return "bg-green-100 text-green-800 border-green-200";
+      case "completed":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "cancelled":
@@ -145,6 +171,8 @@ class UserBookingService {
     switch (status) {
       case "paid":
         return "Paid";
+      case "completed":
+        return "Completed";
       case "pending":
         return "Pending Payment";
       case "cancelled":
@@ -188,6 +216,9 @@ class UserBookingService {
     return booking.status === "pending" && !this.isBookingExpired(booking);
   }
 }
+
+// Export singleton instance
+export const userBookingService = new UserBookingService();
 
 // Booking modification API functions
 export async function checkModificationPermissions(bookingId: string) {

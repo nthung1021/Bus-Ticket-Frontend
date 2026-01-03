@@ -2,18 +2,31 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, MapPin } from "lucide-react";
 import { RoutePoint } from "@/services/route.service";
 
 interface RoutePointFormProps {
-  routePoints: Omit<RoutePoint, 'id' | 'routeId' | 'createdAt' | 'updatedAt'>[];
-  setRoutePoints: (points: Omit<RoutePoint, 'id' | 'routeId' | 'createdAt' | 'updatedAt'>[]) => void;
+  routePoints: Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">[];
+  setRoutePoints: (
+    points: Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">[]
+  ) => void;
 }
 
-export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePointFormProps) {
-  const [newPoint, setNewPoint] = useState<Omit<RoutePoint, 'id' | 'routeId' | 'createdAt' | 'updatedAt'>>({
+export default function RoutePointForm({
+  routePoints,
+  setRoutePoints,
+}: RoutePointFormProps) {
+  const [newPoint, setNewPoint] = useState<
+    Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">
+  >({
     name: "",
     latitude: 0,
     longitude: 0,
@@ -25,7 +38,10 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
 
   const addRoutePoint = () => {
     if (newPoint.name && newPoint.latitude && newPoint.longitude) {
-      setRoutePoints([...routePoints, { ...newPoint, order: routePoints.length + 1 }]);
+      setRoutePoints([
+        ...routePoints,
+        { ...newPoint, order: routePoints.length + 1 },
+      ]);
       setNewPoint({
         name: "",
         latitude: 0,
@@ -48,8 +64,12 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
     setRoutePoints(reorderedPoints);
   };
 
-  const updateRoutePoint = (index: number, field: keyof Omit<RoutePoint, 'id' | 'routeId' | 'createdAt' | 'updatedAt'>, value: any) => {
-    const updatedPoints = routePoints.map((point, i) => 
+  const updateRoutePoint = (
+    index: number,
+    field: keyof Omit<RoutePoint, "id" | "routeId" | "createdAt" | "updatedAt">,
+    value: any
+  ) => {
+    const updatedPoints = routePoints.map((point, i) =>
       i === index ? { ...point, [field]: value } : point
     );
     setRoutePoints(updatedPoints);
@@ -57,10 +77,14 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
 
   const getPointTypeColor = (type: string) => {
     switch (type) {
-      case 'pickup': return 'bg-blue-100 text-blue-800';
-      case 'dropoff': return 'bg-green-100 text-green-800';
-      case 'both': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "pickup":
+        return "bg-blue-100 text-blue-800";
+      case "dropoff":
+        return "bg-green-100 text-green-800";
+      case "both":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -69,7 +93,7 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
       <div className="flex items-center justify-between">
         <Label className="text-base font-medium">Route Points</Label>
         <span className="text-sm text-muted-foreground">
-          {routePoints.length} point{routePoints.length !== 1 ? 's' : ''} added
+          {routePoints.length} point{routePoints.length !== 1 ? "s" : ""} added
         </span>
       </div>
 
@@ -85,40 +109,23 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                       <Label className="text-sm font-medium">Point Name</Label>
                       <Input
                         value={point.name}
-                        onChange={(e) => updateRoutePoint(index, 'name', e.target.value)}
+                        onChange={(e) =>
+                          updateRoutePoint(index, "name", e.target.value)
+                        }
                         placeholder="e.g., Central Station"
                         className="w-full"
                       />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm font-medium">Latitude</Label>
-                        <Input
-                          type="number"
-                          step="any"
-                          value={point.latitude}
-                          onChange={(e) => updateRoutePoint(index, 'latitude', parseFloat(e.target.value) || 0)}
-                          placeholder="10.762622"
-                          className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Longitude</Label>
-                        <Input
-                          type="number"
-                          step="any"
-                          value={point.longitude}
-                          onChange={(e) => updateRoutePoint(index, 'longitude', parseFloat(e.target.value) || 0)}
-                          placeholder="106.660172"
-                          className="w-full"
-                        />
-                      </div>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
                       <Label className="text-sm font-medium">Type</Label>
-                      <Select value={point.type} onValueChange={(value: 'pickup' | 'dropoff' | 'both') => updateRoutePoint(index, 'type', value)}>
+                      <Select
+                        value={point.type}
+                        onValueChange={(value: "pickup" | "dropoff" | "both") =>
+                          updateRoutePoint(index, "type", value)
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -129,34 +136,16 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm font-medium">Distance (m)</Label>
-                        <Input
-                          type="number"
-                          value={point.distanceFromStart || ''}
-                          onChange={(e) => updateRoutePoint(index, 'distanceFromStart', parseInt(e.target.value) || undefined)}
-                          placeholder="Optional"
-                          className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Time (min)</Label>
-                        <Input
-                          type="number"
-                          value={point.estimatedTimeFromStart || ''}
-                          onChange={(e) => updateRoutePoint(index, 'estimatedTimeFromStart', parseInt(e.target.value) || undefined)}
-                          placeholder="Optional"
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3 ml-4 flex-shrink-0">
                   <div className="flex flex-col items-center min-w-[60px]">
-                    <span className="text-xs font-medium text-muted-foreground">#{point.order}</span>
-                    <div className={`px-2 py-1 rounded text-xs font-medium text-center mt-1 ${getPointTypeColor(point.type)}`}>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      #{point.order}
+                    </span>
+                    <div
+                      className={`px-2 py-1 rounded text-xs font-medium text-center mt-1 ${getPointTypeColor(point.type)}`}
+                    >
                       {point.type}
                     </div>
                   </div>
@@ -168,6 +157,74 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
+                </div>
+              </div>
+              <div className="flex space-x-4">
+                <div>
+                  <Label className="text-sm font-medium">Latitude</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={point.latitude}
+                    onChange={(e) =>
+                      updateRoutePoint(
+                        index,
+                        "latitude",
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    placeholder="10.762622"
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Longitude</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={point.longitude}
+                    onChange={(e) =>
+                      updateRoutePoint(
+                        index,
+                        "longitude",
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    placeholder="106.660172"
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Distance (m)</Label>
+                  <Input
+                    type="number"
+                    value={point.distanceFromStart || ""}
+                    onChange={(e) =>
+                      updateRoutePoint(
+                        index,
+                        "distanceFromStart",
+                        parseInt(e.target.value) || undefined
+                      )
+                    }
+                    placeholder="Optional"
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Time (min)</Label>
+                  <Input
+                    type="number"
+                    value={point.estimatedTimeFromStart || ""}
+                    onChange={(e) =>
+                      updateRoutePoint(
+                        index,
+                        "estimatedTimeFromStart",
+                        parseInt(e.target.value) || undefined
+                      )
+                    }
+                    placeholder="Optional"
+                    className="w-full"
+                  />
                 </div>
               </div>
             </Card>
@@ -189,14 +246,21 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
               <Label className="text-sm font-medium">Point Name</Label>
               <Input
                 value={newPoint.name}
-                onChange={(e) => setNewPoint({ ...newPoint, name: e.target.value })}
+                onChange={(e) =>
+                  setNewPoint({ ...newPoint, name: e.target.value })
+                }
                 placeholder="e.g., Central Station"
                 className="w-full"
               />
             </div>
             <div>
               <Label className="text-sm font-medium">Type</Label>
-              <Select value={newPoint.type} onValueChange={(value: 'pickup' | 'dropoff' | 'both') => setNewPoint({ ...newPoint, type: value })}>
+              <Select
+                value={newPoint.type}
+                onValueChange={(value: "pickup" | "dropoff" | "both") =>
+                  setNewPoint({ ...newPoint, type: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -215,7 +279,12 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                 type="number"
                 step="any"
                 value={newPoint.latitude}
-                onChange={(e) => setNewPoint({ ...newPoint, latitude: parseFloat(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setNewPoint({
+                    ...newPoint,
+                    latitude: parseFloat(e.target.value) || 0,
+                  })
+                }
                 placeholder="10.762622"
                 className="w-full"
               />
@@ -226,7 +295,12 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
                 type="number"
                 step="any"
                 value={newPoint.longitude}
-                onChange={(e) => setNewPoint({ ...newPoint, longitude: parseFloat(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setNewPoint({
+                    ...newPoint,
+                    longitude: parseFloat(e.target.value) || 0,
+                  })
+                }
                 placeholder="106.660172"
                 className="w-full"
               />
@@ -234,29 +308,46 @@ export default function RoutePointForm({ routePoints, setRoutePoints }: RoutePoi
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Distance from Start (meters)</Label>
+              <Label className="text-sm font-medium">
+                Distance from Start (meters)
+              </Label>
               <Input
                 type="number"
-                value={newPoint.distanceFromStart || ''}
-                onChange={(e) => setNewPoint({ ...newPoint, distanceFromStart: parseInt(e.target.value) || undefined })}
+                value={newPoint.distanceFromStart || ""}
+                onChange={(e) =>
+                  setNewPoint({
+                    ...newPoint,
+                    distanceFromStart: parseInt(e.target.value) || undefined,
+                  })
+                }
                 placeholder="Optional"
                 className="w-full"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium">Estimated Time from Start (min)</Label>
+              <Label className="text-sm font-medium">
+                Estimated Time from Start (min)
+              </Label>
               <Input
                 type="number"
-                value={newPoint.estimatedTimeFromStart || ''}
-                onChange={(e) => setNewPoint({ ...newPoint, estimatedTimeFromStart: parseInt(e.target.value) || undefined })}
+                value={newPoint.estimatedTimeFromStart || ""}
+                onChange={(e) =>
+                  setNewPoint({
+                    ...newPoint,
+                    estimatedTimeFromStart:
+                      parseInt(e.target.value) || undefined,
+                  })
+                }
                 placeholder="Optional"
                 className="w-full"
               />
             </div>
           </div>
-          <Button 
+          <Button
             onClick={addRoutePoint}
-            disabled={!newPoint.name || !newPoint.latitude || !newPoint.longitude}
+            disabled={
+              !newPoint.name || !newPoint.latitude || !newPoint.longitude
+            }
             className="w-full"
           >
             <Plus className="w-4 h-4 mr-2" />

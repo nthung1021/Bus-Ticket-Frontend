@@ -221,13 +221,17 @@ export function useSeatWebSocket({
 
     const handleConnect = () => {
       setIsConnected(true);
-      console.log("WebSocket connected");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Seat WebSocket hook connected");
+      }
     };
 
     const handleDisconnect = () => {
       setIsConnected(false);
       hasJoinedRef.current = false; // Reset join status on disconnect
-      console.log("WebSocket disconnected");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Seat WebSocket hook disconnected");
+      }
     };
 
     socket.on("connect", handleConnect);
@@ -260,9 +264,9 @@ export function useSeatWebSocket({
           lockedSeatsData.map((seat) => seat.seatId),
         );
         setLockedSeats(lockedSeatIds);
-        console.log(
-          `Loaded ${lockedSeatIds.size} locked seats from database for trip ${tripId}`,
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Loaded ${lockedSeatIds.size} locked seats for trip ${tripId}`);
+        }
 
         // Load booked seats
         const bookedSeatsData = await seatStatusService.getBookedSeats(tripId);
@@ -270,9 +274,9 @@ export function useSeatWebSocket({
           bookedSeatsData.map((seat) => seat.seatId),
         );
         setBookedSeats(bookedSeatIds);
-        console.log(
-          `Loaded ${bookedSeatIds.size} booked seats from database for trip ${tripId}`,
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Loaded ${bookedSeatIds.size} booked seats for trip ${tripId}`);
+        }
       } catch (error) {
         console.error("Failed to load seats from database:", error);
         // Continue with empty seats if database query fails
@@ -302,7 +306,9 @@ export function useSeatWebSocket({
         seatWebSocketService.onSeatAvailable(handleSeatAvailable);
         seatWebSocketService.onCurrentLocks(handleCurrentLocks);
 
-        console.log(`Joined trip ${tripId}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Joined trip ${tripId}`);
+        }
       } catch (error) {
         console.error("Failed to join trip:", error);
       }
@@ -424,19 +430,13 @@ export function useSeatWebSocket({
   const bookSeat = useCallback(
     async (seatId: string, bookingId?: string): Promise<boolean> => {
       try {
-        console.log("bookSeat called with:", seatId);
-
         // First, check if seat is locked by current user
         if (!isSeatLockedByMe(seatId)) {
-          console.log(
-            "Seat is not locked by current user, attempting to lock first...",
-          );
           const lockSuccess = await lockSeat(seatId);
           if (!lockSuccess) {
             console.error("Failed to lock seat before booking");
             return false;
           }
-          console.log("Seat locked successfully, proceeding with booking...");
         }
 
         const response = await seatWebSocketService.bookSeat(
@@ -444,9 +444,8 @@ export function useSeatWebSocket({
           seatId,
           bookingId,
         );
-        console.log("bookSeat response:", response);
+        
         if (response.success) {
-          console.log("Calling addBookedSeat for:", seatId);
           addBookedSeat(seatId);
         }
         return response.success;
@@ -507,7 +506,9 @@ export function useSeatWebSocket({
 
     if (myLockedSeats.length === 0) return;
 
-    console.log(`Unlocking ${myLockedSeats.length} seats for cleanup`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Unlocking ${myLockedSeats.length} seats for cleanup`);
+    }
 
     // Unlock all seats in parallel
     await Promise.allSettled(myLockedSeats.map((seatId) => unlockSeat(seatId)));

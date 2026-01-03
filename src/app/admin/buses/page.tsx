@@ -11,14 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Plus, Search, Settings } from "lucide-react";
+import { Trash2, Edit, Plus, Search, Settings, Camera, Loader2, XCircle } from "lucide-react";
 import { busService, Bus, CreateBusDto, UpdateBusDto } from "@/services/bus.service";
 import { operatorService, Operator } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import BusForm from "@/components/bus/BusForm";
 import SeatLayoutDialog from "@/components/seat-layout/SeatLayoutDialog";
 import { seatLayoutService, SeatLayout } from "@/services/seat-layout.service";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function BusesPage() {
   return (
@@ -44,6 +45,9 @@ function BusesManagement() {
   const [seatLayoutDialogOpen, setSeatLayoutDialogOpen] = useState(false);
   const [selectedBusForLayout, setSelectedBusForLayout] = useState<Bus | null>(null);
   const [busSeatLayouts, setBusSeatLayouts] = useState<{ [busId: string]: SeatLayout }>({});
+  const [uploadingBusId, setUploadingBusId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [formData, setFormData] = useState<CreateBusDto>({
     operatorId: "",
     plateNumber: "",
@@ -188,7 +192,9 @@ function BusesManagement() {
 
   const fetchBusSeatLayout = async (busId: string) => {
     try {
+      // Admin view doesn't have trip context, so use default pricing
       const layout = await seatLayoutService.getByBusId(busId);
+      console.log(`Fetched seat layout for bus ${busId}:`, layout);
       setBusSeatLayouts(prev => ({ ...prev, [busId]: layout }));
     } catch (error) {
       // Bus might not have a layout yet, which is fine
@@ -206,6 +212,38 @@ function BusesManagement() {
     buses.forEach(bus => {
       fetchBusSeatLayout(bus.id);
     });
+  };
+  
+  const handlePhotoUpload = async (busId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setUploadingBusId(busId);
+      const fileArray = Array.from(files);
+      await busService.uploadPhotos(busId, fileArray);
+      
+      toast.success(`${fileArray.length} photo(s) uploaded successfully`);
+      
+      const bus = buses.find(b => b.id === busId);
+      if (bus) {
+        adminActivityService.addActivity(
+          'updated',
+          'bus',
+          bus.plateNumber,
+          `Uploaded ${fileArray.length} bus photos`
+        );
+      }
+      
+      fetchBuses(); // Refresh to show new photos if we were displaying them
+    } catch (error) {
+      toast.error("Failed to upload photos");
+      console.error("Error uploading photos:", error);
+    } finally {
+      setUploadingBusId(null);
+      // Reset input
+      event.target.value = '';
+    }
   };
 
   const handleBusSeatLayoutUpdate = (busId: string, layout: SeatLayout) => {
@@ -257,41 +295,77 @@ function BusesManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  // Pagination calculations
+  const totalItems = filteredBuses.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBuses = filteredBuses.slice(startIndex, endIndex);
+  const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, totalItems);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, operatorFilter, capacityFilter, amenityFilter, sortBy, sortOrder]);
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex bg-background">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <main className="flex-1 pt-10 px-4 pb-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Bus Management</CardTitle>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Bus
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Bus</DialogTitle>
-                    </DialogHeader>
-                    <BusForm
-                      formData={formData}
-                      setFormData={setFormData}
-                      onCancel={() => setIsCreateDialogOpen(false)}
-                      onSubmit={handleCreateBus}
-                      operators={operators}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              {/* Enhanced Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
-                <div className="relative sm:col-span-2">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+    <div className="flex bg-background min-h-screen">
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+        <main className="flex-1 pt-6 lg:pt-10 px-4 pb-4">
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                Bus Management
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage bus fleet
+              </p>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto shrink-0 cursor-pointer">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Bus
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Bus</DialogTitle>
+                </DialogHeader>
+                <BusForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onCancel={() => setIsCreateDialogOpen(false)}
+                  onSubmit={handleCreateBus}
+                  operators={operators}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Compact Filters */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search buses, models, operators..."
                     value={searchTerm}
@@ -300,63 +374,137 @@ function BusesManagement() {
                   />
                 </div>
                 
-                <Select value={operatorFilter} onValueChange={setOperatorFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Operators" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Operators</SelectItem>
-                    {operators.map((operator) => (
-                      <SelectItem key={operator.id} value={operator.id}>
-                        {operator.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Filters Row */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                  <span className="text-sm font-medium shrink-0">Filters:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Operator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Operators</SelectItem>
+                        {operators.map((operator) => (
+                          <SelectItem key={operator.id} value={operator.id}>
+                            {operator.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={capacityFilter} onValueChange={setCapacityFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sizes</SelectItem>
+                        <SelectItem value="small">Small (≤20)</SelectItem>
+                        <SelectItem value="medium">Medium (21-40)</SelectItem>
+                        <SelectItem value="large">Large (&gt;40)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={amenityFilter} onValueChange={setAmenityFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Amenity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Amenities</SelectItem>
+                        <SelectItem value="wifi">WiFi</SelectItem>
+                        <SelectItem value="ac">AC</SelectItem>
+                        <SelectItem value="restroom">Restroom</SelectItem>
+                        <SelectItem value="entertainment">Entertainment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Clear Filters Button */}
+                    {(searchTerm || operatorFilter !== "all" || capacityFilter !== "all" || amenityFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setOperatorFilter("all");
+                          setCapacityFilter("all");
+                          setAmenityFilter("all");
+                        }}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 
-                <Select value={capacityFilter} onValueChange={setCapacityFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Sizes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sizes</SelectItem>
-                    <SelectItem value="small">Small (≤20 seats)</SelectItem>
-                    <SelectItem value="medium">Medium (21-40 seats)</SelectItem>
-                    <SelectItem value="large">Large (&gt;40 seats)</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="plateNumber">Plate Number</SelectItem>
-                    <SelectItem value="model">Model</SelectItem>
-                    <SelectItem value="capacity">Capacity</SelectItem>
-                    <SelectItem value="operator">Operator</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Sort Options */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 pt-3 border-t">
+                  <span className="text-sm font-medium shrink-0">Sort by:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Button
+                      variant={sortBy === "plateNumber" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("plateNumber")}
+                      className="cursor-pointer"
+                    >
+                      Plate Number
+                    </Button>
+                    <Button
+                      variant={sortBy === "model" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("model")}
+                      className="cursor-pointer"
+                    >
+                      Model
+                    </Button>
+                    <Button
+                      variant={sortBy === "capacity" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("capacity")}
+                      className="cursor-pointer"
+                    >
+                      Capacity
+                    </Button>
+                    <Button
+                      variant={sortBy === "operator" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("operator")}
+                      className="cursor-pointer"
+                    >
+                      Operator
+                    </Button>
+                    
+                    <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                    
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="cursor-pointer"
+                    >
+                      {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+                    </Button>
+                  </div>
+                </div>
               </div>
-              
-              {/* Results count and sort order */}
-              <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
-                <span>Showing {filteredBuses.length} of {buses.length} buses</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8"
-                >
-                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bus Fleet</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="text-center py-8">Loading buses...</div>
               ) : (
-                <Table>
+                <>
+                  {/* Showing X of Y text */}
+                  <div className="mb-4 text-sm text-muted-foreground">
+                    Showing {showingFrom} to {showingTo} of {totalItems} buses
+                  </div>
+                  
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Plate Number</TableHead>
@@ -365,18 +513,19 @@ function BusesManagement() {
                       <TableHead>Amenities</TableHead>
                       <TableHead>Operator</TableHead>
                       <TableHead>Seat Layout</TableHead>
+                      <TableHead>Photos</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredBuses.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           No buses found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredBuses.map((bus) => (
+                      paginatedBuses.map((bus) => (
                         <TableRow key={bus.id}>
                           <TableCell className="font-medium">{bus.plateNumber}</TableCell>
                           <TableCell>{bus.model}</TableCell>
@@ -409,13 +558,21 @@ function BusesManagement() {
                               </Badge>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {bus.photo && bus.photo.length > 0 ? (
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                                <Camera className="w-3 h-3 mr-1" />
+                                {bus.photo.length}
+                              </Badge>
+                            ) : null}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openSeatLayoutDialog(bus)}
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-blue-600 hover:text-blue-700 cursor-pointer"
                               >
                                 <Settings className="w-4 h-4" />
                               </Button>
@@ -423,14 +580,38 @@ function BusesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditDialog(bus)}
+                                className="cursor-pointer"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
+                              <div className="relative">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={uploadingBusId === bus.id}
+                                  className="text-amber-600 hover:text-amber-700"
+                                  onClick={() => document.getElementById(`photo-upload-${bus.id}`)?.click()}
+                                >
+                                  {uploadingBusId === bus.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Camera className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                <input
+                                  id={`photo-upload-${bus.id}`}
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handlePhotoUpload(bus.id, e)}
+                                />
+                              </div>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteBus(bus.id)}
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -441,6 +622,20 @@ function BusesManagement() {
                     )}
                   </TableBody>
                 </Table>
+                </>
+              )}
+              
+              {/* Pagination */}
+              {!loading && totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  showingFrom={showingFrom}
+                  showingTo={showingTo}
+                />
               )}
             </CardContent>
           </Card>

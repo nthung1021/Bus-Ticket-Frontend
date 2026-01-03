@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import api from "@/lib/api";
+import { routeService, RoutePoint } from "@/services/route.service";
 //import SeatSelectionDialog from "@/components/seat/SeatSelectionDialog";
 import SeatSelectionMap from "@/components/seat-selection/SeatSelectionMap";
 import { seatLayoutService, SeatLayout, SeatInfo } from "@/services/seat-layout.service";
 import toast from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { ReviewList, ReviewStats, AuthenticatedReviewForm } from "@/components/feedback";
+import { feedbackService } from "@/services/feedback.service";
+import { Star, MessageSquare } from "lucide-react";
 
 interface TripParams {
   id: string;
@@ -30,6 +34,7 @@ interface Trip {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[];
   description: string;
   features: string[];
   duration: string;
@@ -61,7 +66,41 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   const [relatedTrips, setRelatedTrips] = useState<Trip[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
 
+  // Helper validation: ensure pickup and dropoff are not the same
+  const validatePickupDropoffDifferent = (pickupId: string | null, dropoffId: string | null) => {
+    if (pickupId && dropoffId && pickupId === dropoffId) {
+      toast.error('Pickup and dropoff points must be different');
+      return false;
+    }
+    return true;
+  };
+
+  // Route points (pickup / dropoff)
+  const [pickupPoints, setPickupPoints] = useState<RoutePoint[]>([]);
+  const [dropoffPoints, setDropoffPoints] = useState<RoutePoint[]>([]);
+  const [loadingRoutePoints, setLoadingRoutePoints] = useState(false);
+
+  // Selected pickup/dropoff by user
+  const [selectedPickupId, setSelectedPickupId] = useState<string | null>(null);
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string | null>(null);
+
+  // Image gallery state
+  const [images, setImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  
+  // Review state
+  const [reviewStats, setReviewStats] = useState<{
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: { [key: number]: number };
+  } | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
   const handleSeatSelection = (selectedSeats: SeatInfo[]) => {
+    // Validate pickup/dropoff not equal
+    if (!validatePickupDropoffDifferent(selectedPickupId, selectedDropoffId)) return;
+
     // Map seats to include price so downstream pages don't break when formatting
     const mappedSeats = selectedSeats.map((seat) => ({
       id: seat.id,
@@ -74,7 +113,12 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     }));
 
     const seatsParam = encodeURIComponent(JSON.stringify(mappedSeats));
-    router.push(`/passenger-info?tripId=${resolvedParams.id}&seats=${seatsParam}`);
+    const q = new URLSearchParams();
+    q.set('tripId', resolvedParams.id);
+    q.set('seats', seatsParam);
+    if (selectedPickupId) q.set('pickupPointId', selectedPickupId);
+    if (selectedDropoffId) q.set('dropoffPointId', selectedDropoffId);
+    router.push(`/passenger-info?${q.toString()}`);
   };
 
   const handleSeatSelectionChange = (seats: SeatInfo[]) => {
@@ -83,19 +127,21 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   };
 
   const handleBookNow = () => {
-    console.log('🎫 Book Now clicked - busId:', busId, 'seatLayout:', !!seatLayout);
-    
+    // Validate pickup/dropoff not equal
+    if (!validatePickupDropoffDifferent(selectedPickupId, selectedDropoffId)) return;
+
     if (seatLayout) {
-      console.log('✅ Opening seat selection dialog');
       setSeatDialogOpen(true);
     } else if (busId) {
-      console.log('🔄 Fetching seat layout for busId:', busId);
       fetchSeatLayout();
     } else {
-      console.warn('❌ No busId available for seat selection');
       // Try to proceed without seat selection for now
       toast.success('Proceeding to passenger information...');
-      router.push(`/passenger-info?tripId=${resolvedParams.id}`);
+      const q = new URLSearchParams();
+      q.set('tripId', resolvedParams.id);
+      if (selectedPickupId) q.set('pickupPointId', selectedPickupId);
+      if (selectedDropoffId) q.set('dropoffPointId', selectedDropoffId);
+      router.push(`/passenger-info?${q.toString()}`);
     }
   };
 
@@ -162,7 +208,12 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           price,
           originalPrice: undefined,
           image:
-            "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            trip.bus?.photo && trip.bus.photo.length > 0
+              ? trip.bus.photo[0]
+              : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+          images: trip.bus?.photo && trip.bus.photo.length > 0
+            ? trip.bus.photo
+            : ["https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop"],
           description:
             descriptionParts.length > 0
               ? descriptionParts.join(" • ")
@@ -191,12 +242,42 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
         };
 
         setTrip(mappedTrip);
+        // initialize gallery
+        setImages(mappedTrip.images || [mappedTrip.image]);
+        setCurrentImageIndex(0);
         // Store bus ID for seat layout fetching
         if (trip.bus?.busId) {
-          console.log('🚌 Setting busId:', trip.bus.busId);
           setBusId(trip.bus.busId);
-        } else {
-          console.warn('⚠️ No busId found in trip data:', trip.bus);
+        }
+
+        // Fetch route points (pickup / dropoff) if route ID available
+        console.log('trip.route before fetching points:', trip.route);
+        if (trip.route && (trip.route.id || trip.route.routeId)) {
+          setLoadingRoutePoints(true);
+          try {
+            const routeResp = await routeService.getById(trip.route.id || trip.route.routeId);
+            console.log('routeService returned:', routeResp);
+            // Fix: Check if routeResp has 'data' property, otherwise use routeResp directly
+            const routeObj = (routeResp && typeof routeResp === 'object' && 'data' in routeResp) ? (routeResp as any).data : routeResp;
+            const points = Array.isArray(routeObj?.points) ? routeObj.points : [];
+            console.log('Resolved route points:', points);
+
+            const pickups = points.filter((p: any) => p.type === 'pickup' || p.type === 'both');
+            const dropoffs = points.filter((p: any) => p.type === 'dropoff' || p.type === 'both');
+
+            setPickupPoints(pickups);
+            setDropoffPoints(dropoffs);
+
+            // Default to first available if none selected yet
+            if (pickups.length > 0 && !selectedPickupId) setSelectedPickupId(pickups[0].id);
+            if (dropoffs.length > 0 && !selectedDropoffId) setSelectedDropoffId(dropoffs[0].id);
+          } catch (err) {
+            console.error('Failed to load route points:', err);
+            setPickupPoints([]);
+            setDropoffPoints([]);
+          } finally {
+            setLoadingRoutePoints(false);
+          }
         }
       } catch (error) {
         console.error("Failed to load trip details", error);
@@ -210,6 +291,26 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
   }, [resolvedParams.id]);
 
   // Fetch related trips based on same route (origin/destination)
+  // Fetch review statistics
+  useEffect(() => {
+    const fetchReviewStats = async () => {
+      if (!resolvedParams.id) return;
+      
+      try {
+        setLoadingReviews(true);
+        const stats = await feedbackService.getReviewStats(resolvedParams.id);
+        setReviewStats(stats);
+      } catch (error) {
+        console.error('Failed to load review stats:', error);
+        setReviewStats(null);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchReviewStats();
+  }, [resolvedParams.id]);
+
   useEffect(() => {
     const fetchRelatedTrips = async () => {
       if (!trip?.departure || !trip?.arrival) return;
@@ -232,7 +333,9 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             name: `${t.operator?.name || "Bus"} ${t.route?.origin} - ${t.route?.destination}`,
             category: "Bus Route",
             price: t.pricing?.basePrice || 0,
-            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+            image: (t.bus?.photo && t.bus.photo.length > 0)
+              ? t.bus.photo[0]
+              : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
             departure: t.route?.origin || "",
             arrival: t.route?.destination || "",
             duration: t.schedule?.duration ? `${Math.floor(t.schedule.duration / 60)}h${t.schedule.duration % 60 ? ` ${t.schedule.duration % 60}m` : ""}` : "N/A",
@@ -260,10 +363,8 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
     }
 
     try {
-      console.log('🔄 Fetching seat layout for busId:', busId);
       setLoadingSeatLayout(true);
-      const layout = await seatLayoutService.getByBusId(busId);
-      console.log('✅ Seat layout loaded:', layout);
+      const layout = await seatLayoutService.getByBusId(busId, resolvedParams.id);
       setSeatLayout(layout);
       setSeatDialogOpen(true);
     } catch (error) {
@@ -340,23 +441,24 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           <div className="bg-card border border-border rounded-2xl p-6 h-fit">
             <div className="space-y-4">
               <div className="group cursor-pointer">
-                <img
-                  src={trip.image}
-                  alt={trip.name}
-                  className="w-full aspect-4/3 rounded-xl object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                />
+                    <img
+                      src={images[currentImageIndex] || trip.image}
+                      alt={trip.name}
+                      onClick={() => setImageDialogOpen(true)}
+                      className="w-full aspect-4/3 rounded-xl object-cover cursor-pointer group-hover:scale-[1.02] transition-transform duration-300"
+                    />
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-                  <span className="text-caption text-muted-foreground">View 1</span>
-                </div>
-                <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-                  <span className="text-caption text-muted-foreground">View 2</span>
-                </div>
-                <div className="aspect-video bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors flex items-center justify-center">
-                  <span className="text-caption text-muted-foreground">View 3</span>
-                </div>
-              </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {images.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className={`aspect-video rounded-lg overflow-hidden cursor-pointer border ${idx === currentImageIndex ? 'ring-2 ring-primary border-primary' : 'bg-muted border-border'}`}
+                          onClick={() => { setCurrentImageIndex(idx); }}
+                        >
+                          <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                        </div>
+                      ))}
+                  </div>
             </div>
           </div>
 
@@ -364,17 +466,38 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
           <div className="bg-card border border-border rounded-2xl p-6 h-full flex flex-col">
             {/* Header Info */}
             <div className="space-y-4 mb-6">
-              <div className="inline-block">
-                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-caption font-medium">
-                  {trip.category}
-                </span>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="inline-block mb-3">
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-caption font-medium">
+                      {trip.category}
+                    </span>
+                  </div>
+                  <h1 className="text-h2 text-foreground leading-tight">{trip.name}</h1>
+                </div>
+                
+                {/* Quick Rating Display */}
+                {reviewStats && reviewStats.totalReviews > 0 && (
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                        <span className="text-h5 font-bold text-foreground">
+                          {reviewStats.averageRating.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-caption text-muted-foreground">
+                      {reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
               </div>
-              <h1 className="text-h2 text-foreground leading-tight">{trip.name}</h1>
             </div>
 
-            {/* Price */}
+            {/* Price & Rating */}
             <div className="bg-linear-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between gap-4 mb-3">
                 <span className="text-h4 text-primary font-bold">
                   {formatCurrency(trip.price)}
                 </span>
@@ -389,6 +512,33 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                   </div>
                 )}
               </div>
+              
+              {/* Rating Summary */}
+              {reviewStats && reviewStats.totalReviews > 0 && (
+                <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <span className="text-body font-semibold text-foreground">
+                      {reviewStats.averageRating.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <MessageSquare className="h-3 w-3" />
+                    <span className="text-caption">
+                      {reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {loadingReviews && (
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span className="text-caption">Loading reviews...</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Route Details */}
@@ -462,11 +612,40 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                 <div className="text-right">
                   <p className="text-caption text-muted-foreground">Total</p>
                   <p className="text-body font-bold text-primary">
-                    {formatCurrency(
-                      (trip.price + selectedSeats.reduce((total, seat) => 
-                        total + (seat.price || (seatLayout?.seatPricing?.seatTypePrices[seat.type] ?? 0)), 0)))}
+                    {formatCurrency(trip.price * selectedQuantity)}
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Pickup / Dropoff selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-xs text-muted-foreground">Pickup point</label>
+                <select
+                  value={selectedPickupId ?? ""}
+                  onChange={(e) => setSelectedPickupId(e.target.value || null)}
+                  className="w-full mt-1 rounded border px-3 py-2"
+                >
+                  <option value="">Select pickup</option>
+                  {pickupPoints.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground">Dropoff point</label>
+                <select
+                  value={selectedDropoffId ?? ""}
+                  onChange={(e) => setSelectedDropoffId(e.target.value || null)}
+                  className="w-full mt-1 rounded border px-3 py-2"
+                >
+                  <option value="">Select dropoff</option>
+                  {dropoffPoints.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -490,6 +669,43 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             </div>
           </div>
         </section>
+
+        {/* Image Lightbox (custom overlay to avoid Dialog outside-click handling) */}
+        {imageDialogOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center pt-20"
+            onClick={() => setImageDialogOpen(false)}
+          >
+            <div
+              className="relative max-w-[80vw] max-h-[calc(100vh-6rem)] w-auto h-auto flex items-center justify-center px-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setCurrentImageIndex((i) => (i - 1 + images.length) % images.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-2 rounded-full"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+                <div className="max-w-full max-h-full flex items-center justify-center p-0">
+                <img
+                  src={images[currentImageIndex]}
+                  alt={`full-${currentImageIndex}`}
+                  className="max-w-[80vw] max-h-[80vh] object-contain rounded-lg"
+                />
+              </div>
+
+              <button
+                onClick={() => setCurrentImageIndex((i) => (i + 1) % images.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-2 rounded-full"
+                aria-label="Next image"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <section className="bg-card border border-border rounded-2xl p-8 space-y-6">
@@ -547,6 +763,47 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
               )}
             </div>
           </Card>
+        </section>
+
+        {/* Customer Reviews Section */}
+        <section className="space-y-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-h3 text-foreground flex items-center justify-center gap-3">
+              <div className="w-2 h-8 bg-primary rounded-full"></div>
+              Customer Reviews
+              <div className="w-2 h-8 bg-primary rounded-full"></div>
+            </h2>
+            <p className="text-body text-muted-foreground max-w-2xl mx-auto">
+              See what other passengers are saying about this route
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Review Statistics */}
+            <div className="lg:col-span-1">
+              <ReviewStats 
+                tripId={resolvedParams.id}
+                // type="trip"
+                title="Rating Overview"
+                showDistribution
+                className="sticky top-4"
+              />
+            </div>
+            
+            {/* Review List with inline form */}
+            <div className="lg:col-span-3">
+              <ReviewList
+                tripId={resolvedParams.id}
+                title="Recent Reviews"
+                showHeader
+                showSortControls
+                showPagination
+                showReviewForm={true}
+                useInfiniteScroll={false}
+                initialLimit={5}
+              />
+            </div>
+          </div>
         </section>
 
         {/* Related Routes */}
@@ -654,7 +911,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
             )}
 
             <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
-              <Button
+              <Button className="cursor-pointer"
                 variant="outline"
                 onClick={() => setSeatDialogOpen(false)}
               >
@@ -668,7 +925,7 @@ export default function TripDetailPage({ params }: { params: Promise<TripParams>
                   handleSeatSelection(selectedSeats);
                 }}
                 disabled={selectedSeats.length === 0}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
               >
                 Continue to Booking ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
               </Button>

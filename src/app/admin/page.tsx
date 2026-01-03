@@ -40,7 +40,8 @@ import { routeService } from "@/services/route.service";
 import { operatorService } from "@/services/operator.service";
 import { busService } from "@/services/bus.service";
 import { adminActivityService, AdminActivity } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import { format } from "date-fns";
+import toast from "react-hot-toast";
 
 interface DashboardData {
   stats: {
@@ -67,24 +68,24 @@ const fallbackDashboardData: DashboardData = {
       bgColor: "bg-primary",
     },
     {
-      title: "Total Trips",
-      value: "0",
-      subtitle: "Loading...",
-      icon: <MapPin className="w-6 h-6" />,
-      bgColor: "bg-accent",
-    },
-    {
-      title: "Tickets Sold",
+      title: "Total Bookings",
       value: "0",
       subtitle: "Loading...",
       icon: <TicketCheck className="w-6 h-6" />,
+      bgColor: "bg-accent",
+    },
+    {
+      title: "Total Revenue",
+      value: "0 VNĐ",
+      subtitle: "Loading...",
+      icon: <TrendingUp className="w-6 h-6" />,
       bgColor: "bg-secondary",
     },
     {
-      title: "Revenue",
+      title: "Total Operators",
       value: "0",
       subtitle: "Loading...",
-      icon: <TrendingUp className="w-6 h-6" />,
+      icon: <Truck className="w-6 h-6" />,
       bgColor: "bg-accent",
     },
   ],
@@ -98,21 +99,20 @@ const fallbackDashboardData: DashboardData = {
     { day: "Sun", value: 0 },
   ],
   dailyRevenue: [
-    { time: "00", value: 0 },
-    { time: "20", value: 0 },
-    { time: "40", value: 0 },
-    { time: "60", value: 0 },
-    { time: "80", value: 0 },
-    { time: "100", value: 0 },
-    { time: "120", value: 0 },
-    { time: "140", value: 0 },
-    { time: "160", value: 0 },
+    { time: "Mon", value: 0 },
+    { time: "Tue", value: 0 },
+    { time: "Wed", value: 0 },
+    { time: "Thu", value: 0 },
+    { time: "Fri", value: 0 },
+    { time: "Sat", value: 0 },
+    { time: "Sun", value: 0 },
   ],
   bookingStatus: [
-    { name: "Confirmed", value: 0, fill: "#5B5FFF" },
+    { name: "Paid", value: 0, fill: "#5B5FFF" },
     { name: "Pending", value: 0, fill: "#FDB927" },
-    { name: "Cancelled", value: 0, fill: "#92D14F" },
-    { name: "Completed", value: 0, fill: "#66A3E0" },
+    { name: "Completed", value: 0, fill: "#92D14F" },
+    { name: "Cancelled", value: 0, fill: "#FF6B6B" },
+    { name: "Expired", value: 0, fill: "#9CA3AF" },
   ],
   recentActivities: []
 };
@@ -162,11 +162,27 @@ function Dashboard() {
           totalBookingsData,
           operators
         ] = await Promise.all([
-          analyticsService.getBookingsSummary().catch(() => null),
-          analyticsService.getBookingsTrends().catch(() => []),
-          analyticsService.getRouteAnalytics().catch(() => []),
+          analyticsService.getBookingsSummary({ 
+            timeframe: 'yearly',
+            startDate: '2020-01-01',
+            endDate: '2030-12-31'
+          }).catch(() => null),
+          analyticsService.getBookingsTrends({ 
+            timeframe: 'daily',
+            startDate: format(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+            endDate: format(new Date(), 'yyyy-MM-dd')
+          }).catch(() => []),
+          analyticsService.getRouteAnalytics({ 
+            timeframe: 'yearly',
+            startDate: '2020-01-01',
+            endDate: '2030-12-31'
+          }).catch(() => []),
           routeService.getAllSimple().catch(() => []),
-          analyticsService.getTotalBookingsCount().catch((error) => {
+          analyticsService.getTotalBookingsCount({ 
+            timeframe: 'yearly',
+            startDate: '2020-01-01',
+            endDate: '2030-12-31'
+          }).catch((error) => {
             console.warn('Failed to fetch total bookings count:', error);
             return { totalBookings: 0 };
           }),
@@ -212,14 +228,14 @@ function Dashboard() {
             {
               title: "Total Bookings",
               value: (bookingsSummary?.totalBookings ?? totalBookingsData?.totalBookings ?? 0).toLocaleString(),
-              subtitle: bookingsSummary ? `${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "Revenue",
-              icon: <MapPin className="w-6 h-6" />,
+              subtitle: bookingsSummary ? `Completed: ${bookingsSummary.completedBookings || 0}` : "Completed bookings",
+              icon: <TicketCheck className="w-6 h-6" />,
               bgColor: "bg-accent",
             },
             {
-              title: "Revenue",
-              value: bookingsSummary ? `${formatCurrency(bookingsSummary.totalRevenue ?? 0)}` : "0",
-              subtitle: bookingsSummary ? `Avg: ${formatAverageBooking(bookingsSummary.totalRevenue ?? 0, bookingsSummary.totalBookings ?? 0)}` : "Average",
+              title: "Total Revenue",
+              value: bookingsSummary ? `${formatCurrency(bookingsSummary.totalRevenue ?? 0)} VNĐ` : "0 VNĐ",
+              subtitle: bookingsSummary ? `Avg: ${formatCurrency(formatAverageBooking(bookingsSummary.totalRevenue ?? 0, bookingsSummary.totalBookings ?? 0))} VNĐ` : "Average per booking",
               icon: <TrendingUp className="w-6 h-6" />,
               bgColor: "bg-secondary",
             },
@@ -238,17 +254,18 @@ function Dashboard() {
               }))
             : fallbackDashboardData.dailyAnalytics,
           dailyRevenue: bookingsTrends.length > 0
-            ? bookingsTrends.slice(-9).map((trend, index) => ({
-                time: (index * 20).toString(),
+            ? bookingsTrends.slice(-7).map(trend => ({
+                time: new Date(trend.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
                 value: Math.round(trend.revenue / 1000)
               }))
             : fallbackDashboardData.dailyRevenue,
-          bookingStatus: [
-            { name: "Confirmed", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.7), fill: "#5B5FFF" },
-            { name: "Pending", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.15), fill: "#FDB927" },
-            { name: "Completed", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.1), fill: "#92D14F" },
-            { name: "Cancelled", value: Math.round((bookingsSummary?.totalBookings || 0) * 0.05), fill: "#FF6B6B" },
-          ],
+          bookingStatus: bookingsSummary ? [
+            { name: "Paid", value: bookingsSummary.paidBookings || 0, fill: "#5B5FFF" },
+            { name: "Pending", value: bookingsSummary.pendingBookings || 0, fill: "#FDB927" },
+            { name: "Completed", value: bookingsSummary.completedBookings || 0, fill: "#92D14F" },
+            { name: "Cancelled", value: bookingsSummary.cancelledBookings || 0, fill: "#FF6B6B" },
+            { name: "Expired", value: bookingsSummary.expiredBookings || 0, fill: "#9CA3AF" },
+          ] : fallbackDashboardData.bookingStatus,
           recentActivities: adminActivityService.getRecentActivities(10)
         };
 
@@ -265,22 +282,35 @@ function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex bg-background min-h-screen">
       {/* Sidebar - Desktop only */}
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
         {/* Content Area */}
-        <main className="flex-1 pt-10 px-4">
+        <main className="flex-1 pt-6 lg:pt-10 px-4">
           <div className="flex flex-col xl:flex-row gap-2">
             {/* Main Content - Full width on mobile, 2/3 on desktop */}
             <div className="flex-1 xl:w-2/3 space-y-2">
               {/* Top Section - Stats Cards */}
               <div className="bg-card dark:bg-black rounded-md p-4 md:p-6 shadow-sm border border-border">
                 <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mb-6">
-                  <h2 className="text-h2 text-card-foreground">
+                  <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl text-card-foreground font-bold">
                     Statistics Overview
                   </h2>
                   <Link 
@@ -337,7 +367,7 @@ function Dashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                    {/* Daily Analytics */}
+                    {/* Daily Bookings */}
                     <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
                       <h3 className="text-h3 text-card-foreground mb-4">
                         Daily Bookings
@@ -363,7 +393,7 @@ function Dashboard() {
                     {/* Daily Revenue */}
                     <div className="bg-card rounded-lg p-3 md:p-4 shadow-sm border border-border">
                       <h3 className="text-h3 text-card-foreground mb-4">
-                        Revenue Trend
+                        Daily Revenue
                       </h3>
                       <ResponsiveContainer width="100%" height={180}>
                         <LineChart data={dashboardData.dailyRevenue}>
@@ -547,7 +577,7 @@ function Dashboard() {
                     <h3 className="text-h3 text-card-foreground mb-4">
                       Quick Actions
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <Link href="/admin/routes">
                         <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90">
                           <Route className="w-4 h-4 mr-2" />

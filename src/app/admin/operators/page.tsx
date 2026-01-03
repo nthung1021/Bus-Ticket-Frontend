@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Plus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { operatorService, Operator, CreateOperatorDto, UpdateOperatorDto, OperatorStatus } from "@/services/operator.service";
 import { adminActivityService } from "@/services/admin-activity.service";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import OperatorForm from "@/components/operator/OperatorForm";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function OperatorsPage() {
   return (
@@ -36,6 +37,8 @@ function OperatorsManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [formData, setFormData] = useState<CreateOperatorDto>({
     name: "",
     contactEmail: "",
@@ -53,7 +56,7 @@ function OperatorsManagement() {
       const data = await operatorService.getAll();
       setOperators(data);
     } catch (error) {
-      toast.error("Failed to fetch operators");
+      toast.error(error instanceof Error ? error.message : "Failed to fetch operators");
       console.error("Error fetching operators:", error);
     } finally {
       setLoading(false);
@@ -82,7 +85,7 @@ function OperatorsManagement() {
       });
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to create operator");
+      toast.error(error instanceof Error ? error.message : "Failed to create operator");
       console.error("Error creating operator:", error);
     }
   };
@@ -112,7 +115,7 @@ function OperatorsManagement() {
       });
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to update operator");
+      toast.error(error instanceof Error ? error.message : "Failed to update operator");
       console.error("Error updating operator:", error);
     }
   };
@@ -139,7 +142,7 @@ function OperatorsManagement() {
       
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to delete operator");
+      toast.error(error instanceof Error ? error.message : "Failed to delete operator");
       console.error("Error deleting operator:", error);
     }
   };
@@ -164,7 +167,7 @@ function OperatorsManagement() {
       
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to approve operator");
+      toast.error(error instanceof Error ? error.message : "Failed to approve operator");
       console.error("Error approving operator:", error);
     }
   };
@@ -189,7 +192,7 @@ function OperatorsManagement() {
       
       fetchOperators();
     } catch (error) {
-      toast.error("Failed to suspend operator");
+      toast.error(error instanceof Error ? error.message : "Failed to suspend operator");
       console.error("Error suspending operator:", error);
     }
   };
@@ -244,6 +247,20 @@ function OperatorsManagement() {
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
+  // Pagination calculations
+  const totalItems = filteredOperators.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOperators = filteredOperators.slice(startIndex, endIndex);
+  const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, totalItems);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateFilter, sortBy, sortOrder]);
+
   const getStatusBadge = (status: OperatorStatus) => {
     switch (status) {
       case OperatorStatus.APPROVED:
@@ -257,40 +274,62 @@ function OperatorsManagement() {
     }
   };
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex bg-background">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        <main className="flex-1 pt-10 px-4 pb-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Operator Management</CardTitle>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Operator
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Operator</DialogTitle>
-                    </DialogHeader>
-                    <OperatorForm
-                      formData={formData}
-                      setFormData={setFormData}
-                      onCancel={() => setIsCreateDialogOpen(false)}
-                      onSubmit={handleCreateOperator}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              {/* Enhanced Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
-                <div className="relative sm:col-span-2">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+    <div className="flex bg-background min-h-screen">
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b border-border px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+        <main className="flex-1 pt-6 lg:pt-10 px-4 pb-4">
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                Operator Management
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage bus operators
+              </p>
+            </div>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto shrink-0 cursor-pointer">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Operator
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Operator</DialogTitle>
+                </DialogHeader>
+                <OperatorForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onCancel={() => setIsCreateDialogOpen(false)}
+                  onSubmit={handleCreateOperator}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Compact Filters */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search operators, emails, phones..."
                     value={searchTerm}
@@ -299,61 +338,128 @@ function OperatorsManagement() {
                   />
                 </div>
                 
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as OperatorStatus | "all")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
-                    <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
-                    <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Filters Row */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                  <span className="text-sm font-medium shrink-0">Filters:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as OperatorStatus | "all")}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value={OperatorStatus.PENDING}>Pending</SelectItem>
+                        <SelectItem value={OperatorStatus.APPROVED}>Approved</SelectItem>
+                        <SelectItem value={OperatorStatus.SUSPENDED}>Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Date" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Time</SelectItem>
+                        <SelectItem value="recent">Last 7 days</SelectItem>
+                        <SelectItem value="thisMonth">This month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Clear Filters Button */}
+                    {(searchTerm || statusFilter !== "all" || dateFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("all");
+                          setDateFilter("all");
+                        }}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="recent">Last 7 days</SelectItem>
-                    <SelectItem value="thisMonth">This month</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="approved">Approved Date</SelectItem>
-                    <SelectItem value="busCount">Bus Count</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Sort Options */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 pt-3 border-t">
+                  <span className="text-sm font-medium shrink-0">Sort by:</span>
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
+                    <Button
+                      variant={sortBy === "name" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("name")}
+                      className="cursor-pointer"
+                    >
+                      Name
+                    </Button>
+                    <Button
+                      variant={sortBy === "email" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("email")}
+                      className="cursor-pointer"
+                    >
+                      Email
+                    </Button>
+                    <Button
+                      variant={sortBy === "status" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("status")}
+                      className="cursor-pointer"
+                    >
+                      Status
+                    </Button>
+                    <Button
+                      variant={sortBy === "approved" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("approved")}
+                      className="cursor-pointer"
+                    >
+                      Approved
+                    </Button>
+                    <Button
+                      variant={sortBy === "busCount" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy("busCount")}
+                      className="cursor-pointer"
+                    >
+                      Bus Count
+                    </Button>
+                    
+                    <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                    
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="cursor-pointer"
+                    >
+                      {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+                    </Button>
+                  </div>
+                </div>
               </div>
-              
-              {/* Results count and sort order */}
-              <div className="flex justify-between items-center text-sm text-muted-foreground mt-4">
-                <span>Showing {filteredOperators.length} of {operators.length} operators</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="h-8"
-                >
-                  Sort {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Operators</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="text-center py-8">Loading operators...</div>
               ) : (
-                <Table>
+                <>
+                  {/* Showing X of Y text */}
+                  <div className="mb-4 text-sm text-muted-foreground">
+                    Showing {showingFrom} to {showingTo} of {totalItems} operators
+                  </div>
+                  
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -365,14 +471,14 @@ function OperatorsManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOperators.length === 0 ? (
+                    {paginatedOperators.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8">
                           No operators found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredOperators.map((operator) => (
+                      paginatedOperators.map((operator) => (
                         <TableRow key={operator.id}>
                           <TableCell className="font-medium">{operator.name}</TableCell>
                           <TableCell>{operator.contactEmail}</TableCell>
@@ -391,7 +497,7 @@ function OperatorsManagement() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleApproveOperator(operator.id)}
-                                  className="text-green-600 hover:text-green-700"
+                                  className="text-green-600 hover:text-green-700 cursor-pointer"
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
@@ -401,7 +507,7 @@ function OperatorsManagement() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleSuspendOperator(operator.id)}
-                                  className="text-orange-600 hover:text-orange-700"
+                                  className="text-orange-600 hover:text-orange-700 cursor-pointer"
                                 >
                                   <XCircle className="w-4 h-4" />
                                 </Button>
@@ -410,6 +516,7 @@ function OperatorsManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditDialog(operator)}
+                                className="cursor-pointer"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -417,7 +524,7 @@ function OperatorsManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteOperator(operator.id)}
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -428,7 +535,21 @@ function OperatorsManagement() {
                     )}
                   </TableBody>
                 </Table>
-              )}
+                
+                {/* Pagination */}
+                {totalItems > 0 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPage}
+                    showingFrom={showingFrom}
+                    showingTo={showingTo}
+                  />
+                )}
+              </>
+            )}
             </CardContent>
           </Card>
 
@@ -447,7 +568,7 @@ function OperatorsManagement() {
             </DialogContent>
           </Dialog>
         </main>
-      </div>
     </div>
+  </div>
   );
 }

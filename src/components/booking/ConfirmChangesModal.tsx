@@ -23,7 +23,7 @@ interface Booking {
   passengers: Array<{
     id: string;
     fullName: string;
-    documentId: string;
+    documentId?: string;
     seatCode: string;
   }>;
 }

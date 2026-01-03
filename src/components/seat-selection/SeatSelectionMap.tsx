@@ -15,7 +15,7 @@
  * @component
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -94,7 +94,7 @@ function SeatSelectionMap({
      * Creates a structure like: { 1: [seat1, seat2], 2: [seat3, seat4], ... }
      */ 
     const seatsByRow: Record<number, SeatInfo[]> = {};
-    // console.log(layoutConfig)
+    // console.log("Layout config: ", layoutConfig);
     if (layoutConfig?.seats) {
         layoutConfig.seats.forEach(seat => {
             const row = seat.position.row;
@@ -246,7 +246,11 @@ function SeatSelectionMap({
     /**
      * Clears all seat selections and resets the selection state
      */
-    const clearSelection = () => {
+    const clearSelection = async () => {
+        if (enableRealtime && selectedSeats.length > 0) {
+            // unlock all selected seats
+            await Promise.all(selectedSeats.map(s => unlockSeat(s.id).catch(() => undefined)));
+        }
         setSelectedSeats([]);
         onSelectionChange?.([]);
     };
@@ -381,7 +385,7 @@ function SeatSelectionMap({
                                 variant="ghost"
                                 size="sm"
                                 onClick={clearSelection}
-                                className="text-muted-foreground hover:text-destructive"
+                                className="text-muted-foreground cursor-pointer"
                             >
                                 Clear All
                             </Button>

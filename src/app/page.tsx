@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -9,9 +9,14 @@ import Link from "next/link";
 import { routeService, Route } from "@/services/route.service";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { removeDiacritics, getCitySuggestions } from "@/utils/vietnameseSearch";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import OAuthCallbackHandler from "./OAuthCallbackHandler";
 
 export default function Home() {
   const router = useRouter();
+
   const [searchData, setSearchData] = useState({
     from: "",
     to: "",
@@ -32,6 +37,14 @@ export default function Home() {
   });
   const [popularRoutes, setPopularRoutes] = useState<any[]>([]);
   const [routesLoading, setRoutesLoading] = useState(true);
+  // Carousel / pagination for popular routes
+  const MAX_ITEMS = 8;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(4);
+  const [routePage, setRoutePage] = useState(0);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchDeltaX = useRef<number>(0);
 
   // Refs for animation elements
   const featuredRef = useRef<HTMLDivElement>(null);
@@ -79,32 +92,26 @@ export default function Home() {
     const fetchPopularRoutes = async () => {
       try {
         setRoutesLoading(true);
-        console.log('🔍 Fetching routes from API...');
-        const result = await routeService.getAll();
-        const routes = result?.routes || [];
-        console.log('✅ Routes fetched successfully:', routes);
-        console.log('📊 Number of routes:', routes?.length || 0);
-        
-        // Filter routes that have trips and match them with actual trip dates
-        const routesWithTrips = [
-          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Nha Trang') },
-          { route: routes.find(r => r.origin === 'Hồ Chí Minh' && r.destination === 'Đà Lạt')},
-          { route: routes.find(r => r.origin === 'Hà Nội' && r.destination === 'Hải Phòng') },
-          { route: routes.find(r => r.origin === 'Cần Thơ' && r.destination === 'Đà Nẵng') }
-        ].filter(item => item.route); // Remove undefined routes
-        
-        // Transform routes to include pricing and images
-        const transformedRoutes = routesWithTrips.slice(0, 4).map((item, index) => {
-          const route = item.route!;
-          const basePrice = 150000 + (index * 50000); // Generate varied pricing in VND
-          const duration = Math.ceil(route.estimatedMinutes / 60); // Convert to hours
-          const images = [
-            "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop"
-          ];
-          
+        console.log('🔍 Fetching popular routes from API...');
+        const result = await routeService.getPopular(MAX_ITEMS);
+        // result may be an array of { route, bookingsCount } or an array of Route
+        let routes: any[] = [];
+        if (Array.isArray(result)) {
+          if (result.length > 0 && result[0].route) routes = result.map((r: any) => r.route);
+          else routes = result;
+        }
+        console.log('✅ Popular routes fetched:', routes);
+
+        const images = [
+          "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1469&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1470&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1470&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1470&auto=format&fit=crop"
+        ];
+
+        const transformedRoutes = routes.slice(0, MAX_ITEMS).map((route: any, index: number) => {
+          const basePrice = 150000 + (index * 30000);
+          const duration = route.estimatedMinutes ? Math.ceil(route.estimatedMinutes / 60) : 4;
           return {
             id: route.id,
             from: route.origin,
@@ -116,7 +123,7 @@ export default function Home() {
             routeData: route,
           };
         });
-        
+
         console.log('🎯 Transformed routes for display:', transformedRoutes);
         setPopularRoutes(transformedRoutes);
       } catch (error) {
@@ -291,8 +298,53 @@ export default function Home() {
     }
   };
 
+  // Limit routes shown in carousel and compute slides for single-card shifts
+  const displayRoutes = popularRoutes.slice(0, MAX_ITEMS);
+  const maxOffset = Math.max(0, displayRoutes.length - itemsPerPage);
+  const totalSlides = Math.max(1, maxOffset + 1);
+
+  // Clamp routePage if itemsPerPage or displayRoutes change
+  useEffect(() => {
+    const maxIdx = Math.max(0, displayRoutes.length - itemsPerPage);
+    if (routePage > maxIdx) {
+      setRoutePage(maxIdx);
+    }
+  }, [itemsPerPage, displayRoutes.length]);
+
+  // Responsive itemsPerPage based on window width
+  useEffect(() => {
+    const update = () => {
+      const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
+      if (w < 640) setItemsPerPage(1);
+      else if (w < 1024) setItemsPerPage(2);
+      else setItemsPerPage(4);
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  // Autoplay carousel (pause on hover)
+  useEffect(() => {
+    if (totalSlides <= 1) return;
+    if (isHovered) return;
+    const t = setInterval(() => {
+      setRoutePage((p) => {
+        const maxIdx = Math.max(0, displayRoutes.length - itemsPerPage);
+        return p >= maxIdx ? 0 : p + 1;
+      });
+    }, 3000);
+    return () => clearInterval(t);
+  }, [isHovered, totalSlides]);
+
+
   return (
     <div className="min-h-screen">
+      <Suspense fallback={<div>Loading...</div>}>
+        <OAuthCallbackHandler />
+      </Suspense>
+      
       {/* Hero Section */}
       <section className="relative h-screen overflow-hidden">
         {/* Background Images with Transitions */}
@@ -489,7 +541,7 @@ export default function Home() {
                     <Button
                       onClick={handleSearch}
                       size="lg"
-                      className="w-full h-10 text-base font-semibold cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-200 flex items-center gap-2"
+                      className="w-full h-10 text-base font-semibold cursor-pointer bg-primary/80 hover:bg-primary/80/90 transition-all duration-200 flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -534,50 +586,118 @@ export default function Home() {
               <p className="text-sm text-muted-foreground mt-2">Please check back later or use the search function above.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {popularRoutes.map((route, index) => (
-              <div
-                key={route.id}
-                ref={(el) => { routeRefs.current[index] = el; }}
-                id={`route-${route.id}`}
-                className={`transition-all duration-1000 ease-out opacity-100 translate-y-0`}
-                style={{
-                  transitionDelay: `${index * 150}ms`
-                }}
-              >
-                <Link href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&passengers=1`} className="block h-full">
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
-                    <div className="aspect-4/3 bg-muted relative overflow-hidden">
-                      <img
-                        src={route.image}
-                        alt={`${route.from} to ${route.to}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent z-10" />
-                      <div className="absolute bottom-4 left-4 z-20 text-white">
-                        <p className="text-sm font-medium bg-black/30 px-2 py-1 rounded">{route.duration} journey</p>
-                      </div>
-                    </div>
-                    <CardContent className="p-6">
-                      <div className="space-y-3">
-                        <h3 className="text-h5 font-semibold text-foreground">
-                          {route.from} → {route.to}
-                        </h3>
-                        <div className="flex items-center justify-between">
-                          <span className="text-h4 font-bold text-primary">
-                            {formatCurrency(route.price)}
-                          </span>
-                          <Button size="sm" className="group-hover:bg-primary/90 cursor-pointer">
-                            Book Route
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+            <div
+              className="relative"
+              ref={carouselRef}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              onTouchStart={(e) => {
+                touchStartX.current = e.touches?.[0]?.clientX ?? null;
+                touchDeltaX.current = 0;
+              }}
+              onTouchMove={(e) => {
+                if (touchStartX.current == null) return;
+                const x = e.touches?.[0]?.clientX ?? 0;
+                touchDeltaX.current = x - touchStartX.current;
+              }}
+                          onTouchEnd={() => {
+                            const threshold = 50; // px
+                            const delta = touchDeltaX.current;
+                            const maxIdx = Math.max(0, displayRoutes.length - itemsPerPage);
+                            if (Math.abs(delta) > threshold) {
+                              if (delta < 0) {
+                                // swipe left -> next
+                                setRoutePage((p) => (p >= maxIdx ? 0 : p + 1));
+                              } else {
+                                // swipe right -> prev
+                                setRoutePage((p) => (p <= 0 ? maxIdx : p - 1));
+                              }
+                            }
+                            touchStartX.current = null;
+                            touchDeltaX.current = 0;
+                          }}
+            >
+              {/* Left Arrow */}
+              {displayRoutes.length > itemsPerPage && (
+                <button
+                  onClick={() => {
+                    const maxIdx = Math.max(0, displayRoutes.length - itemsPerPage);
+                    setRoutePage((p) => (p <= 0 ? maxIdx : p - 1));
+                  }}
+                  className="absolute -left-12 top-1/2 -translate-y-1/2 z-20 bg-background shadow-md rounded-full p-3 disabled:opacity-30"
+                >
+                  ◀
+                </button>
+              )}
+
+  {/* Viewport */}
+  <div className="overflow-hidden">
+    <div
+      className="flex transition-transform duration-700 ease-out"
+      style={{
+        transform: `translateX(-${routePage * (100 / itemsPerPage)}%)`,
+      }}
+    >
+      {displayRoutes.map((route, index) => (
+        <div
+          key={route.id}
+          ref={(el) => { routeRefs.current[index] = el; }}
+          className="px-2"
+          style={{ flex: `0 0 ${100 / itemsPerPage}%`, maxWidth: `${100 / itemsPerPage}%` }}
+        >
+          <Link
+            href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}&passengers=1`}
+            className="block h-full"
+          >
+            <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer h-full">
+              <div className="aspect-4/3 bg-muted relative overflow-hidden">
+                <img
+                  src={route.image}
+                  alt={`${route.from} to ${route.to}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent z-10" />
+                <div className="absolute bottom-4 left-4 z-20 text-white">
+                  <p className="text-sm font-medium bg-black/30 px-2 py-1 rounded">
+                    {route.duration} journey
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <h3 className="text-h5 font-semibold text-foreground">
+                    {route.from} → {route.to}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-h4 font-bold text-primary">
+                      {formatCurrency(route.price)}
+                    </span>
+                    <Button size="sm" className="cursor-pointer">
+                      Book Route
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* Right Arrow */}
+  {displayRoutes.length > itemsPerPage && (
+    <button
+      onClick={() => {
+        const maxIdx = Math.max(0, displayRoutes.length - itemsPerPage);
+        setRoutePage((p) => (p >= maxIdx ? 0 : p + 1));
+      }}
+      className="absolute -right-12 top-1/2 -translate-y-1/2 z-20 bg-background shadow-md rounded-full p-3 disabled:opacity-30"
+    >
+      ▶
+    </button>
+  )}
+</div>
           )}
         </div>
       </section>
@@ -594,7 +714,7 @@ export default function Home() {
               }`}
           >
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/80/10 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -605,7 +725,7 @@ export default function Home() {
               </p>
             </div>
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/80/10 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m10-7V5a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2z" />
                 </svg>
@@ -616,7 +736,7 @@ export default function Home() {
               </p>
             </div>
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-primary/80/10 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -631,7 +751,7 @@ export default function Home() {
       </section>
 
       {/* Call to Action Section */}
-      <section className="py-16 lg:py-20 bg-primary text-primary-foreground">
+      <section className="py-16 lg:py-20 bg-primary/80 text-primary-foreground">
         <div
           ref={ctaRef}
           id="cta"

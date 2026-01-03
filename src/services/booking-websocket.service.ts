@@ -119,27 +119,35 @@ class BookingWebSocketService {
       });
 
       this.socket.on("connect", () => {
-        console.log("Booking WebSocket connected");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Booking WebSocket connected");
+        }
       });
 
       this.socket.on("disconnect", () => {
-        console.log("Booking WebSocket disconnected");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Booking WebSocket disconnected");
+        }
         this.trackedBookings.clear();
       });
 
       this.socket.on("connect_error", (error) => {
         console.error("Booking WebSocket connection error:", error);
-        console.error("Error details:", {
-          message: error.message,
-          url: `${SOCKET_URL}/bookings`,
-        });
+        
+        // Only show detailed error info in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error details:", {
+            message: error.message,
+            url: `${SOCKET_URL}/bookings`,
+          });
 
-        // Check if it's a namespace error
-        if (error.message?.includes("Invalid namespace")) {
-          console.error(
-            "Namespace error detected - checking server availability...",
-          );
-          console.error(`Attempting to connect to: ${SOCKET_URL}/bookings`);
+          // Check if it's a namespace error
+          if (error.message?.includes("Invalid namespace")) {
+            console.error(
+              "Namespace error detected - checking server availability...",
+            );
+            console.error(`Attempting to connect to: ${SOCKET_URL}/bookings`);
+          }
         }
       });
     }

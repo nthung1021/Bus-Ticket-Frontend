@@ -22,6 +22,7 @@ export default function SeatEditor({
   onPricingChange,
   onLayoutTypeChange
 }: SeatEditorProps) {
+  console.log("SeatEditor layoutConfig:", layoutConfig);
   // Group seats by row
   const seatsByRow: Record<number, SeatInfo[]> = {};
   if (layoutConfig?.seats) {

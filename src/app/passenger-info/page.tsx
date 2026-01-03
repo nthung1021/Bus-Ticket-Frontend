@@ -33,6 +33,8 @@ import PassengerFormItem from "@/components/passenger/PassengerFormItem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { seatLayoutService } from "@/services/seat-layout.service";
+import { routeService, RoutePoint } from "@/services/route.service";
 
 // const serviceFee = 10000;
 // const processingFee = 5000;
@@ -58,9 +60,7 @@ interface TripInfo {
 
 interface PassengerData {
   fullName: string;
-  documentId: string;
   seatCode: string;
-  documentType?: "id" | "passport" | "license";
   phoneNumber?: string;
   email?: string;
 }
@@ -74,9 +74,17 @@ function PassengerInfoPageContent() {
   // Get URL parameters
   const tripId = searchParams.get("tripId");
   const selectedSeatsParam = searchParams.get("seats");
+  const pickupPointIdParam = searchParams.get('pickupPointId');
+  const dropoffPointIdParam = searchParams.get('dropoffPointId');
 
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
+  const [basePrice, setBasePrice] = useState<number>(0);
+  const [seatLayout, setSeatLayout] = useState<any>(null);
+
+  // Selected pickup/dropoff details (resolved from IDs)
+  const [pickupPoint, setPickupPoint] = useState<RoutePoint | null>(null);
+  const [dropoffPoint, setDropoffPoint] = useState<RoutePoint | null>(null);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
   const [passengerValidations, setPassengerValidations] = useState<boolean[]>(
     []
@@ -84,12 +92,7 @@ function PassengerInfoPageContent() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactErrors, setContactErrors] = useState<{
-    email?: string;
-    phone?: string;
-  }>({});
+  // Remove separate contact fields as they're now merged into passenger form
 
   // WebSocket to maintain seat locks during passenger info process
   const { lockSeat, unlockSeat, unlockAllMySeats, bookedSeats } =
@@ -115,19 +118,14 @@ function PassengerInfoPageContent() {
   useEffect(() => {
     if (selectedSeats.length > 0 && tripId) {
       const lockSeats = async () => {
-        console.log(
-          "Locking seats for passenger info:",
-          selectedSeats.map((s) => s.id)
-        );
-
+        
         // Only lock seats that are not already booked
-        const lockPromises = selectedSeats.map((seat) => {
-          if (bookedSeats.has(seat.id)) {
-            console.log(`Seat ${seat.id} is already booked, skipping lock`);
-            return Promise.resolve(false);
-          }
-          return lockSeat(seat.id);
-        });
+          const lockPromises = selectedSeats.map((seat) => {
+            if (bookedSeats.has(seat.id)) {
+              return Promise.resolve(false);
+            }
+            return lockSeat(seat.id);
+          });
 
         const results = await Promise.allSettled(lockPromises);
 
@@ -136,7 +134,6 @@ function PassengerInfoPageContent() {
         );
 
         if (failedLocks.length > 0) {
-          console.warn(`Failed to lock ${failedLocks.length} seats`);
           toast.error(
             "Some seats are no longer available. Please select different seats."
           );
@@ -144,48 +141,38 @@ function PassengerInfoPageContent() {
           setTimeout(() => {
             router.push(`/trips/${tripId}`);
           }, 2000);
-        } else {
-          console.log("All seats locked successfully");
         }
       };
 
       lockSeats();
 
-      // Cleanup function to unlock seats when component unmounts
-      return () => {
-        const unlockSeats = async () => {
-          console.log(
-            "Unlocking seats on passenger info cleanup:",
-            selectedSeats.map((s) => s.id)
-          );
+      // // Cleanup function to unlock seats when component unmounts
+      // return () => {
+      //   const unlockSeats = async () => {
+      //     // Only unlock seats that are not already booked
+      //     const unlockPromises = selectedSeats.map((seat) => {
+      //       if (bookedSeats.has(seat.id)) {
+      //         return Promise.resolve(false);
+      //       }
+      //       return unlockSeat(seat.id);
+      //     });
 
-          // Only unlock seats that are not already booked
-          const unlockPromises = selectedSeats.map((seat) => {
-            if (bookedSeats.has(seat.id)) {
-              console.log(`Seat ${seat.id} is already booked, skipping unlock`);
-              return Promise.resolve(false);
-            }
-            return unlockSeat(seat.id);
-          });
+      //     await Promise.allSettled(unlockPromises);
+      //   };
 
-          await Promise.allSettled(unlockPromises);
-          console.log("Seat unlocking process completed");
-        };
-
-        unlockSeats();
-      };
+      //   unlockSeats();
+      // };
     }
   }, [selectedSeats, tripId, lockSeat, unlockSeat, router, bookedSeats]);
 
-  // Unlock all seats when component unmounts or user leaves
-  useEffect(() => {
-    return () => {
-      if (selectedSeats.length > 0) {
-        console.log("Unlocking seats on component unmount");
-        unlockAllMySeats();
-      }
-    };
-  }, [selectedSeats, unlockAllMySeats]);
+  // // Unlock all seats when component unmounts or user leaves
+  // useEffect(() => {
+  //   return () => {
+  //     if (selectedSeats.length > 0) {
+  //       unlockAllMySeats();
+  //     }
+  //   };
+  // }, [selectedSeats, unlockAllMySeats]);
 
   useEffect(() => {
     // Try to load existing data from localStorage first
@@ -211,35 +198,26 @@ function PassengerInfoPageContent() {
           const seatsMatch =
             JSON.stringify(savedSeatCodes) === JSON.stringify(currentSeatCodes);
 
-          console.log("🔍 Checking localStorage compatibility:");
-          console.log("- Saved seat codes:", savedSeatCodes);
-          console.log("- Current seat codes:", currentSeatCodes);
-          console.log("- Seats match:", seatsMatch);
+          
 
           if (seatsMatch && savedData.passengers?.length === seats.length) {
-            // Migrate old data format to include missing fields
-            const migratedPassengers = savedData.passengers.map(
-              (passenger: any) => ({
-                ...passenger,
-                documentType: passenger.documentType || "id",
-                phoneNumber: passenger.phoneNumber || "",
-                email: passenger.email || "",
-              })
-            );
+            // Migrate old data format to current shape (remove document fields)
+            const migratedPassengers = savedData.passengers.map((passenger: any) => ({
+              fullName: passenger.fullName || "",
+              seatCode: passenger.seatCode || "",
+              phoneNumber: passenger.phoneNumber || "",
+              email: passenger.email || "",
+            }));
             setPassengersData(migratedPassengers);
-            setPassengerValidations(
-              savedData.validations || new Array(seats.length).fill(false)
-            );
-            console.log("✅ Using saved passenger data");
+            setPassengerValidations(savedData.validations || new Array(seats.length).fill(false));
+            
           } else {
             // Seats don't match - clear old data and start fresh
-            console.log("🔄 Seat mismatch - clearing old data");
             localStorage.removeItem(`passengerData_${tripId}`);
             initializeNewPassengerData(seats);
           }
         } else {
           // No saved data - initialize new
-          console.log("🆕 No saved data - initializing fresh");
           initializeNewPassengerData(seats);
         }
       } catch (error) {
@@ -255,7 +233,7 @@ function PassengerInfoPageContent() {
       return;
     }
 
-    // Fetch trip information from API
+    // Fetch trip information and seat layout from API
     const loadTripInfo = async () => {
       if (!tripId) {
         setLoading(false);
@@ -265,7 +243,9 @@ function PassengerInfoPageContent() {
       const tripData = await fetchTripInfo(tripId);
       if (tripData) {
         setTripInfo(tripData);
-        console.log("Trip info loaded:", tripData);
+        setBasePrice(tripData.price ?? 0);
+        // Also load seat layout for mini map using the original tripId
+        await loadSeatLayout(tripId);
       } else {
         console.error("Failed to load trip information");
         // Optionally redirect back if trip not found
@@ -281,9 +261,7 @@ function PassengerInfoPageContent() {
   const initializeNewPassengerData = (seats: SelectedSeat[]) => {
     const initialData = seats.map((seat) => ({
       fullName: "",
-      documentId: "",
       seatCode: seat.code,
-      documentType: "id" as const,
       phoneNumber: "",
       email: "",
     }));
@@ -291,14 +269,32 @@ function PassengerInfoPageContent() {
     setPassengerValidations(new Array(seats.length).fill(false));
   };
 
+  // Function to load seat layout for mini map
+  const loadSeatLayout = async (tripId: string) => {
+    try {
+      // First get trip details to get bus ID
+      const response = await api.get(`/trips/${tripId}`);
+      const trip = response.data?.data;
+
+      // Try different possible properties for bus ID (backend returns bus.busId)
+      const busId = trip?.bus?.busId || trip?.bus?.id || trip?.busId;
+      
+      if (busId) {
+        const layout = await seatLayoutService.getByBusId(busId, tripId);
+        setSeatLayout(layout);
+      } else {
+        console.error("No bus ID found in trip data:", trip);
+      }
+    } catch (error) {
+      console.error("Error loading seat layout:", error);
+    }
+  };
+
   // Function to fetch trip information from API
   const fetchTripInfo = async (tripId: string): Promise<TripInfo | null> => {
     try {
       const response = await api.get(`/trips/${tripId}`);
       const apiResponse = response.data;
-
-      // Debug log to see actual structure
-      console.log("Raw API response:", apiResponse);
 
       // Check if API call was successful
       if (!apiResponse.success || !apiResponse.data) {
@@ -308,84 +304,91 @@ function PassengerInfoPageContent() {
 
       const trip = apiResponse.data;
 
+      // Normalize departure/arrival values - backend nests them under `schedule`
+      const departureRaw = trip.schedule?.departureTime || trip.departureTime || trip.departure;
+      const arrivalRaw = trip.schedule?.arrivalTime || trip.arrivalTime || trip.arrival;
+
+      const departureDate = departureRaw ? new Date(departureRaw) : null;
+      const arrivalDate = arrivalRaw ? new Date(arrivalRaw) : null;
+
+      const durationText = departureDate && arrivalDate
+        ? `${Math.floor((arrivalDate.getTime() - departureDate.getTime()) / (1000 * 60 * 60))}h ${Math.floor(((arrivalDate.getTime() - departureDate.getTime()) / (1000 * 60)) % 60)}m`
+        : `${(trip.schedule?.duration ?? trip.duration ?? 0)}m`;
+
       // Transform API response to match TripInfo interface
       return {
-        id: trip.tripId,
+        id: trip.tripId || trip.id || tripId,
         name: `${trip.route.origin} - ${trip.route.destination}`,
         departure: trip.route.origin,
         arrival: trip.route.destination,
-        departureTime: new Date(trip.schedule.departureTime).toLocaleString(
-          "en-CA",
-          {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        ),
-        arrivalTime: new Date(trip.schedule.arrivalTime).toLocaleString(
-          "en-CA",
-          {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }
-        ),
-        duration: `${Math.floor(trip.schedule.duration / 60)}h ${trip.schedule.duration % 60}m`,
-        price: trip.pricing.basePrice,
-        busModel: trip.bus.model,
+        departureTime: departureDate ? departureDate.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'Unknown',
+        arrivalTime: arrivalDate ? arrivalDate.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'Unknown',
+        duration: durationText,
+        price: trip.pricing?.basePrice ?? trip.basePrice ?? 0,
+        busModel: trip.bus?.model || trip.busModel || 'Unknown',
       };
     } catch (error) {
       console.error("Error fetching trip information:", error);
       return null;
     }
-  };
+  };  
 
-  // Debug logging
+  // Ensure passenger data is synced with selected seats  
   useEffect(() => {
-    console.log("🔍 PASSENGER INFO DEBUG:");
-    console.log("- selectedSeats length:", selectedSeats.length);
-    console.log("- selectedSeats data:", selectedSeats);
-    console.log("- passengersData length:", passengersData.length);
-    console.log("- passengersData:", passengersData);
-    console.log("- passengerValidations:", passengerValidations);
-    console.log("- tripId:", tripId);
-    console.log("- selectedSeatsParam:", selectedSeatsParam);
-  }, [
-    selectedSeats,
-    passengersData,
-    passengerValidations,
-    tripId,
-    selectedSeatsParam,
-  ]);
-
-  // Ensure passenger data is synced with selected seats
-  useEffect(() => {
-    if (
-      selectedSeats.length > 0 &&
-      passengersData.length !== selectedSeats.length
-    ) {
-      console.log("Syncing passenger data with selected seats");
-      // If we have seats but no passenger data, initialize it
-      if (passengersData.length === 0) {
-        const initialData = selectedSeats.map((seat) => ({
-          fullName: "",
-          documentId: "",
-          seatCode: seat.code,
-          documentType: "id" as const,
-          phoneNumber: "",
-          email: "",
-        }));
-        setPassengersData(initialData);
-        setPassengerValidations(new Array(selectedSeats.length).fill(false));
-      }
+    if (selectedSeats.length > 0 && passengersData.length === 0) {
+      // Create only one passenger data for all seats
+      const initialData = [{
+        fullName: "",
+        seatCode: selectedSeats.map(seat => seat.code).join(", "), // Show all seat codes
+        phoneNumber: "",
+        email: "",
+      }];
+      setPassengersData(initialData);
+      setPassengerValidations([false]); // Only one validation needed
     }
   }, [selectedSeats, passengersData.length]);
+
+  // Fallback: ensure we have authoritative base price from trip entity
+  useEffect(() => {
+    const fetchBasePriceAndPoints = async () => {
+      if (!tripId) return;
+      try {
+        const res = await api.get(`/trips/${tripId}`);
+        const data = res.data?.data;
+        const price = data?.pricing?.basePrice ?? data?.basePrice ?? 0;
+        setBasePrice(price);
+
+        // If pickup/dropoff ids are provided, resolve them via route points
+        try {
+          const routeId = data?.route?.id || data?.route?.routeId;
+          if (routeId && (pickupPointIdParam || dropoffPointIdParam)) {
+            const routeResp = await routeService.getById(routeId);
+            const routeObj = routeResp;
+            const points = Array.isArray(routeObj?.points) ? routeObj.points : [];
+
+            if (pickupPointIdParam) {
+              const p = points.find((pt: any) => pt.id === pickupPointIdParam);
+              if (p) setPickupPoint(p as RoutePoint);
+            }
+            if (dropoffPointIdParam) {
+              const d = points.find((pt: any) => pt.id === dropoffPointIdParam);
+              if (d) setDropoffPoint(d as RoutePoint);
+            }
+          }
+        } catch (innerErr) {
+          console.error('Failed to resolve pickup/dropoff points:', innerErr);
+        }
+
+      } catch (e) {
+        console.error('Failed to fetch base price for trip:', e);
+      }
+    };
+
+    // Fetch if we don't already have basePrice set
+    if (!basePrice || basePrice === 0 || pickupPointIdParam || dropoffPointIdParam) {
+      fetchBasePriceAndPoints();
+    }
+  }, [tripId]);
 
   const updatePassengerData = useCallback(
     (index: number, data: Partial<PassengerData>) => {
@@ -432,44 +435,30 @@ function PassengerInfoPageContent() {
     [tripId, passengersData]
   );
 
-  const calculateTotalPrice = () => {
-    const tripPrice = tripInfo ? tripInfo.price : 0;
-    const seatsPrice = selectedSeats.reduce((total, seat) => {
+  const calculateSeatsPrice = () => {
+    // Sum of seat-specific charges (surcharges, type fees, etc.)
+    return selectedSeats.reduce((total, seat) => {
       const price = seat.price ?? 0;
       return total + price;
     }, 0);
-    return tripPrice + seatsPrice;
   };
 
-  const validateContactInfo = () => {
-    const errors: { email?: string; phone?: string } = {};
-
-    if (isGuest) {
-      if (!contactEmail.trim()) {
-        errors.email = "Contact email is required for guest checkout";
-      } else {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-        if (!emailRegex.test(contactEmail)) {
-          errors.email = "Please enter a valid email address";
-        }
-      }
-
-      if (!contactPhone.trim()) {
-        errors.phone = "Contact phone is required for guest checkout";
-      } else {
-        const phoneRegex = /^(\+84|84|0)([3-9]\d{8})$/;
-        const cleanPhone = contactPhone.replace(/[\s-()]/g, "");
-        if (!phoneRegex.test(cleanPhone)) {
-          errors.phone = "Invalid Vietnamese phone number (e.g., 0912345678)";
-        }
-      }
-    }
-
-    setContactErrors(errors);
-    return Object.keys(errors).length === 0;
+  const calculateTotalPrice = () => {
+    // Base price per seat (authoritative basePrice from trip entity) plus any seat-specific charges
+    const seatsPrice = calculateSeatsPrice();
+    const basePrice = tripInfo?.price ?? 0;
+    return seatsPrice + basePrice;
   };
+
+  // Remove validateContactInfo function as it's no longer needed
 
   const handleConfirmPayment = async () => {
+    // Validate pickup/dropoff not equal
+    if (pickupPointIdParam && dropoffPointIdParam && pickupPointIdParam === dropoffPointIdParam) {
+      toast.error('Pickup and dropoff points cannot be the same. Please select different points.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -478,15 +467,23 @@ function PassengerInfoPageContent() {
         throw new Error("Booking service is not connected. Please try again.");
       }
 
-      // Create booking data
+      // Create booking data - use passenger email and phone as contact info
+      const singlePassenger = passengersData[0];
+      const passengersForAllSeats = selectedSeats.map((seat, index) => ({
+        ...singlePassenger,
+        seatCode: seat.code,
+      }));
+
       const bookingData = {
         tripId,
         seats: selectedSeats,
-        passengers: passengersData,
+        passengers: passengersForAllSeats,
         totalPrice: calculateTotalPrice(),
         isGuestCheckout: isGuest,
-        contactEmail: isGuest ? contactEmail : undefined,
-        contactPhone: isGuest ? contactPhone : undefined,
+        contactEmail: singlePassenger.email, // Use passenger email as contact email
+        contactPhone: singlePassenger.phoneNumber, // Use passenger phone as contact phone
+        pickupPointId: pickupPointIdParam || undefined,
+        dropoffPointId: dropoffPointIdParam || undefined,
       };
 
       // Create booking first to get the booking ID
@@ -522,30 +519,27 @@ function PassengerInfoPageContent() {
         console.warn("Failed to update booking status to PENDING");
       }
 
-      // Store booking data for payment confirmation
+      // Prefer payment URL returned from backend booking creation
+      const paymentUrl =
+        createdBooking?.paymentUrl || bookingResponse.data?.paymentUrl || null;
+
+      // Store booking data for payment confirmation (include paymentUrl)
       sessionStorage.setItem(
         "bookingData",
         JSON.stringify({
           ...bookingData,
           bookingId,
           bookingReference: createdBooking.bookingReference,
+          paymentUrl,
         })
       );
 
-      // Create PayOS payment link with actual booking ID
-      const response = await api.post("/payos/create-payment-link", {
-        amount: calculateTotalPrice(),
-        bookingId: bookingId,
-        description: "",
-        returnUrl: `${window.location.origin}/payment/success`,
-        cancelUrl: `${window.location.origin}/payment/failure`,
-      });
-
-      if (response.data.checkoutUrl) {
-        // Redirect to PayOS payment page
-        window.location.href = response.data.checkoutUrl;
+      if (paymentUrl) {
+        // Navigate to existing Payment page where user can confirm and proceed
+        router.push(paymentUrl);
       } else {
-        throw new Error("Failed to create payment link");
+        // No paymentUrl returned by backend — treat as error so server-side flow can be investigated
+        throw new Error("Payment URL not provided by backend");
       }
     } catch (error: any) {
       console.error("Error processing booking:", error);
@@ -616,35 +610,14 @@ function PassengerInfoPageContent() {
   };
 
   const isFormValid = useCallback(() => {
-    // Check if all passengers have valid forms
-    return (
-      passengerValidations.every((isValid) => isValid) &&
-      passengerValidations.length === selectedSeats.length
-    );
-  }, [passengerValidations, selectedSeats.length]);
+    // Check if passenger form has all required fields (name, phone, email)  
+    const passenger = passengersData[0];
+    return passenger && passenger.fullName.trim() && passenger.phoneNumber?.trim() && passenger.email?.trim();
+  }, [passengersData]);
 
   const handleContinue = async () => {
     if (!isFormValid()) {
-      // Find which passengers have invalid forms
-      const invalidPassengers: number[] = [];
-      passengerValidations.forEach((isValid, index) => {
-        if (!isValid) {
-          invalidPassengers.push(index + 1);
-        }
-      });
-
-      if (invalidPassengers.length > 0) {
-        alert(
-          `Please complete and fix errors for passenger(s): ${invalidPassengers.join(", ")}`
-        );
-      } else {
-        alert("Please fill in all required passenger information");
-      }
-      return;
-    }
-
-    if (isGuest && !validateContactInfo()) {
-      alert("Please complete valid contact information for guest checkout.");
+      alert("Please complete all passenger information (Name, Phone, Email are all required)");
       return;
     }
 
@@ -683,7 +656,7 @@ function PassengerInfoPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-6 px-4 lg:px-8 max-w-4xl">
+      <div className="container mx-auto pt-8 pb-0 px-4 lg:px-8 max-w-6xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
@@ -699,7 +672,7 @@ function PassengerInfoPageContent() {
           <h1 className="text-h2 font-semibold">Passenger Information</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch pt-8">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Trip Summary */}
@@ -743,312 +716,271 @@ function PassengerInfoPageContent() {
                     <p className="font-medium">{tripInfo.busModel}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Contact Form (for Guest only) */}
-            {isGuest && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Contact Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Please provide your contact information so we can send your
-                    booking confirmation and updates.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="contact-email"
-                        className="text-sm font-medium"
-                      >
-                        Contact Email{" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="contact-email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        className={
-                          contactErrors.email
-                            ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                            : ""
-                        }
-                        aria-invalid={Boolean(contactErrors.email)}
-                        aria-describedby={
-                          contactErrors.email
-                            ? "contact-email-error"
-                            : undefined
-                        }
-                      />
-                      {contactErrors.email && (
-                        <p
-                          id="contact-email-error"
-                          className="text-destructive text-xs font-medium flex items-center gap-1"
-                          role="alert"
-                        >
-                          <span className="text-destructive">⚠</span>
-                          {contactErrors.email}
-                        </p>
-                      )}
+                {/* Selected pickup/dropoff (if provided) */}
+                {(pickupPoint || dropoffPoint) && (
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Pickup</div>
+                      <p className="font-medium">{pickupPoint ? pickupPoint.name : 'Not selected'}</p>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="contact-phone"
-                        className="text-sm font-medium"
-                      >
-                        Contact Phone{" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="contact-phone"
-                        type="tel"
-                        placeholder="0912345678 or +84912345678"
-                        value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
-                        className={
-                          contactErrors.phone
-                            ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                            : ""
-                        }
-                        aria-invalid={Boolean(contactErrors.phone)}
-                        aria-describedby={
-                          contactErrors.phone
-                            ? "contact-phone-error"
-                            : undefined
-                        }
-                      />
-                      {contactErrors.phone && (
-                        <p
-                          id="contact-phone-error"
-                          className="text-destructive text-xs font-medium flex items-center gap-1"
-                          role="alert"
-                        >
-                          <span className="text-destructive">⚠</span>
-                          {contactErrors.phone}
-                        </p>
-                      )}
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Dropoff</div>
+                      <p className="font-medium">{dropoffPoint ? dropoffPoint.name : 'Not selected'}</p>
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your contact details will only be used for booking-related
-                    notifications.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Passenger Forms */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Passenger Details ({selectedSeats.length} passenger
-                  {selectedSeats.length > 1 ? "s" : ""})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {selectedSeats.length > 0 && passengersData.length > 0 ? (
-                  selectedSeats.map((seat, index) => {
-                    try {
-                      // Create stable callback functions for each passenger
-                      const handleUpdateData = (data: Partial<PassengerData>) =>
-                        updatePassengerData(index, data);
-                      const handleValidationChange = (isValid: boolean) =>
-                        updatePassengerValidation(index, isValid);
-
-                      // Ensure we have passenger data for this index
-                      const passengerData = passengersData[index] || {
-                        fullName: "",
-                        documentId: "",
-                        seatCode: seat.code,
-                        documentType: "id" as const,
-                        phoneNumber: "",
-                        email: "",
-                      };
-
-                      console.log(`🎫 Rendering passenger ${index + 1}:`, {
-                        seat,
-                        passengerData,
-                        hasUpdateCallback:
-                          typeof handleUpdateData === "function",
-                        hasValidationCallback:
-                          typeof handleValidationChange === "function",
-                      });
-
-                      return (
-                        <PassengerFormItem
-                          key={seat.id}
-                          passengerNumber={index + 1}
-                          seat={seat}
-                          passengerData={passengerData}
-                          onUpdate={handleUpdateData}
-                          onValidationChange={handleValidationChange}
-                        />
-                      );
-                    } catch (error) {
-                      console.error(
-                        `❌ Error rendering passenger form ${index + 1}:`,
-                        error
-                      );
-                      return (
-                        <div
-                          key={seat.id}
-                          className="p-4 border border-red-200 rounded-lg bg-red-50"
-                        >
-                          <p className="text-red-600">
-                            Error loading passenger form {index + 1}
-                          </p>
-                          <p className="text-sm text-red-500">
-                            Seat: {seat.code}
-                          </p>
-                          <p className="text-xs text-red-400">
-                            {error instanceof Error
-                              ? error.message
-                              : "Unknown error"}
-                          </p>
-                        </div>
-                      );
-                    }
-                  })
-                ) : selectedSeats.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-red-600">No seats selected</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push(`/trips/${tripId}`)}
-                      className="mt-2"
-                    >
-                      Go Back to Trip
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-sm text-muted-foreground">
-                      Loading passenger forms...
-                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Contact Form removed - now integrated into passenger form */}
+
+            {/* Passenger Forms (no card wrapper) */}
+            <div className="space-y-6">
+              {selectedSeats.length > 0 && passengersData.length > 0 ? (
+                [selectedSeats[0]].map((seat, index) => {
+                  try {
+                    // Create stable callback functions for each passenger
+                    const handleUpdateData = (data: Partial<PassengerData>) =>
+                      updatePassengerData(index, data);
+                    const handleValidationChange = (isValid: boolean) =>
+                      updatePassengerValidation(index, isValid);
+
+                    // Ensure we have passenger data for this index
+                    const passengerData = passengersData[index] || {
+                      fullName: "",
+                      seatCode: seat.code,
+                      phoneNumber: "",
+                      email: "",
+                    };
+
+                    console.log(`🎫 Rendering passenger ${index + 1}:`, {
+                      seat,
+                      passengerData,
+                      hasUpdateCallback:
+                        typeof handleUpdateData === "function",
+                      hasValidationCallback:
+                        typeof handleValidationChange === "function",
+                    });
+
+                    return (
+                      <PassengerFormItem
+                        key={seat.id}
+                        seat={seat}
+                        passengerData={passengerData}
+                        onUpdate={handleUpdateData}
+                        onValidationChange={handleValidationChange}
+                      />
+                    );
+                  } catch (error) {
+                    console.error(
+                      `❌ Error rendering passenger form ${index + 1}:`,
+                      error
+                    );
+                    return (
+                      <div
+                        key={seat.id}
+                        className="p-4 border border-red-200 rounded-lg bg-red-50"
+                      >
+                        <p className="text-red-600">
+                          Error loading passenger form {index + 1}
+                        </p>
+                        <p className="text-sm text-red-500">Seat: {seat.code}</p>
+                        <p className="text-xs text-red-400">
+                          {error instanceof Error ? error.message : "Unknown error"}
+                        </p>
+                      </div>
+                    );
+                  }
+                })
+              ) : selectedSeats.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-red-600">No seats selected</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/trips/${tripId}`)}
+                    className="mt-2"
+                  >
+                    Go Back to Trip
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Loading passenger forms...</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Booking Summary */}
+          {/* Column: Seat Layout (col 3) */}
           <div className="space-y-6">
-            <Card className="sticky top-6">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Seat Layout & Selection</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/20 rounded-lg p-3">
+                  {seatLayout ? (
+                    <div className="space-y-3">
+                      {/* Group seats by row and display row by row */}
+                      <div className="space-y-1">
+                        {(() => {
+                          // Group seats by row
+                          const seatsByRow: Record<number, any[]> = {};
+                          seatLayout.layoutConfig?.seats?.forEach((seat: any) => {
+                            const row = seat.position.row;
+                            if (!seatsByRow[row]) {
+                              seatsByRow[row] = [];
+                            }
+                            seatsByRow[row].push(seat);
+                          });
+
+                          // Sort seats within each row by position
+                          Object.keys(seatsByRow).forEach(row => {
+                            seatsByRow[Number(row)].sort((a, b) => a.position.position - b.position.position);
+                          });
+
+                          // Render rows in order
+                          return Object.keys(seatsByRow)
+                            .sort((a, b) => Number(a) - Number(b))
+                            .map(rowNum => (
+                              <div key={rowNum} className="flex gap-1 justify-center">
+                                {seatsByRow[Number(rowNum)].map((seat: any) => {
+                                  const isSelected = selectedSeats.some(s => s.id === seat.id);
+                                  const isBooked = bookedSeats.has(seat.id);
+
+                                  let seatClass = "w-8 h-8 text-[10px] font-bold rounded border-2 flex items-center justify-center transition-colors";
+
+                                  if (isSelected) {
+                                    seatClass += " bg-blue-500 text-white border-blue-600";
+                                  } else if (isBooked || !seat.isAvailable) {
+                                    seatClass += " bg-gray-300 text-gray-500 border-gray-400";
+                                  } else {
+                                    if (seat.type === "vip") {
+                                      seatClass += " bg-purple-100 text-purple-800 border-purple-300";
+                                    } else if (seat.type === "business") {
+                                      seatClass += " bg-orange-100 text-orange-800 border-orange-300";
+                                    } else {
+                                      seatClass += " bg-green-100 text-green-800 border-green-300";
+                                    }
+                                  }
+
+                                  return (
+                                    <div key={seat.id} className={seatClass} title={`Seat ${seat.code} (${seat.type}) - ${isSelected ? 'Selected' : isBooked ? 'Booked' : 'Available'}`}>
+                                      {seat.code}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ));
+                        })()}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 justify-center text-xs">
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-blue-500 rounded border"></div>
+                          <span>Selected</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-gray-300 rounded border"></div>
+                          <span>Unavailable</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-purple-100 border border-purple-300 rounded"></div>
+                          <span>VIP</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-orange-100 border border-orange-300 rounded"></div>
+                          <span>Business</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                          <span>Normal</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : loading ? (
+                    <div className="text-center py-4 text-sm text-muted-foreground">Loading seat layout...</div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-red-600 mb-2">Failed to load seat layout</p>
+                      <button onClick={() => tripId && loadSeatLayout(tripId)} className="text-xs text-blue-600 underline">Try again</button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Column: Booking Summary (col 4) */}
+          <div className="space-y-6">
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Base price */}
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Base Price</h4>
-                  <span className="space-y-2 font-medium text-sm">
-                    {formatCurrency(tripInfo.price)}
-                  </span>
-                </div>
-                {/* Selected Seats */}
+              <CardContent className="flex flex-col justify-between">
                 <div>
                   <h4 className="font-medium mb-3">Selected Seats</h4>
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-4">
                     {selectedSeats.map((seat) => {
                       const price = seat.price ?? 0;
                       return (
-                        <div
-                          key={seat.id}
-                          className="flex justify-between items-center text-sm"
-                        >
+                        <div key={seat.id} className="flex justify-between items-center text-sm">
                           <span>
                             Seat {seat.code}
-                            <span className="text-muted-foreground ml-1">
-                              (
-                              {seat.type === "normal"
-                                ? "Normal"
-                                : seat.type === "vip"
-                                  ? "VIP"
-                                  : "Business"}
-                              )
-                            </span>
+                            <span className="text-muted-foreground ml-1">({seat.type === "normal" ? "Normal" : seat.type === "vip" ? "VIP" : "Business"})</span>
                           </span>
-                          <span className="font-medium">
-                            {formatCurrency(price)}
-                          </span>
+                          <span className="font-medium">{formatCurrency(price)}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-                {/* Additional Fee */}
-                {/* <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Service Fee</h4>
-                  <span className="space-y-2 font-medium text-sm">
-                    {formatCurrency(serviceFee)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Processing Fee</h4>
-                  <span className="space-y-2 font-medium text-sm">
-                    {formatCurrency(processingFee)}
-                  </span>
-                </div> */}
 
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Total Amount</span>
-                    <span className="text-primary">
-                      {formatCurrency(
-                        // calculateTotalPrice() + serviceFee + processingFee
-                        calculateTotalPrice()
+                <div>
+                  <div className="border-t pt-4">
+                    <div className="text-lg font-semibold">
+                      <span>Total Price</span>
+                    </div>
+                    <div className="text-primary text-lg font-semibold text-right">
+                      {formatCurrency(calculateTotalPrice())}
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Button onClick={handleContinue} disabled={!isFormValid() || isSubmitting} className="w-full" size="lg">
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <div className="cursor-pointer">
+                          Review Booking
+                        </div>
                       )}
-                    </span>
+                    </Button>
                   </div>
-                </div>
 
-                <Button
-                  onClick={handleContinue}
-                  disabled={!isFormValid() || isSubmitting}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    "Review Booking"
+                  {selectedSeats.length > 0 && (
+                    <div className="text-xs text-center mt-3">
+                      {isFormValid() ? (
+                        <span className="text-green-600 flex items-center justify-center gap-1">
+                          <span className="text-green-500">✓</span>
+                          Passenger information is complete
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 flex items-center justify-center gap-1">
+                          <span className="text-amber-500">⚠</span>
+                          Please complete passenger information
+                        </span>
+                      )}
+                    </div>
                   )}
-                </Button>
 
-                {/* Validation Status */}
-                {selectedSeats.length > 0 && (
-                  <div className="text-xs text-center">
-                    {isFormValid() ? (
-                      <span className="text-green-600 flex items-center justify-center gap-1">
-                        <span className="text-green-500">✓</span>
-                        All passenger information is valid
-                      </span>
-                    ) : (
-                      <span className="text-amber-600 flex items-center justify-center gap-1">
-                        <span className="text-amber-500">⚠</span>
-                        {passengerValidations.filter((v) => !v).length}{" "}
-                        passenger(s) need attention
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground text-center">
-                  By continuing, you agree to our terms and conditions
-                </p>
+                  <p className="text-xs text-muted-foreground text-center mt-3">By continuing, you agree to our terms and conditions</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1128,27 +1060,51 @@ function PassengerInfoPageContent() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium text-xs">Passengers</span>
+                <span className="font-medium text-xs">Passenger</span>
               </div>
-              <div className="space-y-1">
-                {passengersData.map((passenger, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between px-2 py-1.5 bg-muted/20 rounded text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{passenger.fullName}</span>
-                      <Badge variant="outline" className="text-xs px-1 py-0">
-                        Seat {passenger.seatCode}
-                      </Badge>
-                    </div>
-                    <span className="text-muted-foreground">
-                      {passenger.documentId}
-                    </span>
+              <div className="px-2 py-1.5 bg-muted/20 rounded text-xs">
+                <div className="font-medium">{passengersData[0]?.fullName}</div>
+                {passengersData[0]?.phoneNumber && (
+                  <div className="text-muted-foreground text-xs">
+                    Phone: {passengersData[0]?.phoneNumber}
                   </div>
-                ))}
+                )}
+                {passengersData[0]?.email && (
+                  <div className="text-muted-foreground text-xs">
+                    Email: {passengersData[0]?.email}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Pickup & Dropoff Summary */}
+            {(pickupPoint || dropoffPoint) && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium text-xs">Pickup / Dropoff</span>
+                </div>
+                <div className="px-2 py-1.5 bg-muted/20 rounded text-xs space-y-1">
+                  {pickupPoint ? (
+                    <div>
+                      <div className="font-medium">Pickup: {pickupPoint.name}</div>
+                      <div className="text-muted-foreground text-xs">Lat: {pickupPoint.latitude}, Lng: {pickupPoint.longitude}</div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-xs">No pickup selected</div>
+                  )}
+
+                  {dropoffPoint ? (
+                    <div>
+                      <div className="font-medium">Dropoff: {dropoffPoint.name}</div>
+                      <div className="text-muted-foreground text-xs">Lat: {dropoffPoint.latitude}, Lng: {dropoffPoint.longitude}</div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-xs">No dropoff selected</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <Separator className="my-2" />
 
@@ -1156,7 +1112,11 @@ function PassengerInfoPageContent() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span>Seat charges:</span>
-                <span>{formatCurrency(calculateTotalPrice())}</span>
+                <span>{formatCurrency(calculateSeatsPrice())}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>Base price ({selectedSeats.length}×):</span>
+                <span>{formatCurrency(basePrice * selectedSeats.length)}</span>
               </div>
               {/* <div className="flex justify-between text-xs">
                 <span>Service fee:</span>
