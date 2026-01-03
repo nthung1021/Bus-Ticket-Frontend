@@ -50,6 +50,8 @@ import {
     deleteTrip,
     refundTrip,
     getTripPayments,
+    getTripById,
+    markPassengerBoarded,
     getRoutes,
     getBuses,
     Trip,
@@ -89,6 +91,12 @@ function TripManagementPage() {
     const [deletedTripPayments, setDeletedTripPayments] = useState<any[]>([]);
     const [paymentsLoading, setPaymentsLoading] = useState(false);
     const [refunding, setRefunding] = useState(false);
+
+    // passengers modal state
+    const [showPassengersModal, setShowPassengersModal] = useState(false);
+    const [selectedTripForPassengers, setSelectedTripForPassengers] = useState<Trip | null>(null);
+    const [selectedPassengersByBooking, setSelectedPassengersByBooking] = useState<any[]>([]);
+    const [passengersLoading, setPassengersLoading] = useState(false);
 
     // Fetch data on component mount
     useEffect(() => {
@@ -676,20 +684,44 @@ function TripManagementPage() {
                                         </TableRow>
                                     ) : (
                                         filteredTrips.map((trip) => (
-                                            <TableRow key={trip.id} className={`hover:bg-muted/50 ${showDeleted ? 'cursor-pointer' : ''}`} onClick={showDeleted ? async () => {
-                                                try {
-                                                    setPaymentsLoading(true);
-                                                    setSelectedDeletedTrip(trip);
-                                                    setShowDeletedModal(true);
-                                                    const payments = await getTripPayments(trip.id);
-                                                    setDeletedTripPayments(payments);
-                                                } catch (err) {
-                                                    console.error('Failed to fetch trip payments', err);
-                                                    toast.error('Failed to load payments');
-                                                } finally {
-                                                    setPaymentsLoading(false);
+                                            <TableRow key={trip.id} className={`hover:bg-muted/50 ${showDeleted ? 'cursor-pointer' : ''}`} onClick={async () => {
+                                                if (showDeleted) {
+                                                    try {
+                                                        setPaymentsLoading(true);
+                                                        setSelectedDeletedTrip(trip);
+                                                        setShowDeletedModal(true);
+                                                        const payments = await getTripPayments(trip.id);
+                                                        setDeletedTripPayments(payments);
+                                                    } catch (err) {
+                                                        console.error('Failed to fetch trip payments', err);
+                                                        toast.error('Failed to load payments');
+                                                    } finally {
+                                                        setPaymentsLoading(false);
+                                                    }
+                                                } else {
+                                                    try {
+                                                        setPassengersLoading(true);
+                                                        setSelectedTripForPassengers(trip);
+                                                        setShowPassengersModal(true);
+
+                                                        const tripRaw = await getTripById(trip.id);
+                                                        const tripData = (tripRaw as any)?.data ?? (tripRaw as any);
+                                                        const bookings = tripData.bookings || [];
+                                                        const grouped = bookings.map((b: any) => ({
+                                                            bookingReference: b.bookingReference || b.booking_reference || b.id,
+                                                            bookingId: b.id,
+                                                            passengers: b.passengerDetails || b.passenger_details || [],
+                                                        }));
+
+                                                        setSelectedPassengersByBooking(grouped);
+                                                    } catch (err) {
+                                                        console.error('Failed to fetch trip passengers', err);
+                                                        toast.error('Failed to load passengers');
+                                                    } finally {
+                                                        setPassengersLoading(false);
+                                                    }
                                                 }
-                                            } : undefined}>
+                                            }}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <MapPin className="h-4 w-4 text-primary" />
@@ -880,6 +912,85 @@ function TripManagementPage() {
                                             <div className="text-right">
                                                 <div className="font-medium">{p.amount?.toFixed?.(2) ?? p.amount}</div>
                                                 <div className="text-xs text-muted-foreground">{p.status}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Passengers Dialog */}
+            <Dialog open={showPassengersModal} onOpenChange={(open) => { if (!open) { setShowPassengersModal(false); setSelectedTripForPassengers(null); setSelectedPassengersByBooking([]); } }}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Trip Passengers</DialogTitle>
+                        <DialogDescription>
+                            {selectedTripForPassengers ? `${selectedTripForPassengers.route?.name || ''} - ${new Date(selectedTripForPassengers.departureTime).toLocaleString()}` : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="mt-4">
+                        {passengersLoading ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                <p className="mt-2">Loading passengers...</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="mb-3 text-sm text-muted-foreground">
+                                    {selectedPassengersByBooking.reduce((acc, b) => acc + (b.passengers?.length || 0), 0)} passengers
+                                </div>
+
+                                <div className="space-y-2">
+                                    {selectedPassengersByBooking.map((b) => (
+                                        <div key={b.bookingId} className="p-3 border rounded-md">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="font-medium">Booking {b.bookingReference}</div>
+                                                <div className="text-xs text-muted-foreground">ID: {b.bookingId}</div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {b.passengers.map((p: any) => (
+                                                    <div key={p.id} className="flex justify-between items-center py-1">
+                                                        <div>
+                                                            <div className="font-medium">{p.fullName}</div>
+                                                            <div className="text-xs text-muted-foreground">Document: {p.documentId || 'N/A'}</div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="text-sm font-medium">{p.seatCode}</div>
+                                                            {p.boarded ? (
+                                                                <Badge variant="secondary">Boarded</Badge>
+                                                            ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        if (!selectedTripForPassengers) return;
+                                                                        try {
+                                                                            setPassengersLoading(true);
+                                                                            await markPassengerBoarded(selectedTripForPassengers.id, p.id, true);
+                                                                            // update local state optimistically
+                                                                            setSelectedPassengersByBooking((prev) => prev.map((bb) => bb.bookingId === b.bookingId ? {
+                                                                                ...bb,
+                                                                                passengers: bb.passengers.map((pp: any) => pp.id === p.id ? { ...pp, boarded: true } : pp)
+                                                                            } : bb));
+                                                                            toast.success('Passenger marked as boarded');
+                                                                        } catch (err) {
+                                                                            console.error('Failed to mark boarded', err);
+                                                                            toast.error('Failed to mark passenger as boarded');
+                                                                        } finally {
+                                                                            setPassengersLoading(false);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Mark boarded
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     ))}
