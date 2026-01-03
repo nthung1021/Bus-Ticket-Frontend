@@ -51,6 +51,7 @@ import {
     refundTrip,
     getTripPayments,
     getTripById,
+    markPassengerBoarded,
     getRoutes,
     getBuses,
     Trip,
@@ -957,7 +958,37 @@ function TripManagementPage() {
                                                             <div className="font-medium">{p.fullName}</div>
                                                             <div className="text-xs text-muted-foreground">Document: {p.documentId || 'N/A'}</div>
                                                         </div>
-                                                        <div className="text-sm font-medium">{p.seatCode}</div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="text-sm font-medium">{p.seatCode}</div>
+                                                            {p.boarded ? (
+                                                                <Badge variant="secondary">Boarded</Badge>
+                                                            ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        if (!selectedTripForPassengers) return;
+                                                                        try {
+                                                                            setPassengersLoading(true);
+                                                                            await markPassengerBoarded(selectedTripForPassengers.id, p.id, true);
+                                                                            // update local state optimistically
+                                                                            setSelectedPassengersByBooking((prev) => prev.map((bb) => bb.bookingId === b.bookingId ? {
+                                                                                ...bb,
+                                                                                passengers: bb.passengers.map((pp: any) => pp.id === p.id ? { ...pp, boarded: true } : pp)
+                                                                            } : bb));
+                                                                            toast.success('Passenger marked as boarded');
+                                                                        } catch (err) {
+                                                                            console.error('Failed to mark boarded', err);
+                                                                            toast.error('Failed to mark passenger as boarded');
+                                                                        } finally {
+                                                                            setPassengersLoading(false);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Mark boarded
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

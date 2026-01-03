@@ -80,6 +80,7 @@ export interface PassengerDetail {
   fullName: string;
   documentId?: string;
   seatCode: string;
+  boarded?: boolean;
 }
 
 export interface Booking {
@@ -180,6 +181,23 @@ export const getTripById = async (id: string): Promise<Trip> => {
     return response.data;
   } catch (error) {
     console.error("Error fetching trip:", error);
+    throw error;
+  }
+};
+
+export const markPassengerBoarded = async (
+  tripId: string,
+  passengerId: string,
+  boarded: boolean,
+): Promise<{ success: boolean; data: PassengerDetail }> => {
+  try {
+    const response = await apiClient.post(
+      `/trips/${tripId}/passengers/${passengerId}/board`,
+      { boarded },
+    );
+    return response.data as { success: boolean; data: PassengerDetail };
+  } catch (error) {
+    console.error("Error marking passenger boarded:", error);
     throw error;
   }
 };
