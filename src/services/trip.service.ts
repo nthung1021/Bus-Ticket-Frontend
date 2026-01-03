@@ -74,12 +74,23 @@ export interface Bus {
   amenities: string[];
 }
 
+export interface PassengerDetail {
+  id: string;
+  bookingId: string;
+  fullName: string;
+  documentId?: string;
+  seatCode: string;
+}
+
 export interface Booking {
   id: string;
+  bookingReference?: string;
   userId?: string;
   seatNumbers?: string[];
+  totalAmount?: number;
   totalPrice?: number;
   status?: string;
+  passengerDetails?: PassengerDetail[];
 }
 
 export interface Trip {
