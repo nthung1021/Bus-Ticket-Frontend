@@ -8,6 +8,7 @@ interface User {
   email: string;
   fullName: string;
   role: string;
+  avatarUrl?: string;
 }
 
 interface LoginCredentials {
