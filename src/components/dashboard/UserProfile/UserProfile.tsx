@@ -12,8 +12,10 @@ import { EditProfileDialog } from "@/components/dashboard/EditProfileDialog/Edit
 import { ChangePasswordDialog } from "@/components/dashboard/ChangePasswordDialog/ChangePasswordDialog";
 import styles from "./UserProfile.module.css";
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function UserProfile() {
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,9 @@ export function UserProfile() {
       if (profile) {
         setProfile({ ...profile, avatarUrl: result.avatarUrl });
       }
+
+      // Sync with global auth state (like the Navbar)
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
 
       toast({
         title: "Success",

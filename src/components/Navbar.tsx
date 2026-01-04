@@ -97,9 +97,17 @@ export default function Navbar() {
                   </Link>
                 )}
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center space-x-2 p-2 rounded-full hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
-                      {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                  <DropdownMenuTrigger className="flex items-center space-x-2 p-1 rounded-full hover:bg-muted/50 transition-colors cursor-pointer border border-border">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm overflow-hidden">
+                      {user?.avatarUrl ? (
+                        <img 
+                          src={user.avatarUrl} 
+                          alt={user.fullName} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        user?.fullName?.charAt(0)?.toUpperCase() || 'U'
+                      )}
                     </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -238,8 +246,16 @@ export default function Navbar() {
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3 py-3 border-b border-border/50 bg-muted/20 rounded-lg px-3">
-                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
-                      {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm overflow-hidden">
+                      {user?.avatarUrl ? (
+                        <img 
+                          src={user.avatarUrl} 
+                          alt={user.fullName} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        user?.fullName?.charAt(0)?.toUpperCase() || 'U'
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-foreground">{user?.fullName}</div>
