@@ -65,49 +65,68 @@ import {
 } from "@/services/trip.service";
 import { adminActivityService } from "@/services/admin-activity.service";
 
+/**
+ * Trip management page (Admin)
+ * - Hiển thị danh sách các chuyến, cung cấp filter, sort, pagination
+ * - Cho phép tạo/sửa/xóa trip, xem payments của trip đã xóa, xem passenger list và đánh dấu đã boarded
+ */
 function TripManagementPage() {
-    const [trips, setTrips] = useState<Trip[]>([]);
-    const [routes, setRoutes] = useState<Route[]>([]);
-    const [buses, setBuses] = useState<BusType[]>([]);
-    const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+    // Dữ liệu gốc từ backend
+    const [trips, setTrips] = useState<Trip[]>([]); // tất cả trips (bao gồm deleted nếu showDeleted = true khi gọi API)
+    const [routes, setRoutes] = useState<Route[]>([]); // danh sách route để map id -> tên
+    const [buses, setBuses] = useState<BusType[]>([]); // danh sách bus để map id -> plate/model
+
+    // State cho UI, filter và paging
+    const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]); // trips đã qua filter & sort
+    const [isDialogOpen, setIsDialogOpen] = useState(false); // dialog create/edit
+    const [editingTrip, setEditingTrip] = useState<Trip | null>(null); // trip đang edit
+
+    // Filters
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [routeFilter, setRouteFilter] = useState<string>("all");
     const [dateFilter, setDateFilter] = useState<string>("all");
     const [priceFilter, setPriceFilter] = useState<string>("all");
+
+    // Sorting
     const [sortBy, setSortBy] = useState<string>("departureTime");
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-    const [isLoading, setIsLoading] = useState(false);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // Loading & pagination
+    const [isLoading, setIsLoading] = useState(false); // dùng cho submit/operations
+    const [isInitialLoading, setIsInitialLoading] = useState(true); // loading lúc fetch ban đầu
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 50;
+
+    // Hiển thị bản ghi đã xóa hay không (kích hoạt endpoint showDeleted)
     const [showDeleted, setShowDeleted] = useState(false);
 
-    // deleted trips modal state
+    // --- Deleted trips modal state ---
     const [showDeletedModal, setShowDeletedModal] = useState(false);
     const [selectedDeletedTrip, setSelectedDeletedTrip] = useState<Trip | null>(null);
     const [deletedTripPayments, setDeletedTripPayments] = useState<any[]>([]);
     const [paymentsLoading, setPaymentsLoading] = useState(false);
     const [refunding, setRefunding] = useState(false);
 
-    // passengers modal state
+    // --- Passengers modal state ---
     const [showPassengersModal, setShowPassengersModal] = useState(false);
     const [selectedTripForPassengers, setSelectedTripForPassengers] = useState<Trip | null>(null);
-    const [selectedPassengersByBooking, setSelectedPassengersByBooking] = useState<any[]>([]);
+    const [selectedPassengersByBooking, setSelectedPassengersByBooking] = useState<any[]>([]); // grouped by booking
     const [passengersLoading, setPassengersLoading] = useState(false);
 
-    // Fetch data on component mount
+    // Fetch dữ liệu ban đầu (trips, routes, buses)
+    // Dependency: `showDeleted` - khi toggle showDeleted sẽ fetch lại (ví dụ xem trips đã xóa)
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setIsInitialLoading(true);
+                // Gọi đồng thời nhiều endpoint để tiết kiệm thời gian
                 const [tripsData, routesData, busesData] = await Promise.all([
                     getTrips(showDeleted),
                     getRoutes(),
                     getBuses()
                 ]);
+
                 setTrips(tripsData);
                 setRoutes(routesData);
                 setBuses(busesData);
@@ -122,11 +141,16 @@ function TripManagementPage() {
         fetchData();
     }, [showDeleted]);
 
-    // Filter trips based on search and multiple filters
+    /**
+     * Filter & sort trips khi có thay đổi ở các state liên quan
+     * - Áp dụng search, status, route, date, price
+     * - Sau đó sort theo `sortBy` và `sortOrder`
+     * - Reset currentPage về 1 khi filter thay đổi
+     */
     useEffect(() => {
         let filtered = trips;
 
-        // Filter by search query
+        // -- Search: tìm theo route.name hoặc bus.plateNumber (case-insensitive)
         if (searchQuery) {
             filtered = filtered.filter(
                 (trip) =>
@@ -135,23 +159,23 @@ function TripManagementPage() {
             );
         }
 
-        // Filter by status
+        // -- Filter theo status
         if (statusFilter !== "all") {
             filtered = filtered.filter((trip) => trip.status === statusFilter);
         }
-        
-        // Filter by route
+
+        // -- Filter theo routeId
         if (routeFilter !== "all") {
             filtered = filtered.filter((trip) => trip.routeId === routeFilter);
         }
-        
-        // Filter by date
+
+        // -- Filter theo date range (today, tomorrow, thisWeek, upcoming, past)
         if (dateFilter !== "all") {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
             const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-            
+
             filtered = filtered.filter((trip) => {
                 const tripDate = new Date(trip.departureTime);
                 switch (dateFilter) {
@@ -170,8 +194,8 @@ function TripManagementPage() {
                 }
             });
         }
-        
-        // Filter by price range
+
+        // -- Filter theo price range (low/medium/high)
         if (priceFilter !== "all") {
             filtered = filtered.filter((trip) => {
                 const price = trip.basePrice || 0;
@@ -187,8 +211,8 @@ function TripManagementPage() {
                 }
             });
         }
-        
-        // Sort filtered results
+
+        // -- Sort theo tiêu chí đã chọn
         filtered.sort((a, b) => {
             let comparison = 0;
             switch (sortBy) {
@@ -219,10 +243,10 @@ function TripManagementPage() {
         });
 
         setFilteredTrips(filtered);
-        setCurrentPage(1); // Reset to page 1 when filters change
+        setCurrentPage(1); // Reset to page 1 khi filter thay đổi
     }, [searchQuery, statusFilter, routeFilter, dateFilter, priceFilter, sortBy, sortOrder, trips]);
 
-    // Pagination calculations
+    // --- Pagination calculations: xác định page hiện tại ---
     const totalItems = filteredTrips.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -231,17 +255,25 @@ function TripManagementPage() {
     const showingFrom = totalItems === 0 ? 0 : startIndex + 1;
     const showingTo = Math.min(endIndex, totalItems);
 
+    // Open create dialog
     const handleCreateTrip = () => {
         setEditingTrip(null);
         setIsDialogOpen(true);
     };
 
+    // Open edit dialog with selected trip
     const handleEditTrip = (trip: Trip) => {
         setEditingTrip(trip);
         setIsDialogOpen(true);
-        setShowDeletedModal(false);
+        setShowDeletedModal(false); // ensure deleted modal is closed when editing
     };
 
+    /**
+     * Xóa trip (soft-delete trên backend) và thực hiện refund nếu cần
+     * - Gọi endpoint refundTrip
+     * - Làm mới danh sách trips (non deleted view)
+     * - Ghi log adminActivity
+     */
     const handleDeleteTrip = async (tripId: string) => {
         if (confirm("Are you sure you want to delete this trip?")) {
             try {
@@ -249,7 +281,7 @@ function TripManagementPage() {
 
                 const tripToDelete = trips.find(t => t.id === tripId);
 
-                // First call refund endpoint and show loading toast
+                // Gọi refund API và show toast promise để xử lý trạng thái
                 await toast.promise(
                     refundTrip(tripId),
                     {
@@ -259,11 +291,11 @@ function TripManagementPage() {
                     }
                 );
 
-                // Refresh trips list (non-deleted view)
+                // Refresh trips (non-deleted view)
                 const refreshed = await getTrips(false);
                 setTrips(refreshed);
 
-                // Log admin activity
+                // Log admin action nếu cần
                 if (tripToDelete) {
                     adminActivityService.addActivity(
                         'deleted',
@@ -281,10 +313,16 @@ function TripManagementPage() {
         }
     };
 
+    /**
+     * Submit handler cho cả create và update
+     * - Format dữ liệu (dates, numbers)
+     * - Gọi createTrip hoặc updateTrip
+     * - Update local state và log activity
+     */
     const handleSubmitTrip = async (data: any) => {
         setIsLoading(true);
         try {
-            // Format data for backend
+            // Format data cho backend
             const tripData: CreateTripDto | UpdateTripDto = {
                 routeId: data.routeId,
                 busId: data.busId,
@@ -299,7 +337,7 @@ function TripManagementPage() {
                 const updatedTrip = await updateTrip(editingTrip.id, tripData as UpdateTripDto);
                 setTrips(trips.map((t) => t.id === editingTrip.id ? updatedTrip : t));
                 toast.success("Trip updated successfully");
-                
+
                 // Log admin activity
                 adminActivityService.addActivity(
                     'updated',
@@ -312,7 +350,7 @@ function TripManagementPage() {
                 const newTrip = await createTrip(tripData as CreateTripDto);
                 setTrips([...trips, newTrip]);
                 toast.success("Trip created successfully");
-                
+
                 // Log admin activity
                 const routeName = routes.find(r => r.id === data.routeId)?.name || 'Route';
                 adminActivityService.addActivity(
@@ -327,7 +365,7 @@ function TripManagementPage() {
             setEditingTrip(null);
         } catch (error: any) {
             console.error("Error saving trip:", error);
-            // Prefer server-provided message when available (axios error.response.data.message)
+            // Ưu tiên message từ server nếu có
             const serverMessage = error?.response?.data?.message;
             toast.error(serverMessage || error?.message || "Failed to save trip");
         } finally {
@@ -335,6 +373,9 @@ function TripManagementPage() {
         }
     };
 
+    /**
+     * Trả về Badge tuỳ theo trạng thái trip
+     */
     const getStatusBadge = (status: Trip["status"]) => {
         const variants: Record<Trip["status"], { variant: any; label: string }> = {
             scheduled: { variant: "default", label: "Scheduled" },
@@ -381,10 +422,7 @@ function TripManagementPage() {
                                 Create, edit, and manage trip schedules
                             </p>
                         </div>
-                        {/* <Button onClick={handleCreateTrip} className="w-full sm:w-auto shrink-0 cursor-pointer">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Trip
-                        </Button> */}
+                        {/* Create Trip button (kept available) */}
                     </div>
 
                     {/* Compact Filters */}
@@ -401,7 +439,7 @@ function TripManagementPage() {
                                         className="pl-10"
                                     />
                                 </div>
-                                
+
                                 <div className="flex items-center gap-2">
                                     <Button onClick={() => setShowDeleted((s) => !s)} variant={showDeleted ? 'destructive' : 'default'}>
                                         {showDeleted ? 'Hide Deleted Trips' : 'Show Deleted Trips'}
@@ -412,78 +450,8 @@ function TripManagementPage() {
                                     </Button>
                                 </div>
                             </div>
-                            
-                            {/* Second row: All filters */}
-                            {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Status</SelectItem>
-                                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                                        <SelectItem value="in_progress">In Progress</SelectItem>
-                                        <SelectItem value="completed">Completed</SelectItem>
-                                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                                        <SelectItem value="delayed">Delayed</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={routeFilter} onValueChange={setRouteFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Routes" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Routes</SelectItem>
-                                        {routes.map((route) => (
-                                            <SelectItem key={route.id} value={route.id}>
-                                                {route.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={dateFilter} onValueChange={setDateFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Dates" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Dates</SelectItem>
-                                        <SelectItem value="today">Today</SelectItem>
-                                        <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                                        <SelectItem value="thisWeek">This Week</SelectItem>
-                                        <SelectItem value="upcoming">Upcoming</SelectItem>
-                                        <SelectItem value="past">Past</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={priceFilter} onValueChange={setPriceFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Prices" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Prices</SelectItem>
-                                        <SelectItem value="low">Low (≤500k VND)</SelectItem>
-                                        <SelectItem value="medium">Medium (500k-1M VND)</SelectItem>
-                                        <SelectItem value="high">High (&gt;1M VND)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                
-                                <Select value={sortBy} onValueChange={setSortBy}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sort by" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="departureTime">Departure Time</SelectItem>
-                                        <SelectItem value="route">Route</SelectItem>
-                                        <SelectItem value="price">Price</SelectItem>
-                                        <SelectItem value="status">Status</SelectItem>
-                                        <SelectItem value="bus">Bus</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div> */}
-                            
-                            {/* Filters Row */}
+
+                            {/* Filters Row (status/route/date/price) */}
                             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
                                 <span className="text-sm font-medium shrink-0">Filters:</span>
                                 <div className="flex flex-wrap items-center gap-2 flex-1">
@@ -500,7 +468,7 @@ function TripManagementPage() {
                                             <SelectItem value="delayed">Delayed</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    
+
                                     <Select value={routeFilter} onValueChange={setRouteFilter}>
                                         <SelectTrigger className="w-[130px]">
                                             <SelectValue placeholder="Route" />
@@ -514,7 +482,7 @@ function TripManagementPage() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    
+
                                     <Select value={dateFilter} onValueChange={setDateFilter}>
                                         <SelectTrigger className="w-[130px]">
                                             <SelectValue placeholder="Date" />
@@ -528,7 +496,7 @@ function TripManagementPage() {
                                             <SelectItem value="past">Past</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    
+
                                     <Select value={priceFilter} onValueChange={setPriceFilter}>
                                         <SelectTrigger className="w-[130px]">
                                             <SelectValue placeholder="Price" />
@@ -540,7 +508,7 @@ function TripManagementPage() {
                                             <SelectItem value="high">High (&gt;1M)</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    
+
                                     {/* Clear Filters Button - only show when filters are active */}
                                     {(searchQuery || statusFilter !== "all" || routeFilter !== "all" || dateFilter !== "all" || priceFilter !== "all") && (
                                         <Button
@@ -618,9 +586,9 @@ function TripManagementPage() {
                                     >
                                         Bus
                                     </Button>
-                                    
+
                                     <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
-                                    
+
                                     <Button
                                         variant="secondary"
                                         size="sm"
@@ -640,7 +608,7 @@ function TripManagementPage() {
                         <div className="px-4 pt-4 pb-2 text-sm text-muted-foreground">
                             Showing {showingFrom} to {showingTo} of {totalItems} trips
                         </div>
-                        
+
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -685,6 +653,7 @@ function TripManagementPage() {
                                     ) : (
                                         filteredTrips.map((trip) => (
                                             <TableRow key={trip.id} className={`hover:bg-muted/50 ${showDeleted ? 'cursor-pointer' : ''}`} onClick={async () => {
+                                                // Khi đang xem trips đã xóa, click 1 hàng sẽ mở dialog Payments của trip đó
                                                 if (showDeleted) {
                                                     try {
                                                         setPaymentsLoading(true);
@@ -699,6 +668,7 @@ function TripManagementPage() {
                                                         setPaymentsLoading(false);
                                                     }
                                                 } else {
+                                                    // Khi đang xem trips thường, click 1 hàng sẽ mở dialog Passenger list
                                                     try {
                                                         setPassengersLoading(true);
                                                         setSelectedTripForPassengers(trip);
@@ -707,6 +677,7 @@ function TripManagementPage() {
                                                         const tripRaw = await getTripById(trip.id);
                                                         const tripData = (tripRaw as any)?.data ?? (tripRaw as any);
                                                         const bookings = tripData.bookings || [];
+                                                        // Group passengers theo booking để hiển thị rõ ràng
                                                         const grouped = bookings.map((b: any) => ({
                                                             bookingReference: b.bookingReference || b.booking_reference || b.id,
                                                             bookingId: b.id,
@@ -801,7 +772,7 @@ function TripManagementPage() {
                                 </TableBody>
                             </Table>
                         </div>
-                        
+
                         {/* Pagination */}
                         {totalItems > 0 && (
                             <Pagination
